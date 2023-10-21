@@ -8,7 +8,7 @@ extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
     fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
     fn HTS_free(p: *mut libc::c_void);
-    fn HTS_Audio_write(audio: *mut HTS_Audio, data: libc::c_short);
+    // fn HTS_Audio_write(audio: *mut HTS_Audio, data: libc::c_short);
 }
 static mut HTS_pade: [libc::c_double; 21] = [
     1.00000000000f64,
@@ -1396,7 +1396,7 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
             } else {
                 xs = x as libc::c_short;
             }
-            HTS_Audio_write(audio, xs);
+            // HTS_Audio_write(audio, xs);
         }
         i = 0 as libc::c_int;
         while i as size_t <= m {

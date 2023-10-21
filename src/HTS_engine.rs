@@ -109,7 +109,7 @@ extern "C" {
         ms: *mut HTS_ModelSet,
         stream_index: size_t,
     ) -> size_t;
-    fn HTS_Audio_initialize(audio: *mut HTS_Audio);
+    // fn HTS_Audio_initialize(audio: *mut HTS_Audio);
     fn HTS_ModelSet_get_option(
         ms: *mut HTS_ModelSet,
         stream_index: size_t,
@@ -118,7 +118,7 @@ extern "C" {
     fn HTS_Label_clear(label: *mut HTS_Label);
     fn HTS_ModelSet_get_sampling_frequency(ms: *mut HTS_ModelSet) -> size_t;
     fn HTS_ModelSet_get_nstream(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_Audio_clear(audio: *mut HTS_Audio);
+    // fn HTS_Audio_clear(audio: *mut HTS_Audio);
     fn HTS_ModelSet_clear(ms: *mut HTS_ModelSet);
     fn HTS_free(p: *mut libc::c_void);
     fn HTS_ModelSet_get_nvoices(ms: *mut HTS_ModelSet) -> size_t;
@@ -133,11 +133,11 @@ extern "C" {
     fn HTS_ModelSet_get_fullcontext_label_format(
         ms: *mut HTS_ModelSet,
     ) -> *const libc::c_char;
-    fn HTS_Audio_set_parameter(
-        audio: *mut HTS_Audio,
-        sampling_frequency: size_t,
-        max_buff_size: size_t,
-    );
+    // fn HTS_Audio_set_parameter(
+    //     audio: *mut HTS_Audio,
+    //     sampling_frequency: size_t,
+    //     max_buff_size: size_t,
+    // );
     fn HTS_ModelSet_get_nstate(ms: *mut HTS_ModelSet) -> size_t;
     fn HTS_GStreamSet_create(
         gss: *mut HTS_GStreamSet,
@@ -193,7 +193,7 @@ pub unsafe extern "C" fn HTS_Engine_initialize(mut engine: *mut HTS_Engine) {
     (*engine).condition.duration_iw = 0 as *mut libc::c_double;
     (*engine).condition.parameter_iw = 0 as *mut *mut libc::c_double;
     (*engine).condition.gv_iw = 0 as *mut *mut libc::c_double;
-    HTS_Audio_initialize(&mut (*engine).audio);
+    // HTS_Audio_initialize(&mut (*engine).audio);
     HTS_ModelSet_initialize(&mut (*engine).ms);
     HTS_Label_initialize(&mut (*engine).label);
     HTS_SStreamSet_initialize(&mut (*engine).sss);
@@ -372,11 +372,11 @@ pub unsafe extern "C" fn HTS_Engine_set_sampling_frequency(
         i = 1 as libc::c_int as size_t;
     }
     (*engine).condition.sampling_frequency = i;
-    HTS_Audio_set_parameter(
-        &mut (*engine).audio,
-        (*engine).condition.sampling_frequency,
-        (*engine).condition.audio_buff_size,
-    );
+    // HTS_Audio_set_parameter(
+    //     &mut (*engine).audio,
+    //     (*engine).condition.sampling_frequency,
+    //     (*engine).condition.audio_buff_size,
+    // );
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Engine_get_sampling_frequency(
@@ -404,11 +404,11 @@ pub unsafe extern "C" fn HTS_Engine_set_audio_buff_size(
     mut i: size_t,
 ) {
     (*engine).condition.audio_buff_size = i;
-    HTS_Audio_set_parameter(
-        &mut (*engine).audio,
-        (*engine).condition.sampling_frequency,
-        (*engine).condition.audio_buff_size,
-    );
+    // HTS_Audio_set_parameter(
+    //     &mut (*engine).audio,
+    //     (*engine).condition.sampling_frequency,
+    //     (*engine).condition.audio_buff_size,
+    // );
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Engine_get_audio_buff_size(
@@ -1568,6 +1568,6 @@ pub unsafe extern "C" fn HTS_Engine_clear(mut engine: *mut HTS_Engine) {
         HTS_free((*engine).condition.gv_iw as *mut libc::c_void);
     }
     HTS_ModelSet_clear(&mut (*engine).ms);
-    HTS_Audio_clear(&mut (*engine).audio);
+    // HTS_Audio_clear(&mut (*engine).audio);
     HTS_Engine_initialize(engine);
 }

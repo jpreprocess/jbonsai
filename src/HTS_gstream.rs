@@ -5,7 +5,7 @@ use crate::util::*;
 extern "C" {
     fn HTS_free(p: *mut libc::c_void);
     fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
-    fn HTS_Audio_flush(audio: *mut HTS_Audio);
+    // fn HTS_Audio_flush(audio: *mut HTS_Audio);
     fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
     fn HTS_PStreamSet_get_nstream(pss: *mut HTS_PStreamSet) -> size_t;
     fn HTS_PStreamSet_get_vector_length(
@@ -283,9 +283,9 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
         i;
     }
     HTS_Vocoder_clear(&mut v);
-    if !audio.is_null() {
-        HTS_Audio_flush(audio);
-    }
+    // if !audio.is_null() {
+    //     HTS_Audio_flush(audio);
+    // }
     return 1 as libc::c_int as HTS_Boolean;
 }
 #[no_mangle]
