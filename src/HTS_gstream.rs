@@ -21,7 +21,7 @@ pub struct HTS_GStreamSet {
     pub gspeech: *mut libc::c_double,
 }
 
-pub unsafe fn HTS_GStreamSet_initialize(mut gss: &mut HTS_GStreamSet) {
+pub unsafe fn HTS_GStreamSet_initialize(gss: &mut HTS_GStreamSet) {
     gss.nstream = 0 as libc::c_int as size_t;
     gss.total_frame = 0 as libc::c_int as size_t;
     gss.total_nsample = 0 as libc::c_int as size_t;
@@ -30,16 +30,16 @@ pub unsafe fn HTS_GStreamSet_initialize(mut gss: &mut HTS_GStreamSet) {
 }
 
 pub unsafe fn HTS_GStreamSet_create(
-    mut gss: &mut HTS_GStreamSet,
-    mut pss: &mut HTS_PStreamSet,
-    mut stage: size_t,
-    mut use_log_gain: HTS_Boolean,
-    mut sampling_rate: size_t,
-    mut fperiod: size_t,
-    mut alpha: libc::c_double,
-    mut beta: libc::c_double,
-    mut stop: *mut HTS_Boolean,
-    mut volume: libc::c_double,
+    gss: &mut HTS_GStreamSet,
+    pss: &mut HTS_PStreamSet,
+    stage: size_t,
+    use_log_gain: HTS_Boolean,
+    sampling_rate: size_t,
+    fperiod: size_t,
+    alpha: libc::c_double,
+    beta: libc::c_double,
+    stop: *mut HTS_Boolean,
+    volume: libc::c_double,
 ) -> HTS_Boolean {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
@@ -237,39 +237,39 @@ pub unsafe fn HTS_GStreamSet_create(
     1 as libc::c_int as HTS_Boolean
 }
 
-pub unsafe fn HTS_GStreamSet_get_total_nsamples(mut gss: &mut HTS_GStreamSet) -> size_t {
+pub unsafe fn HTS_GStreamSet_get_total_nsamples(gss: &mut HTS_GStreamSet) -> size_t {
     gss.total_nsample
 }
 
-pub unsafe fn HTS_GStreamSet_get_total_frame(mut gss: &mut HTS_GStreamSet) -> size_t {
+pub unsafe fn HTS_GStreamSet_get_total_frame(gss: &mut HTS_GStreamSet) -> size_t {
     gss.total_frame
 }
 
 pub unsafe fn HTS_GStreamSet_get_vector_length(
-    mut gss: &mut HTS_GStreamSet,
-    mut stream_index: size_t,
+    gss: &mut HTS_GStreamSet,
+    stream_index: size_t,
 ) -> size_t {
     (*(gss.gstream).offset(stream_index as isize)).vector_length
 }
 
 pub unsafe fn HTS_GStreamSet_get_speech(
-    mut gss: &mut HTS_GStreamSet,
-    mut sample_index: size_t,
+    gss: &mut HTS_GStreamSet,
+    sample_index: size_t,
 ) -> libc::c_double {
     *(gss.gspeech).offset(sample_index as isize)
 }
 
 pub unsafe fn HTS_GStreamSet_get_parameter(
-    mut gss: &mut HTS_GStreamSet,
-    mut stream_index: size_t,
-    mut frame_index: size_t,
-    mut vector_index: size_t,
+    gss: &mut HTS_GStreamSet,
+    stream_index: size_t,
+    frame_index: size_t,
+    vector_index: size_t,
 ) -> libc::c_double {
     *(*((*(gss.gstream).offset(stream_index as isize)).par).offset(frame_index as isize))
         .offset(vector_index as isize)
 }
 
-pub unsafe fn HTS_GStreamSet_clear(mut gss: &mut HTS_GStreamSet) {
+pub unsafe fn HTS_GStreamSet_clear(gss: &mut HTS_GStreamSet) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     if !(gss.gstream).is_null() {

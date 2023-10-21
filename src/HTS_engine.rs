@@ -643,37 +643,37 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
         fp,
         b"Sampring frequency                     -> %8lu(Hz)\n\0" as *const u8
             as *const libc::c_char,
-        (*condition).sampling_frequency,
+        condition.sampling_frequency,
     );
     fprintf(
         fp,
         b"Frame period                           -> %8lu(point)\n\0" as *const u8
             as *const libc::c_char,
-        (*condition).fperiod,
+        condition.fperiod,
     );
     fprintf(
         fp,
         b"                                          %8.5f(msec)\n\0" as *const u8
             as *const libc::c_char,
-        1e+3f64 * (*condition).fperiod as libc::c_double
-            / (*condition).sampling_frequency as libc::c_double,
+        1e+3f64 * condition.fperiod as libc::c_double
+            / condition.sampling_frequency as libc::c_double,
     );
     fprintf(
         fp,
         b"All-pass constant                      -> %8.5f\n\0" as *const u8 as *const libc::c_char,
-        (*condition).alpha as libc::c_float as libc::c_double,
+        condition.alpha as libc::c_float as libc::c_double,
     );
     fprintf(
         fp,
         b"Gamma                                  -> %8.5f\n\0" as *const u8 as *const libc::c_char,
-        (if (*condition).stage == 0 as libc::c_int as size_t {
+        (if condition.stage == 0 as libc::c_int as size_t {
             0.0f64
         } else {
-            -1.0f64 / (*condition).stage as libc::c_double
+            -1.0f64 / condition.stage as libc::c_double
         }) as libc::c_float as libc::c_double,
     );
-    if (*condition).stage != 0 as libc::c_int as size_t {
-        if (*condition).use_log_gain as libc::c_int == 1 as libc::c_int {
+    if condition.stage != 0 as libc::c_int as size_t {
+        if condition.use_log_gain as libc::c_int == 1 as libc::c_int {
             fprintf(
                 fp,
                 b"Log gain flag                          ->     TRUE\n\0" as *const u8
@@ -690,13 +690,13 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
     fprintf(
         fp,
         b"Postfiltering coefficient              -> %8.5f\n\0" as *const u8 as *const libc::c_char,
-        (*condition).beta as libc::c_float as libc::c_double,
+        condition.beta as libc::c_float as libc::c_double,
     );
     fprintf(
         fp,
         b"Audio buffer size                      -> %8lu(sample)\n\0" as *const u8
             as *const libc::c_char,
-        (*condition).audio_buff_size,
+        condition.audio_buff_size,
     );
     fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
     fprintf(
@@ -716,13 +716,13 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
     i = 0 as libc::c_int as size_t;
     temp = 0.0f64;
     while i < HTS_ModelSet_get_nvoices(ms) {
-        temp += *((*condition).duration_iw).offset(i as isize);
+        temp += *(condition.duration_iw).offset(i as isize);
         i = i.wrapping_add(1);
     }
     i = 0 as libc::c_int as size_t;
     while i < HTS_ModelSet_get_nvoices(ms) {
-        if *((*condition).duration_iw).offset(i as isize) != 0.0f64 {
-            *((*condition).duration_iw).offset(i as isize) /= temp;
+        if *(condition.duration_iw).offset(i as isize) != 0.0f64 {
+            *(condition.duration_iw).offset(i as isize) /= temp;
         }
         i = i.wrapping_add(1);
     }
@@ -733,7 +733,7 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
             b"         Interpolation weight[%2lu]      -> %8.0f(%%)\n\0" as *const u8
                 as *const libc::c_char,
             i,
-            (100 as libc::c_int as libc::c_double * *((*condition).duration_iw).offset(i as isize))
+            (100 as libc::c_int as libc::c_double * *(condition.duration_iw).offset(i as isize))
                 as libc::c_float as libc::c_double,
         );
         i = i.wrapping_add(1);
@@ -767,13 +767,13 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
         j = 0 as libc::c_int as size_t;
         temp = 0.0f64;
         while j < HTS_ModelSet_get_nvoices(ms) {
-            temp += *(*((*condition).parameter_iw).offset(j as isize)).offset(i as isize);
+            temp += *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize);
             j = j.wrapping_add(1);
         }
         j = 0 as libc::c_int as size_t;
         while j < HTS_ModelSet_get_nvoices(ms) {
-            if *(*((*condition).parameter_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
-                *(*((*condition).parameter_iw).offset(j as isize)).offset(i as isize) /= temp;
+            if *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
+                *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize) /= temp;
             }
             j = j.wrapping_add(1);
         }
@@ -785,7 +785,7 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
                     as *const libc::c_char,
                 j,
                 (100 as libc::c_int as libc::c_double
-                    * *(*((*condition).parameter_iw).offset(j as isize)).offset(i as isize))
+                    * *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize))
                     as libc::c_float as libc::c_double,
             );
             j = j.wrapping_add(1);
@@ -800,7 +800,7 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
                 fp,
                 b"           MSD threshold               -> %8.5f\n\0" as *const u8
                     as *const libc::c_char,
-                *((*condition).msd_threshold).offset(i as isize),
+                *(condition.msd_threshold).offset(i as isize),
             );
         } else {
             fprintf(
@@ -820,7 +820,7 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
                 b"           GV weight                   -> %8.0f(%%)\n\0" as *const u8
                     as *const libc::c_char,
                 (100 as libc::c_int as libc::c_double
-                    * *((*condition).gv_weight).offset(i as isize)) as libc::c_float
+                    * *(condition.gv_weight).offset(i as isize)) as libc::c_float
                     as libc::c_double,
             );
             fprintf(
@@ -832,13 +832,13 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
             j = 0 as libc::c_int as size_t;
             temp = 0.0f64;
             while j < HTS_ModelSet_get_nvoices(ms) {
-                temp += *(*((*condition).gv_iw).offset(j as isize)).offset(i as isize);
+                temp += *(*(condition.gv_iw).offset(j as isize)).offset(i as isize);
                 j = j.wrapping_add(1);
             }
             j = 0 as libc::c_int as size_t;
             while j < HTS_ModelSet_get_nvoices(ms) {
-                if *(*((*condition).gv_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
-                    *(*((*condition).gv_iw).offset(j as isize)).offset(i as isize) /= temp;
+                if *(*(condition.gv_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
+                    *(*(condition.gv_iw).offset(j as isize)).offset(i as isize) /= temp;
                 }
                 j = j.wrapping_add(1);
             }
@@ -850,7 +850,7 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
                         as *const libc::c_char,
                     j,
                     (100 as libc::c_int as libc::c_double
-                        * *(*((*condition).gv_iw).offset(j as isize)).offset(i as isize))
+                        * *(*(condition.gv_iw).offset(j as isize)).offset(i as isize))
                         as libc::c_float as libc::c_double,
                 );
                 j = j.wrapping_add(1);
@@ -884,15 +884,15 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
         b"Length of this speech                  -> %8.3f(sec)\n\0" as *const u8
             as *const libc::c_char,
         (HTS_PStreamSet_get_total_frame(pss) as libc::c_double
-            * (*condition).fperiod as libc::c_double
-            / (*condition).sampling_frequency as libc::c_double) as libc::c_float
+            * condition.fperiod as libc::c_double
+            / condition.sampling_frequency as libc::c_double) as libc::c_float
             as libc::c_double,
     );
     fprintf(
         fp,
         b"                                       -> %8lu(frames)\n\0" as *const u8
             as *const libc::c_char,
-        (HTS_PStreamSet_get_total_frame(pss)).wrapping_mul((*condition).fperiod),
+        (HTS_PStreamSet_get_total_frame(pss)).wrapping_mul(condition.fperiod),
     );
     i = 0 as libc::c_int as size_t;
     while i < HTS_Label_get_size(label) {
@@ -950,7 +950,7 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
                         sss,
                         k,
                         (i * HTS_ModelSet_get_nstate(ms)).wrapping_add(j),
-                    ) > *((*condition).msd_threshold).offset(k as isize)
+                    ) > *(condition.msd_threshold).offset(k as isize)
                     {
                         fprintf(
                             fp,

@@ -1196,7 +1196,7 @@ pub unsafe fn HTS_Vocoder_synthesize(
     let mut x: libc::c_double = 0.;
     let mut i: libc::c_int = 0;
     let mut j: libc::c_int = 0;
-    let mut xs: libc::c_short = 0;
+    let mut _xs: libc::c_short = 0;
     let mut rawidx: libc::c_int = 0 as libc::c_int;
     let mut p: libc::c_double = 0.;
     if lf0 == -1.0e+10f64 {
