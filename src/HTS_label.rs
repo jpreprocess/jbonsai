@@ -22,7 +22,7 @@ use crate::{
 };
 
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_LabelString {
     pub next: *mut HTS_LabelString,
     pub name: *mut libc::c_char,
@@ -30,7 +30,7 @@ pub struct HTS_LabelString {
     pub end: libc::c_double,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_Label {
     pub head: *mut HTS_LabelString,
     pub size: size_t,

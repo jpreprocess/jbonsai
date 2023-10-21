@@ -16,7 +16,7 @@ extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_Vocoder {
     pub is_first: HTS_Boolean,
     pub stage: size_t,

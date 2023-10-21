@@ -24,7 +24,7 @@ use crate::{
 };
 
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_PStream {
     pub vector_length: size_t,
     pub length: size_t,
@@ -42,7 +42,7 @@ pub struct HTS_PStream {
     pub gv_length: size_t,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_PStreamSet {
     pub pstream: *mut HTS_PStream,
     pub nstream: size_t,

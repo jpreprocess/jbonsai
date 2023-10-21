@@ -23,7 +23,7 @@ use crate::{
     HTS_ModelSet_use_gv, HTS_calloc, HTS_free,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_SStream {
     pub vector_length: size_t,
     pub mean: *mut *mut libc::c_double,
@@ -39,7 +39,7 @@ pub struct HTS_SStream {
     pub gv_switch: *mut HTS_Boolean,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_SStreamSet {
     pub sstream: *mut HTS_SStream,
     pub nstream: size_t,
@@ -49,7 +49,7 @@ pub struct HTS_SStreamSet {
     pub total_frame: size_t,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_SMatrices {
     pub mean: *mut *mut libc::c_double,
     pub ivar: *mut *mut libc::c_double,

@@ -40,7 +40,7 @@ extern "C" {
     fn fprintf(_: *mut FILE, _: *const libc::c_char, _: ...) -> libc::c_int;
 }
 pub type __builtin_va_list = [__va_list_tag; 1];
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct __va_list_tag {
     pub gp_offset: libc::c_uint,
@@ -51,19 +51,19 @@ pub struct __va_list_tag {
 pub type size_t = libc::c_ulong;
 pub type __off_t = libc::c_long;
 pub type __off64_t = libc::c_long;
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct __mbstate_t {
     pub __count: libc::c_int,
     pub __value: C2RustUnnamed,
 }
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub union C2RustUnnamed {
     pub __wch: libc::c_uint,
     pub __wchb: [libc::c_char; 4],
 }
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct _G_fpos_t {
     pub __pos: __off_t,
@@ -73,7 +73,7 @@ pub type __fpos_t = _G_fpos_t;
 pub type _IO_lock_t = ();
 pub type fpos_t = __fpos_t;
 pub type HTS_Data = _HTS_Data;
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 #[repr(C)]
 pub struct _HTS_Data {
     pub data: *mut libc::c_uchar,

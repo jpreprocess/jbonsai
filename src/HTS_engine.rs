@@ -36,7 +36,7 @@ use crate::{
     HTS_SStreamSet_set_mean, HTS_calloc, HTS_free, HTS_fwrite_little_endian,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_Condition {
     pub sampling_frequency: size_t,
     pub fperiod: size_t,
@@ -57,7 +57,7 @@ pub struct HTS_Condition {
     pub gv_iw: *mut *mut libc::c_double,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_Engine {
     pub condition: HTS_Condition,
     pub ms: HTS_ModelSet,

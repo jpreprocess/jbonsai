@@ -6,13 +6,13 @@ use crate::{
     HTS_Vocoder_clear, HTS_Vocoder_initialize, HTS_Vocoder_synthesize, HTS_calloc, HTS_free,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_GStream {
     pub vector_length: size_t,
     pub par: *mut *mut libc::c_double,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct HTS_GStreamSet {
     pub total_nsample: size_t,
     pub total_frame: size_t,
