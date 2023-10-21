@@ -1,4 +1,6 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+
+use crate::util::*;
 extern "C" {
     fn fabs(_: libc::c_double) -> libc::c_double;
     fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
@@ -70,130 +72,7 @@ extern "C" {
     fn HTS_Label_get_string(label: *mut HTS_Label, index: size_t) -> *const libc::c_char;
     fn HTS_Label_get_end_frame(label: *mut HTS_Label, index: size_t) -> libc::c_double;
 }
-pub type size_t = libc::c_ulong;
-pub type HTS_Boolean = libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Window {
-    pub size: size_t,
-    pub l_width: *mut libc::c_int,
-    pub r_width: *mut libc::c_int,
-    pub coefficient: *mut *mut libc::c_double,
-    pub max_width: size_t,
-}
-pub type HTS_Window = _HTS_Window;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Pattern {
-    pub string: *mut libc::c_char,
-    pub next: *mut _HTS_Pattern,
-}
-pub type HTS_Pattern = _HTS_Pattern;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Question {
-    pub string: *mut libc::c_char,
-    pub head: *mut HTS_Pattern,
-    pub next: *mut _HTS_Question,
-}
-pub type HTS_Question = _HTS_Question;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Node {
-    pub index: libc::c_int,
-    pub pdf: size_t,
-    pub yes: *mut _HTS_Node,
-    pub no: *mut _HTS_Node,
-    pub next: *mut _HTS_Node,
-    pub quest: *mut HTS_Question,
-}
-pub type HTS_Node = _HTS_Node;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Tree {
-    pub head: *mut HTS_Pattern,
-    pub next: *mut _HTS_Tree,
-    pub root: *mut HTS_Node,
-    pub state: size_t,
-}
-pub type HTS_Tree = _HTS_Tree;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Model {
-    pub vector_length: size_t,
-    pub num_windows: size_t,
-    pub is_msd: HTS_Boolean,
-    pub ntree: size_t,
-    pub npdf: *mut size_t,
-    pub pdf: *mut *mut *mut libc::c_float,
-    pub tree: *mut HTS_Tree,
-    pub question: *mut HTS_Question,
-}
-pub type HTS_Model = _HTS_Model;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_ModelSet {
-    pub hts_voice_version: *mut libc::c_char,
-    pub sampling_frequency: size_t,
-    pub frame_period: size_t,
-    pub num_voices: size_t,
-    pub num_states: size_t,
-    pub num_streams: size_t,
-    pub stream_type: *mut libc::c_char,
-    pub fullcontext_format: *mut libc::c_char,
-    pub fullcontext_version: *mut libc::c_char,
-    pub gv_off_context: *mut HTS_Question,
-    pub option: *mut *mut libc::c_char,
-    pub duration: *mut HTS_Model,
-    pub window: *mut HTS_Window,
-    pub stream: *mut *mut HTS_Model,
-    pub gv: *mut *mut HTS_Model,
-}
-pub type HTS_ModelSet = _HTS_ModelSet;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_LabelString {
-    pub next: *mut _HTS_LabelString,
-    pub name: *mut libc::c_char,
-    pub start: libc::c_double,
-    pub end: libc::c_double,
-}
-pub type HTS_LabelString = _HTS_LabelString;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Label {
-    pub head: *mut HTS_LabelString,
-    pub size: size_t,
-}
-pub type HTS_Label = _HTS_Label;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_SStream {
-    pub vector_length: size_t,
-    pub mean: *mut *mut libc::c_double,
-    pub vari: *mut *mut libc::c_double,
-    pub msd: *mut libc::c_double,
-    pub win_size: size_t,
-    pub win_l_width: *mut libc::c_int,
-    pub win_r_width: *mut libc::c_int,
-    pub win_coefficient: *mut *mut libc::c_double,
-    pub win_max_width: size_t,
-    pub gv_mean: *mut libc::c_double,
-    pub gv_vari: *mut libc::c_double,
-    pub gv_switch: *mut HTS_Boolean,
-}
-pub type HTS_SStream = _HTS_SStream;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_SStreamSet {
-    pub sstream: *mut HTS_SStream,
-    pub nstream: size_t,
-    pub nstate: size_t,
-    pub duration: *mut size_t,
-    pub total_state: size_t,
-    pub total_frame: size_t,
-}
-pub type HTS_SStreamSet = _HTS_SStreamSet;
+
 unsafe extern "C" fn HTS_set_default_duration(
     mut duration: *mut size_t,
     mut mean: *mut libc::c_double,

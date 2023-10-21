@@ -7,6 +7,8 @@ mod HTS_pstream;
 mod HTS_sstream;
 mod HTS_vocoder;
 
+mod util;
+
 fn main() {
     println!("Hello, world!");
 }

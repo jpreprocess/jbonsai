@@ -1,4 +1,7 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+
+use crate::util::*;
+
 extern "C" {
     fn HTS_free(p: *mut libc::c_void);
     fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
@@ -48,110 +51,6 @@ extern "C" {
     );
     fn HTS_Vocoder_clear(v: *mut HTS_Vocoder);
 }
-pub type size_t = libc::c_ulong;
-pub type HTS_Boolean = libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Audio {
-    pub sampling_frequency: size_t,
-    pub max_buff_size: size_t,
-    pub buff: *mut libc::c_short,
-    pub buff_size: size_t,
-    pub audio_interface: *mut libc::c_void,
-}
-pub type HTS_Audio = _HTS_Audio;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_SMatrices {
-    pub mean: *mut *mut libc::c_double,
-    pub ivar: *mut *mut libc::c_double,
-    pub g: *mut libc::c_double,
-    pub wuw: *mut *mut libc::c_double,
-    pub wum: *mut libc::c_double,
-}
-pub type HTS_SMatrices = _HTS_SMatrices;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_PStream {
-    pub vector_length: size_t,
-    pub length: size_t,
-    pub width: size_t,
-    pub par: *mut *mut libc::c_double,
-    pub sm: HTS_SMatrices,
-    pub win_size: size_t,
-    pub win_l_width: *mut libc::c_int,
-    pub win_r_width: *mut libc::c_int,
-    pub win_coefficient: *mut *mut libc::c_double,
-    pub msd_flag: *mut HTS_Boolean,
-    pub gv_mean: *mut libc::c_double,
-    pub gv_vari: *mut libc::c_double,
-    pub gv_switch: *mut HTS_Boolean,
-    pub gv_length: size_t,
-}
-pub type HTS_PStream = _HTS_PStream;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_PStreamSet {
-    pub pstream: *mut HTS_PStream,
-    pub nstream: size_t,
-    pub total_frame: size_t,
-}
-pub type HTS_PStreamSet = _HTS_PStreamSet;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_GStream {
-    pub vector_length: size_t,
-    pub par: *mut *mut libc::c_double,
-}
-pub type HTS_GStream = _HTS_GStream;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_GStreamSet {
-    pub total_nsample: size_t,
-    pub total_frame: size_t,
-    pub nstream: size_t,
-    pub gstream: *mut HTS_GStream,
-    pub gspeech: *mut libc::c_double,
-}
-pub type HTS_GStreamSet = _HTS_GStreamSet;
-pub type HTS_Vocoder = _HTS_Vocoder;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Vocoder {
-    pub is_first: HTS_Boolean,
-    pub stage: size_t,
-    pub gamma: libc::c_double,
-    pub use_log_gain: HTS_Boolean,
-    pub fprd: size_t,
-    pub next: libc::c_ulong,
-    pub gauss: HTS_Boolean,
-    pub rate: libc::c_double,
-    pub pitch_of_curr_point: libc::c_double,
-    pub pitch_counter: libc::c_double,
-    pub pitch_inc_per_point: libc::c_double,
-    pub excite_ring_buff: *mut libc::c_double,
-    pub excite_buff_size: size_t,
-    pub excite_buff_index: size_t,
-    pub sw: libc::c_uchar,
-    pub x: libc::c_int,
-    pub freqt_buff: *mut libc::c_double,
-    pub freqt_size: size_t,
-    pub spectrum2en_buff: *mut libc::c_double,
-    pub spectrum2en_size: size_t,
-    pub r1: libc::c_double,
-    pub r2: libc::c_double,
-    pub s: libc::c_double,
-    pub postfilter_buff: *mut libc::c_double,
-    pub postfilter_size: size_t,
-    pub c: *mut libc::c_double,
-    pub cc: *mut libc::c_double,
-    pub cinc: *mut libc::c_double,
-    pub d1: *mut libc::c_double,
-    pub lsp2lpc_buff: *mut libc::c_double,
-    pub lsp2lpc_size: size_t,
-    pub gc2gc_buff: *mut libc::c_double,
-    pub gc2gc_size: size_t,
-}
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_initialize(mut gss: *mut HTS_GStreamSet) {
     (*gss).nstream = 0 as libc::c_int as size_t;
@@ -178,7 +77,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     let mut j: size_t = 0;
     let mut k: size_t = 0;
     let mut msd_frame: size_t = 0;
-    let mut v: HTS_Vocoder = _HTS_Vocoder {
+    let mut v: HTS_Vocoder = HTS_Vocoder {
         is_first: 0,
         stage: 0,
         gamma: 0.,

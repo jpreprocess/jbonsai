@@ -1,4 +1,5 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+use crate::util::*;
 extern "C" {
     fn cos(_: libc::c_double) -> libc::c_double;
     fn exp(_: libc::c_double) -> libc::c_double;
@@ -9,56 +10,6 @@ extern "C" {
     fn HTS_free(p: *mut libc::c_void);
     fn HTS_Audio_write(audio: *mut HTS_Audio, data: libc::c_short);
 }
-pub type size_t = libc::c_ulong;
-pub type HTS_Boolean = libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Audio {
-    pub sampling_frequency: size_t,
-    pub max_buff_size: size_t,
-    pub buff: *mut libc::c_short,
-    pub buff_size: size_t,
-    pub audio_interface: *mut libc::c_void,
-}
-pub type HTS_Audio = _HTS_Audio;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Vocoder {
-    pub is_first: HTS_Boolean,
-    pub stage: size_t,
-    pub gamma: libc::c_double,
-    pub use_log_gain: HTS_Boolean,
-    pub fprd: size_t,
-    pub next: libc::c_ulong,
-    pub gauss: HTS_Boolean,
-    pub rate: libc::c_double,
-    pub pitch_of_curr_point: libc::c_double,
-    pub pitch_counter: libc::c_double,
-    pub pitch_inc_per_point: libc::c_double,
-    pub excite_ring_buff: *mut libc::c_double,
-    pub excite_buff_size: size_t,
-    pub excite_buff_index: size_t,
-    pub sw: libc::c_uchar,
-    pub x: libc::c_int,
-    pub freqt_buff: *mut libc::c_double,
-    pub freqt_size: size_t,
-    pub spectrum2en_buff: *mut libc::c_double,
-    pub spectrum2en_size: size_t,
-    pub r1: libc::c_double,
-    pub r2: libc::c_double,
-    pub s: libc::c_double,
-    pub postfilter_buff: *mut libc::c_double,
-    pub postfilter_size: size_t,
-    pub c: *mut libc::c_double,
-    pub cc: *mut libc::c_double,
-    pub cinc: *mut libc::c_double,
-    pub d1: *mut libc::c_double,
-    pub lsp2lpc_buff: *mut libc::c_double,
-    pub lsp2lpc_size: size_t,
-    pub gc2gc_buff: *mut libc::c_double,
-    pub gc2gc_size: size_t,
-}
-pub type HTS_Vocoder = _HTS_Vocoder;
 static mut HTS_pade: [libc::c_double; 21] = [
     1.00000000000f64,
     1.00000000000f64,

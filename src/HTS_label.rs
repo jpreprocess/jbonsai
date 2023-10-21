@@ -1,12 +1,20 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut
+)]
+
+use crate::util::*;
+use libc::isgraph;
 extern "C" {
     fn atof(__nptr: *const libc::c_char) -> libc::c_double;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
     fn sscanf(_: *const libc::c_char, _: *const libc::c_char, _: ...) -> libc::c_int;
-    fn HTS_fopen_from_fn(
-        name: *const libc::c_char,
-        opt: *const libc::c_char,
-    ) -> *mut HTS_File;
+    fn HTS_fopen_from_fn(name: *const libc::c_char, opt: *const libc::c_char) -> *mut HTS_File;
     fn HTS_fclose(fp: *mut HTS_File);
     fn HTS_get_token_from_fp(fp: *mut HTS_File, buff: *mut libc::c_char) -> HTS_Boolean;
     fn HTS_get_token_from_string(
@@ -19,7 +27,7 @@ extern "C" {
     fn HTS_free(p: *mut libc::c_void);
     fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
 }
-pub type size_t = libc::c_ulong;
+
 pub type C2RustUnnamed = libc::c_uint;
 pub const _ISalnum: C2RustUnnamed = 8;
 pub const _ISpunct: C2RustUnnamed = 4;
@@ -33,30 +41,7 @@ pub const _ISdigit: C2RustUnnamed = 2048;
 pub const _ISalpha: C2RustUnnamed = 1024;
 pub const _ISlower: C2RustUnnamed = 512;
 pub const _ISupper: C2RustUnnamed = 256;
-pub type HTS_Boolean = libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_LabelString {
-    pub next: *mut _HTS_LabelString,
-    pub name: *mut libc::c_char,
-    pub start: libc::c_double,
-    pub end: libc::c_double,
-}
-pub type HTS_LabelString = _HTS_LabelString;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Label {
-    pub head: *mut HTS_LabelString,
-    pub size: size_t,
-}
-pub type HTS_Label = _HTS_Label;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_File {
-    pub type_0: libc::c_uchar,
-    pub pointer: *mut libc::c_void,
-}
-pub type HTS_File = _HTS_File;
+
 unsafe extern "C" fn isdigit_string(mut str: *mut libc::c_char) -> HTS_Boolean {
     let mut i: libc::c_int = 0;
     if sscanf(

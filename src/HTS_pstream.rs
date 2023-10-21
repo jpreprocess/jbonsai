@@ -1,4 +1,5 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+use crate::util::*;
 extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
     fn HTS_SStreamSet_get_window_left_width(
@@ -82,73 +83,7 @@ extern "C" {
         window_index: size_t,
     ) -> libc::c_int;
 }
-pub type size_t = libc::c_ulong;
-pub type HTS_Boolean = libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_SStream {
-    pub vector_length: size_t,
-    pub mean: *mut *mut libc::c_double,
-    pub vari: *mut *mut libc::c_double,
-    pub msd: *mut libc::c_double,
-    pub win_size: size_t,
-    pub win_l_width: *mut libc::c_int,
-    pub win_r_width: *mut libc::c_int,
-    pub win_coefficient: *mut *mut libc::c_double,
-    pub win_max_width: size_t,
-    pub gv_mean: *mut libc::c_double,
-    pub gv_vari: *mut libc::c_double,
-    pub gv_switch: *mut HTS_Boolean,
-}
-pub type HTS_SStream = _HTS_SStream;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_SStreamSet {
-    pub sstream: *mut HTS_SStream,
-    pub nstream: size_t,
-    pub nstate: size_t,
-    pub duration: *mut size_t,
-    pub total_state: size_t,
-    pub total_frame: size_t,
-}
-pub type HTS_SStreamSet = _HTS_SStreamSet;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_SMatrices {
-    pub mean: *mut *mut libc::c_double,
-    pub ivar: *mut *mut libc::c_double,
-    pub g: *mut libc::c_double,
-    pub wuw: *mut *mut libc::c_double,
-    pub wum: *mut libc::c_double,
-}
-pub type HTS_SMatrices = _HTS_SMatrices;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_PStream {
-    pub vector_length: size_t,
-    pub length: size_t,
-    pub width: size_t,
-    pub par: *mut *mut libc::c_double,
-    pub sm: HTS_SMatrices,
-    pub win_size: size_t,
-    pub win_l_width: *mut libc::c_int,
-    pub win_r_width: *mut libc::c_int,
-    pub win_coefficient: *mut *mut libc::c_double,
-    pub msd_flag: *mut HTS_Boolean,
-    pub gv_mean: *mut libc::c_double,
-    pub gv_vari: *mut libc::c_double,
-    pub gv_switch: *mut HTS_Boolean,
-    pub gv_length: size_t,
-}
-pub type HTS_PStream = _HTS_PStream;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_PStreamSet {
-    pub pstream: *mut HTS_PStream,
-    pub nstream: size_t,
-    pub total_frame: size_t,
-}
-pub type HTS_PStreamSet = _HTS_PStreamSet;
+
 unsafe extern "C" fn HTS_finv(x: libc::c_double) -> libc::c_double {
     if x >= 1.0e+19f64 {
         return 0.0f64;

@@ -1,9 +1,7 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
-#![feature(c_variadic, extern_types)]
+use libc::FILE;
+
+
 extern "C" {
-    pub type _IO_wide_data;
-    pub type _IO_codecvt;
-    pub type _IO_marker;
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     fn free(_: *mut libc::c_void);
     fn exit(_: libc::c_int) -> !;
@@ -44,11 +42,12 @@ extern "C" {
     fn fclose(__stream: *mut FILE) -> libc::c_int;
     static mut stderr: *mut FILE;
     static mut stdout: *mut FILE;
-    fn vfprintf(
-        _: *mut FILE,
-        _: *const libc::c_char,
-        _: ::core::ffi::VaList,
-    ) -> libc::c_int;
+    fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
+    // fn vfprintf(
+    //     _: *mut FILE,
+    //     _: *const libc::c_char,
+    //     _: ::core::ffi::VaList,
+    // ) -> libc::c_int;
     fn fprintf(_: *mut FILE, _: *const libc::c_char, _: ...) -> libc::c_int;
 }
 pub type __builtin_va_list = [__va_list_tag; 1];
@@ -63,7 +62,6 @@ pub struct __va_list_tag {
 pub type size_t = libc::c_ulong;
 pub type __off_t = libc::c_long;
 pub type __off64_t = libc::c_long;
-pub type va_list = __builtin_va_list;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct __mbstate_t {
@@ -83,41 +81,7 @@ pub struct _G_fpos_t {
     pub __state: __mbstate_t,
 }
 pub type __fpos_t = _G_fpos_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub _codecvt: *mut _IO_codecvt,
-    pub _wide_data: *mut _IO_wide_data,
-    pub _freeres_list: *mut _IO_FILE,
-    pub _freeres_buf: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
 pub type _IO_lock_t = ();
-pub type FILE = _IO_FILE;
 pub type fpos_t = __fpos_t;
 pub type HTS_Boolean = libc::c_char;
 #[derive(Copy, Clone)]
@@ -788,24 +752,24 @@ pub unsafe extern "C" fn HTS_free_matrix(
     }
     HTS_free(p as *mut libc::c_void);
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_error(
-    mut error: libc::c_int,
-    mut message: *const libc::c_char,
-    mut args: ...
-) {
-    let mut arg: ::core::ffi::VaListImpl;
-    fflush(stdout);
-    fflush(stderr);
-    if error > 0 as libc::c_int {
-        fprintf(stderr, b"\nError: \0" as *const u8 as *const libc::c_char);
-    } else {
-        fprintf(stderr, b"\nWarning: \0" as *const u8 as *const libc::c_char);
-    }
-    arg = args.clone();
-    vfprintf(stderr, message, arg.as_va_list());
-    fflush(stderr);
-    if error > 0 as libc::c_int {
-        exit(error);
-    }
-}
+// #[no_mangle]
+// pub unsafe extern "C" fn HTS_error(
+//     mut error: libc::c_int,
+//     mut message: *const libc::c_char,
+//     mut args: ...
+// ) {
+//     let mut arg: ::core::ffi::VaListImpl;
+//     fflush(stdout);
+//     fflush(stderr);
+//     if error > 0 as libc::c_int {
+//         fprintf(stderr, b"\nError: \0" as *const u8 as *const libc::c_char);
+//     } else {
+//         fprintf(stderr, b"\nWarning: \0" as *const u8 as *const libc::c_char);
+//     }
+//     arg = args.clone();
+//     vfprintf(stderr, message, arg.as_va_list());
+//     fflush(stderr);
+//     if error > 0 as libc::c_int {
+//         exit(error);
+//     }
+// }

@@ -1,4 +1,8 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+
+
+use crate::util::*;
+
 extern "C" {
     fn atof(__nptr: *const libc::c_char) -> libc::c_double;
     fn atoi(__nptr: *const libc::c_char) -> libc::c_int;
@@ -49,8 +53,6 @@ extern "C" {
     fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
     fn HTS_free(p: *mut libc::c_void);
 }
-pub type size_t = libc::c_ulong;
-pub type __uint32_t = libc::c_uint;
 pub type C2RustUnnamed = libc::c_uint;
 pub const _ISalnum: C2RustUnnamed = 8;
 pub const _ISpunct: C2RustUnnamed = 4;
@@ -64,93 +66,7 @@ pub const _ISdigit: C2RustUnnamed = 2048;
 pub const _ISalpha: C2RustUnnamed = 1024;
 pub const _ISlower: C2RustUnnamed = 512;
 pub const _ISupper: C2RustUnnamed = 256;
-pub type HTS_Boolean = libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Window {
-    pub size: size_t,
-    pub l_width: *mut libc::c_int,
-    pub r_width: *mut libc::c_int,
-    pub coefficient: *mut *mut libc::c_double,
-    pub max_width: size_t,
-}
-pub type HTS_Window = _HTS_Window;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Pattern {
-    pub string: *mut libc::c_char,
-    pub next: *mut _HTS_Pattern,
-}
-pub type HTS_Pattern = _HTS_Pattern;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Question {
-    pub string: *mut libc::c_char,
-    pub head: *mut HTS_Pattern,
-    pub next: *mut _HTS_Question,
-}
-pub type HTS_Question = _HTS_Question;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Node {
-    pub index: libc::c_int,
-    pub pdf: size_t,
-    pub yes: *mut _HTS_Node,
-    pub no: *mut _HTS_Node,
-    pub next: *mut _HTS_Node,
-    pub quest: *mut HTS_Question,
-}
-pub type HTS_Node = _HTS_Node;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Tree {
-    pub head: *mut HTS_Pattern,
-    pub next: *mut _HTS_Tree,
-    pub root: *mut HTS_Node,
-    pub state: size_t,
-}
-pub type HTS_Tree = _HTS_Tree;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_Model {
-    pub vector_length: size_t,
-    pub num_windows: size_t,
-    pub is_msd: HTS_Boolean,
-    pub ntree: size_t,
-    pub npdf: *mut size_t,
-    pub pdf: *mut *mut *mut libc::c_float,
-    pub tree: *mut HTS_Tree,
-    pub question: *mut HTS_Question,
-}
-pub type HTS_Model = _HTS_Model;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_ModelSet {
-    pub hts_voice_version: *mut libc::c_char,
-    pub sampling_frequency: size_t,
-    pub frame_period: size_t,
-    pub num_voices: size_t,
-    pub num_states: size_t,
-    pub num_streams: size_t,
-    pub stream_type: *mut libc::c_char,
-    pub fullcontext_format: *mut libc::c_char,
-    pub fullcontext_version: *mut libc::c_char,
-    pub gv_off_context: *mut HTS_Question,
-    pub option: *mut *mut libc::c_char,
-    pub duration: *mut HTS_Model,
-    pub window: *mut HTS_Window,
-    pub stream: *mut *mut HTS_Model,
-    pub gv: *mut *mut HTS_Model,
-}
-pub type HTS_ModelSet = _HTS_ModelSet;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_File {
-    pub type_0: libc::c_uchar,
-    pub pointer: *mut libc::c_void,
-}
-pub type HTS_File = _HTS_File;
-pub type uint32_t = __uint32_t;
+
 unsafe extern "C" fn HTS_dp_match(
     mut string: *const libc::c_char,
     mut pattern: *const libc::c_char,
@@ -309,7 +225,7 @@ unsafe extern "C" fn HTS_get_state_num(mut string: *const libc::c_char) -> size_
 unsafe extern "C" fn HTS_Question_initialize(mut question: *mut HTS_Question) {
     (*question).string = 0 as *mut libc::c_char;
     (*question).head = 0 as *mut HTS_Pattern;
-    (*question).next = 0 as *mut _HTS_Question;
+    (*question).next = 0 as *mut HTS_Question;
 }
 unsafe extern "C" fn HTS_Question_clear(mut question: *mut HTS_Question) {
     let mut pattern: *mut HTS_Pattern = 0 as *mut HTS_Pattern;
@@ -366,7 +282,7 @@ unsafe extern "C" fn HTS_Question_load(
                 (*question).head = pattern;
             }
             (*pattern).string = HTS_strdup(buff.as_mut_ptr());
-            (*pattern).next = 0 as *mut _HTS_Pattern;
+            (*pattern).next = 0 as *mut HTS_Pattern;
             if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int
                 == 0 as libc::c_int
             {
@@ -411,9 +327,9 @@ unsafe extern "C" fn HTS_Question_find(
 unsafe extern "C" fn HTS_Node_initialize(mut node: *mut HTS_Node) {
     (*node).index = 0 as libc::c_int;
     (*node).pdf = 0 as libc::c_int as size_t;
-    (*node).yes = 0 as *mut _HTS_Node;
-    (*node).no = 0 as *mut _HTS_Node;
-    (*node).next = 0 as *mut _HTS_Node;
+    (*node).yes = 0 as *mut HTS_Node;
+    (*node).no = 0 as *mut HTS_Node;
+    (*node).next = 0 as *mut HTS_Node;
     (*node).quest = 0 as *mut HTS_Question;
 }
 unsafe extern "C" fn HTS_Node_clear(mut node: *mut HTS_Node) {
@@ -441,7 +357,7 @@ unsafe extern "C" fn HTS_Node_find(
 }
 unsafe extern "C" fn HTS_Tree_initialize(mut tree: *mut HTS_Tree) {
     (*tree).head = 0 as *mut HTS_Pattern;
-    (*tree).next = 0 as *mut _HTS_Tree;
+    (*tree).next = 0 as *mut HTS_Tree;
     (*tree).root = 0 as *mut HTS_Node;
     (*tree).state = 0 as libc::c_int as size_t;
 }
@@ -503,7 +419,7 @@ unsafe extern "C" fn HTS_Tree_parse_pattern(
             *left = '\0' as i32 as libc::c_char;
             (*pattern).string = HTS_strdup(string);
             string = left.offset(1 as libc::c_int as isize);
-            (*pattern).next = 0 as *mut _HTS_Pattern;
+            (*pattern).next = 0 as *mut HTS_Pattern;
             last_pattern = pattern;
         }
     }
@@ -871,7 +787,7 @@ unsafe extern "C" fn HTS_Model_load_tree(
             } else {
                 (*model).question = question;
             }
-            (*question).next = 0 as *mut _HTS_Question;
+            (*question).next = 0 as *mut HTS_Question;
             last_question = question;
         }
         state = HTS_get_state_num(buff.as_mut_ptr());
@@ -895,7 +811,7 @@ unsafe extern "C" fn HTS_Model_load_tree(
             } else {
                 (*model).tree = tree;
             }
-            (*tree).next = 0 as *mut _HTS_Tree;
+            (*tree).next = 0 as *mut HTS_Tree;
             last_tree = tree;
             (*model).ntree = ((*model).ntree).wrapping_add(1);
             (*model).ntree;
