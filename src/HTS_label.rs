@@ -14,18 +14,17 @@ extern "C" {
     fn atof(__nptr: *const libc::c_char) -> libc::c_double;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
     fn sscanf(_: *const libc::c_char, _: *const libc::c_char, _: ...) -> libc::c_int;
-    fn HTS_fopen_from_fn(name: *const libc::c_char, opt: *const libc::c_char) -> *mut HTS_File;
-    fn HTS_fclose(fp: *mut HTS_File);
-    fn HTS_get_token_from_fp(fp: *mut HTS_File, buff: *mut libc::c_char) -> HTS_Boolean;
-    fn HTS_get_token_from_string(
-        string: *const libc::c_char,
-        index: *mut size_t,
-        buff: *mut libc::c_char,
-    ) -> HTS_Boolean;
-    fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_strdup(string: *const libc::c_char) -> *mut libc::c_char;
-    fn HTS_free(p: *mut libc::c_void);
 }
+
+use crate::{
+    HTS_fopen_from_fn,
+    HTS_fclose,
+    HTS_get_token_from_fp,
+    HTS_get_token_from_string,
+    HTS_calloc,
+    HTS_strdup,
+    HTS_free,
+};
 
 pub type C2RustUnnamed = libc::c_uint;
 pub const _ISalnum: C2RustUnnamed = 8;

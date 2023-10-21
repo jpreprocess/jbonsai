@@ -1,14 +1,11 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
-use crate::util::*;
+use crate::{util::*, HTS_calloc, HTS_free};
 extern "C" {
     fn cos(_: libc::c_double) -> libc::c_double;
     fn exp(_: libc::c_double) -> libc::c_double;
     fn log(_: libc::c_double) -> libc::c_double;
     fn pow(_: libc::c_double, _: libc::c_double) -> libc::c_double;
     fn sqrt(_: libc::c_double) -> libc::c_double;
-    fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_free(p: *mut libc::c_void);
-    // fn HTS_Audio_write(audio: *mut HTS_Audio, data: libc::c_short);
 }
 static mut HTS_pade: [libc::c_double; 21] = [
     1.00000000000f64,

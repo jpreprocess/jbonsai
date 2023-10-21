@@ -14,44 +14,27 @@ extern "C" {
     fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
-    fn HTS_strdup(string: *const libc::c_char) -> *mut libc::c_char;
     fn sprintf(_: *mut libc::c_char, _: *const libc::c_char, _: ...) -> libc::c_int;
-    fn HTS_fopen_from_fn(
-        name: *const libc::c_char,
-        opt: *const libc::c_char,
-    ) -> *mut HTS_File;
-    fn HTS_fopen_from_fp(fp: *mut HTS_File, size: size_t) -> *mut HTS_File;
-    fn HTS_fopen_from_data(data: *mut libc::c_void, size: size_t) -> *mut HTS_File;
-    fn HTS_fclose(fp: *mut HTS_File);
-    fn HTS_feof(fp: *mut HTS_File) -> libc::c_int;
-    fn HTS_fseek(
-        fp: *mut HTS_File,
-        offset: libc::c_long,
-        origin: libc::c_int,
-    ) -> libc::c_int;
-    fn HTS_ftell(fp: *mut HTS_File) -> size_t;
-    fn HTS_fread_little_endian(
-        buf: *mut libc::c_void,
-        size: size_t,
-        n: size_t,
-        fp: *mut HTS_File,
-    ) -> size_t;
-    fn HTS_get_pattern_token(fp: *mut HTS_File, buff: *mut libc::c_char) -> HTS_Boolean;
-    fn HTS_get_token_from_fp(fp: *mut HTS_File, buff: *mut libc::c_char) -> HTS_Boolean;
-    fn HTS_get_token_from_fp_with_separator(
-        fp: *mut HTS_File,
-        buff: *mut libc::c_char,
-        separator: libc::c_char,
-    ) -> HTS_Boolean;
-    fn HTS_get_token_from_string_with_separator(
-        str: *const libc::c_char,
-        index: *mut size_t,
-        buff: *mut libc::c_char,
-        separator: libc::c_char,
-    ) -> HTS_Boolean;
-    fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_free(p: *mut libc::c_void);
 }
+
+use crate::{
+    HTS_strdup,
+    HTS_fopen_from_fn,
+    HTS_fopen_from_fp,
+    HTS_fopen_from_data,
+    HTS_fclose,
+    HTS_feof,
+    HTS_fseek,
+    HTS_ftell,
+    HTS_fread_little_endian,
+    HTS_get_pattern_token,
+    HTS_get_token_from_fp,
+    HTS_get_token_from_fp_with_separator,
+    HTS_get_token_from_string_with_separator,
+    HTS_calloc,
+    HTS_free,
+};
+
 pub type C2RustUnnamed = libc::c_uint;
 pub const _ISalnum: C2RustUnnamed = 8;
 pub const _ISpunct: C2RustUnnamed = 4;

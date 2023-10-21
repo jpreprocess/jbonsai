@@ -2,86 +2,32 @@
 use crate::{util::*, HTS_error};
 extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
-    fn HTS_SStreamSet_get_window_left_width(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        window_index: size_t,
-    ) -> libc::c_int;
-    fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_alloc_matrix(x: size_t, y: size_t) -> *mut *mut libc::c_double;
-    fn HTS_free_matrix(p: *mut *mut libc::c_double, x: size_t);
-    fn HTS_free(p: *mut libc::c_void);
-    fn HTS_SStreamSet_get_nstream(sss: *mut HTS_SStreamSet) -> size_t;
-    fn HTS_SStreamSet_get_vector_length(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_SStreamSet_is_msd(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-    ) -> HTS_Boolean;
-    fn HTS_SStreamSet_get_total_state(sss: *mut HTS_SStreamSet) -> size_t;
-    fn HTS_SStreamSet_get_total_frame(sss: *mut HTS_SStreamSet) -> size_t;
-    fn HTS_SStreamSet_get_msd(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        state_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_SStreamSet_get_window_size(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_SStreamSet_get_duration(
-        sss: *mut HTS_SStreamSet,
-        state_index: size_t,
-    ) -> size_t;
-    fn HTS_SStreamSet_get_mean(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        state_index: size_t,
-        vector_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_SStreamSet_get_vari(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        state_index: size_t,
-        vector_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_SStreamSet_get_gv_mean(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        vector_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_SStreamSet_get_gv_vari(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        vector_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_SStreamSet_get_gv_switch(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        state_index: size_t,
-    ) -> HTS_Boolean;
-    fn HTS_SStreamSet_get_window_max_width(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_SStreamSet_get_window_coefficient(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        window_index: size_t,
-        coefficient_index: libc::c_int,
-    ) -> libc::c_double;
-    fn HTS_SStreamSet_use_gv(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-    ) -> HTS_Boolean;
-    fn HTS_SStreamSet_get_window_right_width(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        window_index: size_t,
-    ) -> libc::c_int;
 }
+
+use crate::{
+    HTS_SStreamSet_get_window_left_width,
+    HTS_calloc,
+    HTS_alloc_matrix,
+    HTS_free_matrix,
+    HTS_free,
+    HTS_SStreamSet_get_nstream,
+    HTS_SStreamSet_get_vector_length,
+    HTS_SStreamSet_is_msd,
+    HTS_SStreamSet_get_total_state,
+    HTS_SStreamSet_get_total_frame,
+    HTS_SStreamSet_get_msd,
+    HTS_SStreamSet_get_window_size,
+    HTS_SStreamSet_get_duration,
+    HTS_SStreamSet_get_mean,
+    HTS_SStreamSet_get_vari,
+    HTS_SStreamSet_get_gv_mean,
+    HTS_SStreamSet_get_gv_vari,
+    HTS_SStreamSet_get_gv_switch,
+    HTS_SStreamSet_get_window_max_width,
+    HTS_SStreamSet_get_window_coefficient,
+    HTS_SStreamSet_use_gv,
+    HTS_SStreamSet_get_window_right_width,
+};
 
 unsafe extern "C" fn HTS_finv(x: libc::c_double) -> libc::c_double {
     if x >= 1.0e+19f64 {

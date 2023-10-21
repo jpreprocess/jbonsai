@@ -17,162 +17,56 @@ extern "C" {
         _: libc::c_ulong,
         _: *mut FILE,
     ) -> libc::c_ulong;
-    fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_fwrite_little_endian(
-        buf: *const libc::c_void,
-        size: size_t,
-        n: size_t,
-        fp: *mut FILE,
-    ) -> size_t;
-    fn HTS_SStreamSet_get_total_state(sss: *mut HTS_SStreamSet) -> size_t;
-    fn HTS_SStreamSet_set_mean(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        state_index: size_t,
-        vector_index: size_t,
-        f: libc::c_double,
-    );
-    fn HTS_PStreamSet_create(
-        pss: *mut HTS_PStreamSet,
-        sss: *mut HTS_SStreamSet,
-        msd_threshold: *mut libc::c_double,
-        gv_weight: *mut libc::c_double,
-    ) -> HTS_Boolean;
-    fn HTS_SStreamSet_get_mean(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        state_index: size_t,
-        vector_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_SStreamSet_get_duration(
-        sss: *mut HTS_SStreamSet,
-        state_index: size_t,
-    ) -> size_t;
-    fn HTS_SStreamSet_clear(sss: *mut HTS_SStreamSet);
-    fn HTS_SStreamSet_create(
-        sss: *mut HTS_SStreamSet,
-        ms: *mut HTS_ModelSet,
-        label: *mut HTS_Label,
-        phoneme_alignment_flag: HTS_Boolean,
-        speed: libc::c_double,
-        duration_iw: *mut libc::c_double,
-        parameter_iw: *mut *mut libc::c_double,
-        gv_iw: *mut *mut libc::c_double,
-    ) -> HTS_Boolean;
-    fn HTS_Label_load_from_fn(
-        label: *mut HTS_Label,
-        sampling_rate: size_t,
-        fperiod: size_t,
-        fn_0: *const libc::c_char,
-    );
-    fn HTS_PStreamSet_initialize(pss: *mut HTS_PStreamSet);
-    fn HTS_Label_load_from_strings(
-        label: *mut HTS_Label,
-        sampling_rate: size_t,
-        fperiod: size_t,
-        lines: *mut *mut libc::c_char,
-        num_lines: size_t,
-    );
-    fn HTS_SStreamSet_initialize(sss: *mut HTS_SStreamSet);
-    fn HTS_Label_initialize(label: *mut HTS_Label);
-    fn HTS_ModelSet_initialize(ms: *mut HTS_ModelSet);
-    fn HTS_Label_get_string(label: *mut HTS_Label, index: size_t) -> *const libc::c_char;
-    fn HTS_ModelSet_get_parameter_index(
-        ms: *mut HTS_ModelSet,
-        voice_index: size_t,
-        stream_index: size_t,
-        state_index: size_t,
-        string: *const libc::c_char,
-        tree_index: *mut size_t,
-        pdf_index: *mut size_t,
-    );
-    fn HTS_SStreamSet_get_msd(
-        sss: *mut HTS_SStreamSet,
-        stream_index: size_t,
-        state_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_ModelSet_is_msd(ms: *mut HTS_ModelSet, stream_index: size_t) -> HTS_Boolean;
-    fn HTS_ModelSet_get_duration_index(
-        ms: *mut HTS_ModelSet,
-        voice_index: size_t,
-        string: *const libc::c_char,
-        tree_index: *mut size_t,
-        pdf_index: *mut size_t,
-    );
-    fn HTS_Label_get_size(label: *mut HTS_Label) -> size_t;
-    fn HTS_ModelSet_use_gv(ms: *mut HTS_ModelSet, stream_index: size_t) -> HTS_Boolean;
-    fn HTS_ModelSet_get_window_size(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_ModelSet_get_vector_length(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-    ) -> size_t;
-    // fn HTS_Audio_initialize(audio: *mut HTS_Audio);
-    fn HTS_ModelSet_get_option(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-    ) -> *const libc::c_char;
-    fn HTS_ModelSet_get_fperiod(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_Label_clear(label: *mut HTS_Label);
-    fn HTS_ModelSet_get_sampling_frequency(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_ModelSet_get_nstream(ms: *mut HTS_ModelSet) -> size_t;
-    // fn HTS_Audio_clear(audio: *mut HTS_Audio);
-    fn HTS_ModelSet_clear(ms: *mut HTS_ModelSet);
-    fn HTS_free(p: *mut libc::c_void);
-    fn HTS_ModelSet_get_nvoices(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_ModelSet_load(
-        ms: *mut HTS_ModelSet,
-        voices: *mut *mut libc::c_char,
-        num_voices: size_t,
-    ) -> HTS_Boolean;
-    fn HTS_ModelSet_get_fullcontext_label_version(
-        ms: *mut HTS_ModelSet,
-    ) -> *const libc::c_char;
-    fn HTS_ModelSet_get_fullcontext_label_format(
-        ms: *mut HTS_ModelSet,
-    ) -> *const libc::c_char;
-    // fn HTS_Audio_set_parameter(
-    //     audio: *mut HTS_Audio,
-    //     sampling_frequency: size_t,
-    //     max_buff_size: size_t,
-    // );
-    fn HTS_ModelSet_get_nstate(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_GStreamSet_create(
-        gss: *mut HTS_GStreamSet,
-        pss: *mut HTS_PStreamSet,
-        stage: size_t,
-        use_log_gain: HTS_Boolean,
-        sampling_rate: size_t,
-        fperiod: size_t,
-        alpha: libc::c_double,
-        beta: libc::c_double,
-        stop: *mut HTS_Boolean,
-        volume: libc::c_double,
-        audio: *mut HTS_Audio,
-    ) -> HTS_Boolean;
-    fn HTS_GStreamSet_initialize(gss: *mut HTS_GStreamSet);
-    fn HTS_GStreamSet_get_total_frame(gss: *mut HTS_GStreamSet) -> size_t;
-    fn HTS_GStreamSet_get_total_nsamples(gss: *mut HTS_GStreamSet) -> size_t;
-    fn HTS_GStreamSet_get_parameter(
-        gss: *mut HTS_GStreamSet,
-        stream_index: size_t,
-        frame_index: size_t,
-        vector_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_GStreamSet_get_speech(
-        gss: *mut HTS_GStreamSet,
-        sample_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_GStreamSet_get_vector_length(
-        gss: *mut HTS_GStreamSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_GStreamSet_clear(gss: *mut HTS_GStreamSet);
-    fn HTS_PStreamSet_get_total_frame(pss: *mut HTS_PStreamSet) -> size_t;
-    fn HTS_PStreamSet_clear(pss: *mut HTS_PStreamSet);
 }
+
+use crate::{
+    HTS_calloc,
+    HTS_fwrite_little_endian,
+    HTS_SStreamSet_get_total_state,
+    HTS_SStreamSet_set_mean,
+    HTS_PStreamSet_create,
+    HTS_SStreamSet_get_mean,
+    HTS_SStreamSet_get_duration,
+    HTS_SStreamSet_clear,
+    HTS_SStreamSet_create,
+    HTS_Label_load_from_fn,
+    HTS_PStreamSet_initialize,
+    HTS_Label_load_from_strings,
+    HTS_SStreamSet_initialize,
+    HTS_Label_initialize,
+    HTS_ModelSet_initialize,
+    HTS_Label_get_string,
+    HTS_ModelSet_get_parameter_index,
+    HTS_SStreamSet_get_msd,
+    HTS_ModelSet_is_msd,
+    HTS_ModelSet_get_duration_index,
+    HTS_Label_get_size,
+    HTS_ModelSet_use_gv,
+    HTS_ModelSet_get_window_size,
+    HTS_ModelSet_get_vector_length,
+    HTS_ModelSet_get_option,
+    HTS_ModelSet_get_fperiod,
+    HTS_Label_clear,
+    HTS_ModelSet_get_sampling_frequency,
+    HTS_ModelSet_get_nstream,
+    HTS_ModelSet_clear,
+    HTS_free,
+    HTS_ModelSet_get_nvoices,
+    HTS_ModelSet_load,
+    HTS_ModelSet_get_fullcontext_label_version,
+    HTS_ModelSet_get_fullcontext_label_format,
+    HTS_ModelSet_get_nstate,
+    HTS_GStreamSet_create,
+    HTS_GStreamSet_initialize,
+    HTS_GStreamSet_get_total_frame,
+    HTS_GStreamSet_get_total_nsamples,
+    HTS_GStreamSet_get_parameter,
+    HTS_GStreamSet_get_speech,
+    HTS_GStreamSet_get_vector_length,
+    HTS_GStreamSet_clear,
+    HTS_PStreamSet_get_total_frame,
+    HTS_PStreamSet_clear,
+};
 
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Engine_initialize(mut engine: *mut HTS_Engine) {

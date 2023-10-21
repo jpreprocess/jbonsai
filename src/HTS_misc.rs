@@ -1,5 +1,6 @@
 use libc::FILE;
 
+use crate::util::*;
 use crate::HTS_error;
 
 extern "C" {
@@ -83,14 +84,6 @@ pub struct _G_fpos_t {
 pub type __fpos_t = _G_fpos_t;
 pub type _IO_lock_t = ();
 pub type fpos_t = __fpos_t;
-pub type HTS_Boolean = libc::c_char;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _HTS_File {
-    pub type_0: libc::c_uchar,
-    pub pointer: *mut libc::c_void,
-}
-pub type HTS_File = _HTS_File;
 pub type HTS_Data = _HTS_Data;
 #[derive(Copy, Clone)]
 #[repr(C)]

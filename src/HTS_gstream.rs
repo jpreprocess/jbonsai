@@ -2,54 +2,20 @@
 
 use crate::{util::*, HTS_error};
 
-extern "C" {
-    fn HTS_free(p: *mut libc::c_void);
-    // fn HTS_Audio_flush(audio: *mut HTS_Audio);
-    fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_PStreamSet_get_nstream(pss: *mut HTS_PStreamSet) -> size_t;
-    fn HTS_PStreamSet_get_vector_length(
-        pss: *mut HTS_PStreamSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_PStreamSet_get_total_frame(pss: *mut HTS_PStreamSet) -> size_t;
-    fn HTS_PStreamSet_get_parameter(
-        pss: *mut HTS_PStreamSet,
-        stream_index: size_t,
-        frame_index: size_t,
-        vector_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_PStreamSet_get_msd_flag(
-        pss: *mut HTS_PStreamSet,
-        stream_index: size_t,
-        frame_index: size_t,
-    ) -> HTS_Boolean;
-    fn HTS_PStreamSet_is_msd(
-        pss: *mut HTS_PStreamSet,
-        stream_index: size_t,
-    ) -> HTS_Boolean;
-    fn HTS_Vocoder_initialize(
-        v: *mut HTS_Vocoder,
-        m: size_t,
-        stage: size_t,
-        use_log_gain: HTS_Boolean,
-        rate: size_t,
-        fperiod: size_t,
-    );
-    fn HTS_Vocoder_synthesize(
-        v: *mut HTS_Vocoder,
-        m: size_t,
-        lf0: libc::c_double,
-        spectrum: *mut libc::c_double,
-        nlpf: size_t,
-        lpf: *mut libc::c_double,
-        alpha: libc::c_double,
-        beta: libc::c_double,
-        volume: libc::c_double,
-        rawdata: *mut libc::c_double,
-        audio: *mut HTS_Audio,
-    );
-    fn HTS_Vocoder_clear(v: *mut HTS_Vocoder);
-}
+use crate::{
+    HTS_free,
+    HTS_calloc,
+    HTS_PStreamSet_get_nstream,
+    HTS_PStreamSet_get_vector_length,
+    HTS_PStreamSet_get_total_frame,
+    HTS_PStreamSet_get_parameter,
+    HTS_PStreamSet_get_msd_flag,
+    HTS_PStreamSet_is_msd,
+    HTS_Vocoder_initialize,
+    HTS_Vocoder_synthesize,
+    HTS_Vocoder_clear,
+};
+
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_initialize(mut gss: *mut HTS_GStreamSet) {
     (*gss).nstream = 0 as libc::c_int as size_t;

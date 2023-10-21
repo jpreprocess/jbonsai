@@ -3,74 +3,30 @@
 use crate::{util::*, HTS_error};
 extern "C" {
     fn fabs(_: libc::c_double) -> libc::c_double;
-    fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_free(p: *mut libc::c_void);
-    fn HTS_ModelSet_get_gv_flag(
-        ms: *mut HTS_ModelSet,
-        string: *const libc::c_char,
-    ) -> HTS_Boolean;
-    fn HTS_ModelSet_get_nstate(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_ModelSet_get_nstream(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_ModelSet_get_nvoices(ms: *mut HTS_ModelSet) -> size_t;
-    fn HTS_ModelSet_get_vector_length(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_ModelSet_is_msd(ms: *mut HTS_ModelSet, stream_index: size_t) -> HTS_Boolean;
-    fn HTS_ModelSet_get_window_size(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_ModelSet_get_window_left_width(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-        window_index: size_t,
-    ) -> libc::c_int;
-    fn HTS_ModelSet_get_window_right_width(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-        window_index: size_t,
-    ) -> libc::c_int;
-    fn HTS_ModelSet_get_window_coefficient(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-        window_index: size_t,
-        coefficient_index: size_t,
-    ) -> libc::c_double;
-    fn HTS_ModelSet_get_window_max_width(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-    ) -> size_t;
-    fn HTS_ModelSet_use_gv(ms: *mut HTS_ModelSet, stream_index: size_t) -> HTS_Boolean;
-    fn HTS_ModelSet_get_duration(
-        ms: *mut HTS_ModelSet,
-        string: *const libc::c_char,
-        iw: *const libc::c_double,
-        mean: *mut libc::c_double,
-        vari: *mut libc::c_double,
-    );
-    fn HTS_ModelSet_get_parameter(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-        state_index: size_t,
-        string: *const libc::c_char,
-        iw: *const *const libc::c_double,
-        mean: *mut libc::c_double,
-        vari: *mut libc::c_double,
-        msd: *mut libc::c_double,
-    );
-    fn HTS_ModelSet_get_gv(
-        ms: *mut HTS_ModelSet,
-        stream_index: size_t,
-        string: *const libc::c_char,
-        iw: *const *const libc::c_double,
-        mean: *mut libc::c_double,
-        vari: *mut libc::c_double,
-    );
-    fn HTS_Label_get_size(label: *mut HTS_Label) -> size_t;
-    fn HTS_Label_get_string(label: *mut HTS_Label, index: size_t) -> *const libc::c_char;
-    fn HTS_Label_get_end_frame(label: *mut HTS_Label, index: size_t) -> libc::c_double;
 }
+
+use crate::{
+HTS_calloc,
+HTS_free,
+HTS_ModelSet_get_gv_flag,
+HTS_ModelSet_get_nstate,
+HTS_ModelSet_get_nstream,
+HTS_ModelSet_get_nvoices,
+HTS_ModelSet_get_vector_length,
+HTS_ModelSet_is_msd,
+HTS_ModelSet_get_window_size,
+HTS_ModelSet_get_window_left_width,
+HTS_ModelSet_get_window_right_width,
+HTS_ModelSet_get_window_coefficient,
+HTS_ModelSet_get_window_max_width,
+HTS_ModelSet_use_gv,
+HTS_ModelSet_get_duration,
+HTS_ModelSet_get_parameter,
+HTS_ModelSet_get_gv,
+HTS_Label_get_size,
+HTS_Label_get_string,
+HTS_Label_get_end_frame,
+};
 
 unsafe extern "C" fn HTS_set_default_duration(
     mut duration: *mut size_t,
