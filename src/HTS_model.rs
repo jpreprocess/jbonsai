@@ -101,21 +101,16 @@ unsafe extern "C" fn HTS_pattern_match(
         match *pattern.offset(i as isize) as libc::c_int {
             42 => {
                 nstar = nstar.wrapping_add(1);
-                nstar;
             }
             63 => {
                 nquestion = nquestion.wrapping_add(1);
-                nquestion;
                 max = max.wrapping_add(1);
-                max;
             }
             _ => {
                 max = max.wrapping_add(1);
-                max;
             }
         }
         i = i.wrapping_add(1);
-        i;
     }
     if nstar == 2 as libc::c_int as size_t
         && nquestion == 0 as libc::c_int as size_t
@@ -129,9 +124,7 @@ unsafe extern "C" fn HTS_pattern_match(
         while i < buff_length {
             buff[i as usize] = *pattern.offset(j as isize);
             i = i.wrapping_add(1);
-            i;
             j = j.wrapping_add(1);
-            j;
         }
         buff[buff_length as usize] = '\0' as i32 as libc::c_char;
         if !(strstr(string, buff.as_mut_ptr())).is_null() {
@@ -162,7 +155,6 @@ unsafe extern "C" fn HTS_is_num(mut buff: *const libc::c_char) -> HTS_Boolean {
             return 0 as libc::c_int as HTS_Boolean;
         }
         i = i.wrapping_add(1);
-        i;
     }
     1 as libc::c_int as HTS_Boolean
 }
@@ -173,10 +165,8 @@ unsafe extern "C" fn HTS_name2num(mut buff: *const libc::c_char) -> size_t {
         && *buff.offset(i as isize) as libc::c_int <= '9' as i32
     {
         i = i.wrapping_sub(1);
-        i;
     }
     i = i.wrapping_add(1);
-    i;
     atoi(&*buff.offset(i as isize)) as size_t
 }
 unsafe extern "C" fn HTS_get_state_num(mut string: *const libc::c_char) -> size_t {
@@ -187,7 +177,6 @@ unsafe extern "C" fn HTS_get_state_num(mut string: *const libc::c_char) -> size_
         return 0 as libc::c_int as size_t;
     }
     left = left.offset(1);
-    left;
     right = strchr(left, ']' as i32);
     if right.is_null() {
         return 0 as libc::c_int as size_t;
@@ -362,14 +351,12 @@ unsafe extern "C" fn HTS_Tree_parse_pattern(
         string = left.offset(1 as libc::c_int as isize);
         if *string as libc::c_int == '(' as i32 {
             string = string.offset(1);
-            string;
         }
         right = strrchr(string, '}' as i32);
         if string < right
             && *right.offset(-(1 as libc::c_int as isize)) as libc::c_int == ')' as i32
         {
             right = right.offset(-1);
-            right;
         }
         *right = ',' as i32 as libc::c_char;
         loop {
@@ -539,7 +526,6 @@ unsafe extern "C" fn HTS_Window_clear(mut win: *mut HTS_Window) {
             *fresh0 = (*fresh0).offset(*((*win).l_width).offset(i as isize) as isize);
             HTS_free(*((*win).coefficient).offset(i as isize) as *mut libc::c_void);
             i = i.wrapping_add(1);
-            i;
         }
         HTS_free((*win).coefficient as *mut libc::c_void);
     }
@@ -609,7 +595,6 @@ unsafe extern "C" fn HTS_Window_load(
                     atof(buff.as_mut_ptr());
             }
             j = j.wrapping_add(1);
-            j;
         }
         length = fsize / 2 as libc::c_int as size_t;
         let fresh2 = &mut (*((*win).coefficient).offset(i as isize));
@@ -619,10 +604,8 @@ unsafe extern "C" fn HTS_Window_load(
         if fsize % 2 as libc::c_int as size_t == 0 as libc::c_int as size_t {
             let fresh3 = &mut (*((*win).r_width).offset(i as isize));
             *fresh3 -= 1;
-            *fresh3;
         }
         i = i.wrapping_add(1);
-        i;
     }
     (*win).max_width = 0 as libc::c_int as size_t;
     i = 0 as libc::c_int as size_t;
@@ -634,7 +617,6 @@ unsafe extern "C" fn HTS_Window_load(
             (*win).max_width = abs(*((*win).r_width).offset(i as isize)) as size_t;
         }
         i = i.wrapping_add(1);
-        i;
     }
     if result as libc::c_int == 0 as libc::c_int {
         HTS_Window_clear(win);
@@ -682,14 +664,11 @@ unsafe extern "C" fn HTS_Model_clear(mut model: *mut HTS_Model) {
                     *(*((*model).pdf).offset(i as isize)).offset(j as isize) as *mut libc::c_void
                 );
                 j = j.wrapping_add(1);
-                j;
             }
             let fresh4 = &mut (*((*model).pdf).offset(i as isize));
             *fresh4 = (*fresh4).offset(1);
-            *fresh4;
             HTS_free(*((*model).pdf).offset(i as isize) as *mut libc::c_void);
             i = i.wrapping_add(1);
-            i;
         }
         (*model).pdf = ((*model).pdf).offset(2 as libc::c_int as isize);
         HTS_free((*model).pdf as *mut libc::c_void);
@@ -822,7 +801,6 @@ unsafe extern "C" fn HTS_Model_load_pdf(
         } else {
             *((*model).npdf).offset(j as isize) = i as size_t;
             j = j.wrapping_add(1);
-            j;
         }
     }
     j = 2 as libc::c_int as size_t;
@@ -838,7 +816,6 @@ unsafe extern "C" fn HTS_Model_load_pdf(
             break;
         } else {
             j = j.wrapping_add(1);
-            j;
         }
     }
     if result as libc::c_int == 0 as libc::c_int {
@@ -867,7 +844,6 @@ unsafe extern "C" fn HTS_Model_load_pdf(
         ) as *mut *mut libc::c_float;
         let fresh6 = &mut (*((*model).pdf).offset(j as isize));
         *fresh6 = (*fresh6).offset(-1);
-        *fresh6;
         k = 1 as libc::c_int as size_t;
         while k <= *((*model).npdf).offset(j as isize) {
             let fresh7 = &mut (*(*((*model).pdf).offset(j as isize)).offset(k as isize));
@@ -885,10 +861,8 @@ unsafe extern "C" fn HTS_Model_load_pdf(
                 result = 0 as libc::c_int as HTS_Boolean;
             }
             k = k.wrapping_add(1);
-            k;
         }
         j = j.wrapping_add(1);
-        j;
     }
     if result as libc::c_int == 0 as libc::c_int {
         HTS_Model_clear(model);
@@ -960,7 +934,6 @@ unsafe extern "C" fn HTS_Model_get_index(
             }
         }
         *tree_index = (*tree_index).wrapping_add(1);
-        *tree_index;
         tree = (*tree).next;
     }
     if !tree.is_null() {
@@ -1014,7 +987,6 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
                 free(*((*ms).option).offset(i as isize) as *mut libc::c_void);
             }
             i = i.wrapping_add(1);
-            i;
         }
         free((*ms).option as *mut libc::c_void);
     }
@@ -1023,7 +995,6 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
         while i < (*ms).num_voices {
             HTS_Model_clear(&mut *((*ms).duration).offset(i as isize));
             i = i.wrapping_add(1);
-            i;
         }
         free((*ms).duration as *mut libc::c_void);
     }
@@ -1032,7 +1003,6 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
         while i < (*ms).num_streams {
             HTS_Window_clear(&mut *((*ms).window).offset(i as isize));
             i = i.wrapping_add(1);
-            i;
         }
         free((*ms).window as *mut libc::c_void);
     }
@@ -1043,11 +1013,9 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
             while j < (*ms).num_streams {
                 HTS_Model_clear(&mut *(*((*ms).stream).offset(i as isize)).offset(j as isize));
                 j = j.wrapping_add(1);
-                j;
             }
             free(*((*ms).stream).offset(i as isize) as *mut libc::c_void);
             i = i.wrapping_add(1);
-            i;
         }
         HTS_free((*ms).stream as *mut libc::c_void);
     }
@@ -1058,11 +1026,9 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
             while j < (*ms).num_streams {
                 HTS_Model_clear(&mut *(*((*ms).gv).offset(i as isize)).offset(j as isize));
                 j = j.wrapping_add(1);
-                j;
             }
             free(*((*ms).gv).offset(i as isize) as *mut libc::c_void);
             i = i.wrapping_add(1);
-            i;
         }
         free((*ms).gv as *mut libc::c_void);
     }
@@ -1087,7 +1053,6 @@ unsafe extern "C" fn HTS_match_head_string(
             return 0 as libc::c_int as HTS_Boolean;
         }
         *matched_size = (*matched_size).wrapping_add(1);
-        *matched_size;
     }
 }
 unsafe extern "C" fn HTS_strequal(
@@ -1420,7 +1385,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             error = 1 as libc::c_int as HTS_Boolean;
                         }
                         j = j.wrapping_add(1);
-                        j;
                     }
                 }
                 if error as libc::c_int != 0 as libc::c_int {
@@ -1435,7 +1399,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     while j < (*ms).num_streams {
                         *temp_vector_length.offset(j as isize) = 0 as libc::c_int as size_t;
                         j = j.wrapping_add(1);
-                        j;
                     }
                     temp_is_msd = HTS_calloc(
                         (*ms).num_streams,
@@ -1445,7 +1408,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     while j < (*ms).num_streams {
                         *temp_is_msd.offset(j as isize) = 0 as libc::c_int as HTS_Boolean;
                         j = j.wrapping_add(1);
-                        j;
                     }
                     temp_num_windows = HTS_calloc(
                         (*ms).num_streams,
@@ -1455,7 +1417,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     while j < (*ms).num_streams {
                         *temp_num_windows.offset(j as isize) = 0 as libc::c_int as size_t;
                         j = j.wrapping_add(1);
-                        j;
                     }
                     temp_use_gv = HTS_calloc(
                         (*ms).num_streams,
@@ -1465,7 +1426,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     while j < (*ms).num_streams {
                         *temp_use_gv.offset(j as isize) = 0 as libc::c_int as HTS_Boolean;
                         j = j.wrapping_add(1);
-                        j;
                     }
                     temp_option = HTS_calloc(
                         (*ms).num_streams,
@@ -1476,7 +1436,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         let fresh10 = &mut (*temp_option.offset(j as isize));
                         *fresh10 = std::ptr::null_mut::<libc::c_char>();
                         j = j.wrapping_add(1);
-                        j;
                     }
                     loop {
                         if HTS_get_token_from_fp_with_separator(
@@ -1530,7 +1489,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
-                                                j;
                                             }
                                         }
                                     }
@@ -1572,7 +1530,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
-                                                j;
                                             }
                                         }
                                     }
@@ -1611,7 +1568,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
-                                                j;
                                             }
                                         }
                                     }
@@ -1653,7 +1609,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
-                                                j;
                                             }
                                         }
                                     }
@@ -1696,7 +1651,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
-                                                j;
                                             }
                                         }
                                     }
@@ -1726,7 +1680,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -1736,7 +1689,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -1746,7 +1698,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -1756,7 +1707,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -1769,7 +1719,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         free(temp_vector_length as *mut libc::c_void);
                         free(temp_is_msd as *mut libc::c_void);
@@ -1781,7 +1730,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 free(*temp_option.offset(j as isize) as *mut libc::c_void);
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         free(temp_option as *mut libc::c_void);
                     }
@@ -1807,10 +1755,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 let fresh18 = &mut (*(*temp_stream_win.offset(j as isize)).offset(k as isize));
                                 *fresh18 = std::ptr::null_mut::<libc::c_char>();
                                 k = k.wrapping_add(1);
-                                k;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         temp_stream_pdf = HTS_calloc(
                             (*ms).num_streams,
@@ -1821,7 +1767,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             let fresh19 = &mut (*temp_stream_pdf.offset(j as isize));
                             *fresh19 = std::ptr::null_mut::<libc::c_char>();
                             j = j.wrapping_add(1);
-                            j;
                         }
                         temp_stream_tree = HTS_calloc(
                             (*ms).num_streams,
@@ -1832,7 +1777,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             let fresh20 = &mut (*temp_stream_tree.offset(j as isize));
                             *fresh20 = std::ptr::null_mut::<libc::c_char>();
                             j = j.wrapping_add(1);
-                            j;
                         }
                         temp_gv_pdf = HTS_calloc(
                             (*ms).num_streams,
@@ -1843,7 +1787,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             let fresh21 = &mut (*temp_gv_pdf.offset(j as isize));
                             *fresh21 = std::ptr::null_mut::<libc::c_char>();
                             j = j.wrapping_add(1);
-                            j;
                         }
                         temp_gv_tree = HTS_calloc(
                             (*ms).num_streams,
@@ -1854,7 +1797,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             let fresh22 = &mut (*temp_gv_tree.offset(j as isize));
                             *fresh22 = std::ptr::null_mut::<libc::c_char>();
                             j = j.wrapping_add(1);
-                            j;
                         }
                         loop {
                             if HTS_get_token_from_fp_with_separator(
@@ -1945,12 +1887,10 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                             error = 1 as libc::c_int as HTS_Boolean;
                                                         }
                                                         k = k.wrapping_add(1);
-                                                        k;
                                                     }
                                                     break;
                                                 } else {
                                                     j = j.wrapping_add(1);
-                                                    j;
                                                 }
                                             }
                                         }
@@ -1995,7 +1935,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     break;
                                                 } else {
                                                     j = j.wrapping_add(1);
-                                                    j;
                                                 }
                                             }
                                         }
@@ -2040,7 +1979,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     break;
                                                 } else {
                                                     j = j.wrapping_add(1);
-                                                    j;
                                                 }
                                             }
                                         }
@@ -2084,7 +2022,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     break;
                                                 } else {
                                                     j = j.wrapping_add(1);
-                                                    j;
                                                 }
                                             }
                                         }
@@ -2128,7 +2065,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     break;
                                                 } else {
                                                     j = j.wrapping_add(1);
-                                                    j;
                                                 }
                                             }
                                         }
@@ -2156,10 +2092,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     error = 1 as libc::c_int as HTS_Boolean;
                                 }
                                 k = k.wrapping_add(1);
-                                k;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -2167,7 +2101,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         if i == 0 as libc::c_int as size_t {
                             (*ms).duration = HTS_calloc(
@@ -2178,7 +2111,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             while j < num_voices {
                                 HTS_Model_initialize(&mut *((*ms).duration).offset(j as isize));
                                 j = j.wrapping_add(1);
-                                j;
                             }
                             (*ms).window = HTS_calloc(
                                 (*ms).num_streams,
@@ -2188,7 +2120,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             while j < (*ms).num_streams {
                                 HTS_Window_initialize(&mut *((*ms).window).offset(j as isize));
                                 j = j.wrapping_add(1);
-                                j;
                             }
                             (*ms).stream = HTS_calloc(
                                 num_voices,
@@ -2208,10 +2139,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                             .offset(k as isize),
                                     );
                                     k = k.wrapping_add(1);
-                                    k;
                                 }
                                 j = j.wrapping_add(1);
-                                j;
                             }
                             (*ms).gv = HTS_calloc(
                                 num_voices,
@@ -2230,10 +2159,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                         &mut *(*((*ms).gv).offset(j as isize)).offset(k as isize),
                                     );
                                     k = k.wrapping_add(1);
-                                    k;
                                 }
                                 j = j.wrapping_add(1);
-                                j;
                             }
                         }
                         start_of_data = HTS_ftell(fp) as libc::c_long;
@@ -2302,7 +2229,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 let fresh35 = &mut (*win_fp.offset(k as isize));
                                 *fresh35 = std::ptr::null_mut::<HTS_File>();
                                 k = k.wrapping_add(1);
-                                k;
                             }
                             k = 0 as libc::c_int as size_t;
                             while k < *num_windows.offset(j as isize) {
@@ -2330,7 +2256,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     HTS_fseek(fp, start_of_data, 0 as libc::c_int);
                                 }
                                 k = k.wrapping_add(1);
-                                k;
                             }
                             if HTS_Window_load(
                                 &mut *((*ms).window).offset(j as isize),
@@ -2345,11 +2270,9 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             while k < *num_windows.offset(j as isize) {
                                 HTS_fclose(*win_fp.offset(k as isize));
                                 k = k.wrapping_add(1);
-                                k;
                             }
                             free(win_fp as *mut libc::c_void);
                             j = j.wrapping_add(1);
-                            j;
                         }
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -2412,7 +2335,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             HTS_fclose(pdf_fp);
                             HTS_fclose(tree_fp);
                             j = j.wrapping_add(1);
-                            j;
                         }
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -2473,7 +2395,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             HTS_fclose(pdf_fp);
                             HTS_fclose(tree_fp);
                             j = j.wrapping_add(1);
-                            j;
                         }
                         if !temp_duration_pdf.is_null() {
                             free(temp_duration_pdf as *mut libc::c_void);
@@ -2492,11 +2413,9 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                         as *mut libc::c_void);
                                 }
                                 k = k.wrapping_add(1);
-                                k;
                             }
                             free(*temp_stream_win.offset(j as isize) as *mut libc::c_void);
                             j = j.wrapping_add(1);
-                            j;
                         }
                         free(temp_stream_win as *mut libc::c_void);
                         j = 0 as libc::c_int as size_t;
@@ -2505,7 +2424,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 free(*temp_stream_pdf.offset(j as isize) as *mut libc::c_void);
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         free(temp_stream_pdf as *mut libc::c_void);
                         j = 0 as libc::c_int as size_t;
@@ -2514,7 +2432,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 free(*temp_stream_tree.offset(j as isize) as *mut libc::c_void);
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         free(temp_stream_tree as *mut libc::c_void);
                         j = 0 as libc::c_int as size_t;
@@ -2523,7 +2440,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 free(*temp_gv_pdf.offset(j as isize) as *mut libc::c_void);
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         free(temp_gv_pdf as *mut libc::c_void);
                         j = 0 as libc::c_int as size_t;
@@ -2532,7 +2448,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 free(*temp_gv_tree.offset(j as isize) as *mut libc::c_void);
                             }
                             j = j.wrapping_add(1);
-                            j;
                         }
                         free(temp_gv_tree as *mut libc::c_void);
                         HTS_fclose(fp);
@@ -2540,7 +2455,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             break;
                         }
                         i = i.wrapping_add(1);
-                        i;
                     }
                 }
             }
@@ -2572,7 +2486,6 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                 free(*stream_type_list.offset(i as isize) as *mut libc::c_void);
             }
             i = i.wrapping_add(1);
-            i;
         }
         free(stream_type_list as *mut libc::c_void);
     }
@@ -2738,7 +2651,6 @@ unsafe extern "C" fn HTS_Model_add_parameter(
             * *(*(*((*model).pdf).offset(tree_index as isize)).offset(pdf_index as isize))
                 .offset(i.wrapping_add(len) as isize) as libc::c_double;
         i = i.wrapping_add(1);
-        i;
     }
     if !msd.is_null() && (*model).is_msd as libc::c_int == 1 as libc::c_int {
         *msd += weight
@@ -2777,7 +2689,6 @@ pub unsafe extern "C" fn HTS_ModelSet_get_duration(
         *mean.offset(i as isize) = 0.0f64;
         *vari.offset(i as isize) = 0.0f64;
         i = i.wrapping_add(1);
-        i;
     }
     i = 0 as libc::c_int as size_t;
     while i < (*ms).num_voices {
@@ -2793,7 +2704,6 @@ pub unsafe extern "C" fn HTS_ModelSet_get_duration(
             );
         }
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -2836,7 +2746,6 @@ pub unsafe extern "C" fn HTS_ModelSet_get_parameter(
         *mean.offset(i as isize) = 0.0f64;
         *vari.offset(i as isize) = 0.0f64;
         i = i.wrapping_add(1);
-        i;
     }
     if !msd.is_null() {
         *msd = 0.0f64;
@@ -2855,7 +2764,6 @@ pub unsafe extern "C" fn HTS_ModelSet_get_parameter(
             );
         }
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -2893,7 +2801,6 @@ pub unsafe extern "C" fn HTS_ModelSet_get_gv(
         *mean.offset(i as isize) = 0.0f64;
         *vari.offset(i as isize) = 0.0f64;
         i = i.wrapping_add(1);
-        i;
     }
     i = 0 as libc::c_int as size_t;
     while i < (*ms).num_voices {
@@ -2909,6 +2816,5 @@ pub unsafe extern "C" fn HTS_ModelSet_get_gv(
             );
         }
         i = i.wrapping_add(1);
-        i;
     }
 }

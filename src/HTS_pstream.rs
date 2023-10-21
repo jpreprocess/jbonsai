@@ -51,7 +51,6 @@ unsafe extern "C" fn HTS_PStream_calc_wuw_and_wum(mut pst: *mut HTS_PStream, mut
         while i < (*pst).width {
             *(*((*pst).sm.wuw).offset(t as isize)).offset(i as isize) = 0.0f64;
             i = i.wrapping_add(1);
-            i;
         }
         i = 0 as libc::c_int as size_t;
         while i < (*pst).win_size {
@@ -80,17 +79,13 @@ unsafe extern "C" fn HTS_PStream_calc_wuw_and_wum(mut pst: *mut HTS_PStream, mut
                                     .offset(j.wrapping_sub(shift as size_t) as isize);
                         }
                         j = j.wrapping_add(1);
-                        j;
                     }
                 }
                 shift += 1;
-                shift;
             }
             i = i.wrapping_add(1);
-            i;
         }
         t = t.wrapping_add(1);
-        t;
     }
 }
 unsafe extern "C" fn HTS_PStream_ldl_factorization(mut pst: *mut HTS_PStream) {
@@ -107,7 +102,6 @@ unsafe extern "C" fn HTS_PStream_ldl_factorization(mut pst: *mut HTS_PStream) {
                     * *(*((*pst).sm.wuw).offset(t.wrapping_sub(i) as isize))
                         .offset(0 as libc::c_int as isize);
             i = i.wrapping_add(1);
-            i;
         }
         i = 1 as libc::c_int as size_t;
         while i < (*pst).width {
@@ -120,15 +114,12 @@ unsafe extern "C" fn HTS_PStream_ldl_factorization(mut pst: *mut HTS_PStream) {
                         * *(*((*pst).sm.wuw).offset(t.wrapping_sub(j) as isize))
                             .offset(0 as libc::c_int as isize);
                 j = j.wrapping_add(1);
-                j;
             }
             *(*((*pst).sm.wuw).offset(t as isize)).offset(i as isize) /=
                 *(*((*pst).sm.wuw).offset(t as isize)).offset(0 as libc::c_int as isize);
             i = i.wrapping_add(1);
-            i;
         }
         t = t.wrapping_add(1);
-        t;
     }
 }
 unsafe extern "C" fn HTS_PStream_forward_substitution(mut pst: *mut HTS_PStream) {
@@ -143,10 +134,8 @@ unsafe extern "C" fn HTS_PStream_forward_substitution(mut pst: *mut HTS_PStream)
                 *(*((*pst).sm.wuw).offset(t.wrapping_sub(i) as isize)).offset(i as isize)
                     * *((*pst).sm.g).offset(t.wrapping_sub(i) as isize);
             i = i.wrapping_add(1);
-            i;
         }
         t = t.wrapping_add(1);
-        t;
     }
 }
 unsafe extern "C" fn HTS_PStream_backward_substitution(mut pst: *mut HTS_PStream, mut m: size_t) {
@@ -166,10 +155,8 @@ unsafe extern "C" fn HTS_PStream_backward_substitution(mut pst: *mut HTS_PStream
                 *(*((*pst).sm.wuw).offset(t as isize)).offset(i as isize)
                     * *(*((*pst).par).offset(t.wrapping_add(i) as isize)).offset(m as isize);
             i = i.wrapping_add(1);
-            i;
         }
         rev = rev.wrapping_add(1);
-        rev;
     }
 }
 unsafe extern "C" fn HTS_PStream_calc_gv(
@@ -186,7 +173,6 @@ unsafe extern "C" fn HTS_PStream_calc_gv(
             *mean += *(*((*pst).par).offset(t as isize)).offset(m as isize);
         }
         t = t.wrapping_add(1);
-        t;
     }
     *mean /= (*pst).gv_length as libc::c_double;
     *vari = 0.0f64;
@@ -197,7 +183,6 @@ unsafe extern "C" fn HTS_PStream_calc_gv(
                 * (*(*((*pst).par).offset(t as isize)).offset(m as isize) - *mean);
         }
         t = t.wrapping_add(1);
-        t;
     }
     *vari /= (*pst).gv_length as libc::c_double;
 }
@@ -215,7 +200,6 @@ unsafe extern "C" fn HTS_PStream_conv_gv(mut pst: *mut HTS_PStream, mut m: size_
                 ratio * (*(*((*pst).par).offset(t as isize)).offset(m as isize) - mean) + mean;
         }
         t = t.wrapping_add(1);
-        t;
     }
 }
 unsafe extern "C" fn HTS_PStream_calc_derivative(
@@ -259,10 +243,8 @@ unsafe extern "C" fn HTS_PStream_calc_derivative(
                         * *(*((*pst).par).offset(t.wrapping_sub(i) as isize)).offset(m as isize);
             }
             i = i.wrapping_add(1);
-            i;
         }
         t = t.wrapping_add(1);
-        t;
     }
     t = 0 as libc::c_int as size_t;
     hmmobj = 0.0f64;
@@ -298,7 +280,6 @@ unsafe extern "C" fn HTS_PStream_calc_derivative(
                     * (-*((*pst).sm.g).offset(t as isize) + *((*pst).sm.wum).offset(t as isize)));
         }
         t = t.wrapping_add(1);
-        t;
     }
     -(hmmobj + gvobj)
 }
@@ -330,11 +311,9 @@ unsafe extern "C" fn HTS_PStream_gv_parmgen(mut pst: *mut HTS_PStream, mut m: si
                 *(*((*pst).par).offset(t as isize)).offset(m as isize) +=
                     step * *((*pst).sm.g).offset(t as isize);
                 t = t.wrapping_add(1);
-                t;
             }
             prev = obj;
             i = i.wrapping_add(1);
-            i;
         }
     }
 }
@@ -353,7 +332,6 @@ unsafe extern "C" fn HTS_PStream_mlpg(mut pst: *mut HTS_PStream) {
             HTS_PStream_gv_parmgen(pst, m);
         }
         m = m.wrapping_add(1);
-        m;
     }
 }
 #[no_mangle]
@@ -406,7 +384,6 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                         ((*pst).length).wrapping_add(HTS_SStreamSet_get_duration(sss, state));
                 }
                 state = state.wrapping_add(1);
-                state;
             }
             (*pst).msd_flag = HTS_calloc(
                 (*pss).total_frame,
@@ -420,22 +397,17 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                     while j < HTS_SStreamSet_get_duration(sss, state) {
                         *((*pst).msd_flag).offset(frame as isize) = 1 as libc::c_int as HTS_Boolean;
                         frame = frame.wrapping_add(1);
-                        frame;
                         j = j.wrapping_add(1);
-                        j;
                     }
                 } else {
                     j = 0 as libc::c_int as size_t;
                     while j < HTS_SStreamSet_get_duration(sss, state) {
                         *((*pst).msd_flag).offset(frame as isize) = 0 as libc::c_int as HTS_Boolean;
                         frame = frame.wrapping_add(1);
-                        frame;
                         j = j.wrapping_add(1);
-                        j;
                     }
                 }
                 state = state.wrapping_add(1);
-                state;
             }
         } else {
             (*pst).length = (*pss).total_frame;
@@ -502,10 +474,8 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                 *(*((*pst).win_coefficient).offset(j as isize)).offset(shift as isize) =
                     HTS_SStreamSet_get_window_coefficient(sss, i, j, shift);
                 shift += 1;
-                shift;
             }
             j = j.wrapping_add(1);
-            j;
         }
         if HTS_SStreamSet_use_gv(sss, i) != 0 {
             (*pst).gv_mean = HTS_calloc(
@@ -522,7 +492,6 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                     HTS_SStreamSet_get_gv_mean(sss, i, j) * *gv_weight.offset(i as isize);
                 *((*pst).gv_vari).offset(j as isize) = HTS_SStreamSet_get_gv_vari(sss, i, j);
                 j = j.wrapping_add(1);
-                j;
             }
             (*pst).gv_switch = HTS_calloc(
                 (*pst).length,
@@ -542,12 +511,9 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                                 HTS_SStreamSet_get_gv_switch(sss, i, state);
                         }
                         j = j.wrapping_add(1);
-                        j;
                         frame = frame.wrapping_add(1);
-                        frame;
                     }
                     state = state.wrapping_add(1);
-                    state;
                 }
             } else {
                 state = 0 as libc::c_int as size_t;
@@ -560,10 +526,8 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                         *((*pst).gv_switch).offset(fresh4 as isize) =
                             HTS_SStreamSet_get_gv_switch(sss, i, state);
                         j = j.wrapping_add(1);
-                        j;
                     }
                     state = state.wrapping_add(1);
-                    state;
                 }
             }
             j = 0 as libc::c_int as size_t;
@@ -574,7 +538,6 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                     (*pst).gv_length;
                 }
                 j = j.wrapping_add(1);
-                j;
             }
         } else {
             (*pst).gv_switch = std::ptr::null_mut::<HTS_Boolean>();
@@ -606,7 +569,6 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                                     break;
                                 } else {
                                     shift += 1;
-                                    shift;
                                 }
                             }
                             l = 0 as libc::c_int as size_t;
@@ -624,21 +586,15 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                                         .offset(m as isize) = 0.0f64;
                                 }
                                 l = l.wrapping_add(1);
-                                l;
                             }
                             k = k.wrapping_add(1);
-                            k;
                         }
                         msd_frame = msd_frame.wrapping_add(1);
-                        msd_frame;
                     }
                     frame = frame.wrapping_add(1);
-                    frame;
                     j = j.wrapping_add(1);
-                    j;
                 }
                 state = state.wrapping_add(1);
-                state;
             }
         } else {
             state = 0 as libc::c_int as size_t;
@@ -658,7 +614,6 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                                 break;
                             } else {
                                 shift += 1;
-                                shift;
                             }
                         }
                         l = 0 as libc::c_int as size_t;
@@ -674,23 +629,17 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
                                     0.0f64;
                             }
                             l = l.wrapping_add(1);
-                            l;
                         }
                         k = k.wrapping_add(1);
-                        k;
                     }
                     frame = frame.wrapping_add(1);
-                    frame;
                     j = j.wrapping_add(1);
-                    j;
                 }
                 state = state.wrapping_add(1);
-                state;
             }
         }
         HTS_PStream_mlpg(pst);
         i = i.wrapping_add(1);
-        i;
     }
     1 as libc::c_int as HTS_Boolean
 }
@@ -786,7 +735,6 @@ pub unsafe extern "C" fn HTS_PStreamSet_clear(mut pss: *mut HTS_PStreamSet) {
                         (*fresh5).offset(*((*pstream).win_l_width).offset(j as isize) as isize);
                     HTS_free(*((*pstream).win_coefficient).offset(j as isize) as *mut libc::c_void);
                     j = j.wrapping_add(1);
-                    j;
                 }
             }
             if !((*pstream).gv_mean).is_null() {
@@ -808,7 +756,6 @@ pub unsafe extern "C" fn HTS_PStreamSet_clear(mut pss: *mut HTS_PStreamSet) {
                 HTS_free((*pstream).gv_switch as *mut libc::c_void);
             }
             i = i.wrapping_add(1);
-            i;
         }
         HTS_free((*pss).pstream as *mut libc::c_void);
     }

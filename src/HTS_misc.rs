@@ -353,7 +353,6 @@ unsafe extern "C" fn HTS_fread(
             (*d).index = ((*d).index).wrapping_add(1);
             *c.offset(i as isize) = *((*d).data).offset(fresh1 as isize);
             i = i.wrapping_add(1);
-            i;
         }
         if i == 0 as libc::c_int as size_t {
             return 0 as libc::c_int as size_t;
@@ -387,11 +386,9 @@ unsafe extern "C" fn HTS_byte_swap(p: *mut libc::c_void, size: size_t, block: si
                     .wrapping_sub(j) as isize,
             ) = tmp;
             j = j.wrapping_add(1);
-            j;
         }
         q = q.offset(size as isize);
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -608,7 +605,6 @@ pub unsafe extern "C" fn HTS_get_token_from_string(
         *index = (*index).wrapping_add(1);
         c = *string.offset(fresh7 as isize);
         i = i.wrapping_add(1);
-        i;
     }
     *buff.offset(i as isize) = '\0' as i32 as libc::c_char;
     1 as libc::c_int as HTS_Boolean
@@ -634,7 +630,6 @@ pub unsafe extern "C" fn HTS_get_token_from_string_with_separator(
             return 0 as libc::c_int as HTS_Boolean;
         }
         *index = (*index).wrapping_add(1);
-        *index;
         c = *str.offset(*index as isize);
     }
     while c as libc::c_int != separator as libc::c_int && c as libc::c_int != '\0' as i32 {
@@ -642,12 +637,10 @@ pub unsafe extern "C" fn HTS_get_token_from_string_with_separator(
         len = len.wrapping_add(1);
         *buff.offset(fresh8 as isize) = c;
         *index = (*index).wrapping_add(1);
-        *index;
         c = *str.offset(*index as isize);
     }
     if c as libc::c_int != '\0' as i32 {
         *index = (*index).wrapping_add(1);
-        *index;
     }
     *buff.offset(len as isize) = '\0' as i32 as libc::c_char;
     if len > 0 as libc::c_int as size_t {
@@ -706,7 +699,6 @@ pub unsafe extern "C" fn HTS_alloc_matrix(
         *fresh9 = HTS_calloc(y, ::core::mem::size_of::<libc::c_double>() as libc::c_ulong)
             as *mut libc::c_double;
         i = i.wrapping_add(1);
-        i;
     }
     p
 }
@@ -717,7 +709,6 @@ pub unsafe extern "C" fn HTS_free_matrix(p: *mut *mut libc::c_double, x: size_t)
     while i < x {
         HTS_free(*p.offset(i as isize) as *mut libc::c_void);
         i = i.wrapping_add(1);
-        i;
     }
     HTS_free(p as *mut libc::c_void);
 }

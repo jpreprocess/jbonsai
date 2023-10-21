@@ -226,7 +226,6 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
         }
         (*lstring).next = std::ptr::null_mut::<HTS_LabelString>();
         i = i.wrapping_add(1);
-        i;
     }
     HTS_Label_check_time(label);
 }
@@ -245,7 +244,6 @@ pub unsafe extern "C" fn HTS_Label_get_string(
     while i < index && !lstring.is_null() {
         lstring = (*lstring).next;
         i = i.wrapping_add(1);
-        i;
     }
     if lstring.is_null() {
         return std::ptr::null::<libc::c_char>();
@@ -263,7 +261,6 @@ pub unsafe extern "C" fn HTS_Label_get_start_frame(
     while i < index && !lstring.is_null() {
         lstring = (*lstring).next;
         i = i.wrapping_add(1);
-        i;
     }
     if lstring.is_null() {
         return -1.0f64;
@@ -281,7 +278,6 @@ pub unsafe extern "C" fn HTS_Label_get_end_frame(
     while i < index && !lstring.is_null() {
         lstring = (*lstring).next;
         i = i.wrapping_add(1);
-        i;
     }
     if lstring.is_null() {
         return -1.0f64;

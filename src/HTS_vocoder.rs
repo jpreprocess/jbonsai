@@ -91,19 +91,16 @@ unsafe extern "C" fn HTS_mlsafir(
             * (*d.offset((i + 1 as libc::c_int) as isize)
                 - *d.offset((i - 1 as libc::c_int) as isize));
         i += 1;
-        i;
     }
     i = 2 as libc::c_int;
     while i <= m {
         y += *d.offset(i as isize) * *b.offset(i as isize);
         i += 1;
-        i;
     }
     i = m + 1 as libc::c_int;
     while i > 1 as libc::c_int {
         *d.offset(i as isize) = *d.offset((i - 1 as libc::c_int) as isize);
         i -= 1;
-        i;
     }
     y
 }
@@ -131,7 +128,6 @@ unsafe extern "C" fn HTS_mlsadf1(
         x += if 1 as libc::c_int & i != 0 { v } else { -v };
         out += v;
         i -= 1;
-        i;
     }
     *pt.offset(0 as libc::c_int as isize) = x;
     out += x;
@@ -166,7 +162,6 @@ unsafe extern "C" fn HTS_mlsadf2(
         x += if 1 as libc::c_int & i != 0 { v } else { -v };
         out += v;
         i -= 1;
-        i;
     }
     *pt.offset(0 as libc::c_int as isize) = x;
     out += x;
@@ -261,23 +256,19 @@ unsafe extern "C" fn HTS_mc2b(
         if a != 0.0f64 {
             *b.offset(m as isize) = *mc.offset(m as isize);
             m -= 1;
-            m;
             while m >= 0 as libc::c_int {
                 *b.offset(m as isize) =
                     *mc.offset(m as isize) - a * *b.offset((m + 1 as libc::c_int) as isize);
                 m -= 1;
-                m;
             }
         } else {
             HTS_movem(mc, b, m + 1 as libc::c_int);
         }
     } else if a != 0.0f64 {
         m -= 1;
-        m;
         while m >= 0 as libc::c_int {
             *b.offset(m as isize) -= a * *b.offset((m + 1 as libc::c_int) as isize);
             m -= 1;
-            m;
         }
     }
 }
@@ -293,13 +284,11 @@ unsafe extern "C" fn HTS_b2mc(
     *fresh4 = *b.offset(m as isize);
     d = *fresh4;
     m -= 1;
-    m;
     while m >= 0 as libc::c_int {
         o = *b.offset(m as isize) + a * d;
         d = *b.offset(m as isize);
         *mc.offset(m as isize) = o;
         m -= 1;
-        m;
     }
 }
 unsafe extern "C" fn HTS_freqt(
@@ -331,7 +320,6 @@ unsafe extern "C" fn HTS_freqt(
     while i < m2 + 1 as libc::c_int {
         *g.offset(i as isize) = 0.0f64;
         i += 1;
-        i;
     }
     i = -m1;
     while i <= 0 as libc::c_int {
@@ -353,10 +341,8 @@ unsafe extern "C" fn HTS_freqt(
             *g.offset(j as isize) = *((*v).freqt_buff).offset((j - 1 as libc::c_int) as isize)
                 + a * (*fresh7 - *g.offset((j - 1 as libc::c_int) as isize));
             j += 1;
-            j;
         }
         i += 1;
-        i;
     }
     HTS_movem(g, c2, m2 + 1 as libc::c_int);
 }
@@ -379,11 +365,9 @@ unsafe extern "C" fn HTS_c2ir(
         while k <= upl {
             d += k as libc::c_double * *c.offset(k as isize) * *h.offset((n - k) as isize);
             k += 1;
-            k;
         }
         *h.offset(n as isize) = d / n as libc::c_double;
         n += 1;
-        n;
     }
 }
 unsafe extern "C" fn HTS_b2en(
@@ -424,7 +408,6 @@ unsafe extern "C" fn HTS_b2en(
     while i < 576 as libc::c_int {
         en += *ir.offset(i as isize) * *ir.offset(i as isize);
         i += 1;
-        i;
     }
     en
 }
@@ -440,7 +423,6 @@ unsafe extern "C" fn HTS_ignorm(
         while m >= 1 as libc::c_int {
             *c2.offset(m as isize) = k * *c1.offset(m as isize);
             m -= 1;
-            m;
         }
         *c2.offset(0 as libc::c_int as isize) = (k - 1.0f64) / g;
     } else {
@@ -464,7 +446,6 @@ unsafe extern "C" fn HTS_gnorm(
         while m >= 1 as libc::c_int {
             *c2.offset(m as isize) = *c1.offset(m as isize) / k;
             m -= 1;
-            m;
         }
         *c2.offset(0 as libc::c_int as isize) = pow(k, 1.0f64 / g);
     } else {
@@ -530,44 +511,37 @@ unsafe extern "C" fn HTS_lsp2lpc(
     while i < mh1 + 1 as libc::c_int {
         *a0.offset(i as isize) = 0.0f64;
         i += 1;
-        i;
     }
     i = 0 as libc::c_int;
     while i < mh1 + 1 as libc::c_int {
         *a1.offset(i as isize) = 0.0f64;
         i += 1;
-        i;
     }
     i = 0 as libc::c_int;
     while i < mh1 + 1 as libc::c_int {
         *a2.offset(i as isize) = 0.0f64;
         i += 1;
-        i;
     }
     i = 0 as libc::c_int;
     while i < mh2 + 1 as libc::c_int {
         *b0.offset(i as isize) = 0.0f64;
         i += 1;
-        i;
     }
     i = 0 as libc::c_int;
     while i < mh2 + 1 as libc::c_int {
         *b1.offset(i as isize) = 0.0f64;
         i += 1;
-        i;
     }
     i = 0 as libc::c_int;
     while i < mh2 + 1 as libc::c_int {
         *b2.offset(i as isize) = 0.0f64;
         i += 1;
-        i;
     }
     k = 0 as libc::c_int;
     i = k;
     while i < mh1 {
         *p.offset(i as isize) = -2.0f64 * cos(*((*v).lsp2lpc_buff).offset(k as isize));
         i += 1;
-        i;
         k += 2 as libc::c_int;
     }
     k = 0 as libc::c_int;
@@ -576,7 +550,6 @@ unsafe extern "C" fn HTS_lsp2lpc(
         *q.offset(i as isize) =
             -2.0f64 * cos(*((*v).lsp2lpc_buff).offset((k + 1 as libc::c_int) as isize));
         i += 1;
-        i;
         k += 2 as libc::c_int;
     }
     xx = 1.0f64;
@@ -602,7 +575,6 @@ unsafe extern "C" fn HTS_lsp2lpc(
             *a2.offset(i as isize) = *a1.offset(i as isize);
             *a1.offset(i as isize) = *a0.offset(i as isize);
             i += 1;
-            i;
         }
         i = 0 as libc::c_int;
         while i < mh2 {
@@ -612,7 +584,6 @@ unsafe extern "C" fn HTS_lsp2lpc(
             *b2.offset(i as isize) = *b1.offset(i as isize);
             *b1.offset(i as isize) = *b0.offset(i as isize);
             i += 1;
-            i;
         }
         if k != 0 as libc::c_int {
             *a.offset((k - 1 as libc::c_int) as isize) =
@@ -620,13 +591,11 @@ unsafe extern "C" fn HTS_lsp2lpc(
         }
         xx = 0.0f64;
         k += 1;
-        k;
     }
     i = m - 1 as libc::c_int;
     while i >= 0 as libc::c_int {
         *a.offset((i + 1 as libc::c_int) as isize) = -*a.offset(i as isize);
         i -= 1;
-        i;
     }
     *a.offset(0 as libc::c_int as isize) = 1.0f64;
 }
@@ -670,7 +639,6 @@ unsafe extern "C" fn HTS_gc2gc(
             ss2 += k as libc::c_double * cc;
             ss1 += mk as libc::c_double * cc;
             k += 1;
-            k;
         }
         if i <= m1 {
             *c2.offset(i as isize) =
@@ -679,7 +647,6 @@ unsafe extern "C" fn HTS_gc2gc(
             *c2.offset(i as isize) = (g2 * ss2 - g1 * ss1) / i as libc::c_double;
         }
         i += 1;
-        i;
     }
 }
 unsafe extern "C" fn HTS_mgc2mgc(
@@ -725,7 +692,6 @@ unsafe extern "C" fn HTS_lsp2mgc(
     while i >= 1 as libc::c_int {
         *mgc.offset(i as isize) *= -((*v).stage as libc::c_double);
         i -= 1;
-        i;
     }
     HTS_mgc2mgc(v, mgc, m, alpha, (*v).gamma, mgc, m, alpha, (*v).gamma);
 }
@@ -746,14 +712,12 @@ unsafe extern "C" fn HTS_mglsadff(
                 - *d.offset((i - 1 as libc::c_int) as isize));
         y += *d.offset(i as isize) * *b.offset((i + 1 as libc::c_int) as isize);
         i += 1;
-        i;
     }
     x -= y;
     i = m;
     while i > 0 as libc::c_int {
         *d.offset(i as isize) = *d.offset((i - 1 as libc::c_int) as isize);
         i -= 1;
-        i;
     }
     *d.offset(0 as libc::c_int as isize) =
         a * *d.offset(0 as libc::c_int as isize) + (1 as libc::c_int as libc::c_double - a * a) * x;
@@ -778,7 +742,6 @@ unsafe extern "C" fn HTS_mglsadf(
             &mut *d.offset((i * (m + 1 as libc::c_int)) as isize),
         );
         i += 1;
-        i;
     }
     x
 }
@@ -803,7 +766,6 @@ unsafe extern "C" fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m
                 find = 1 as libc::c_int as HTS_Boolean;
             }
             j = j.wrapping_add(1);
-            j;
         }
         if *lsp.offset(1 as libc::c_int as isize) < min {
             *lsp.offset(1 as libc::c_int as isize) = min;
@@ -817,7 +779,6 @@ unsafe extern "C" fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m
             break;
         }
         i = i.wrapping_add(1);
-        i;
     }
 }
 unsafe extern "C" fn HTS_lsp2en(
@@ -866,7 +827,6 @@ unsafe extern "C" fn HTS_lsp2en(
     while i <= m {
         *((*v).spectrum2en_buff).offset(i as isize) *= -((*v).stage as libc::c_double);
         i = i.wrapping_add(1);
-        i;
     }
     HTS_mgc2mgc(
         v,
@@ -883,7 +843,6 @@ unsafe extern "C" fn HTS_lsp2en(
     while i < 576 as libc::c_int as size_t {
         en += *buff.offset(i as isize) * *buff.offset(i as isize);
         i = i.wrapping_add(1);
-        i;
     }
     en
 }
@@ -913,7 +872,6 @@ unsafe extern "C" fn HTS_Vocoder_initialize_excitation(
         while i < (*v).excite_buff_size {
             *((*v).excite_ring_buff).offset(i as isize) = 0.0f64;
             i = i.wrapping_add(1);
-            i;
         }
         (*v).excite_buff_index = 0 as libc::c_int as size_t;
     } else {
@@ -966,7 +924,6 @@ unsafe extern "C" fn HTS_Vocoder_excite_voiced_frame(
                 ) += noise * (0.0f64 - *lpf.offset(i as isize));
             }
             i = i.wrapping_add(1);
-            i;
         }
     }
     if pulse != 0.0f64 {
@@ -976,7 +933,6 @@ unsafe extern "C" fn HTS_Vocoder_excite_voiced_frame(
                 (((*v).excite_buff_index).wrapping_add(i) % (*v).excite_buff_size) as isize,
             ) += pulse * *lpf.offset(i as isize);
             i = i.wrapping_add(1);
-            i;
         }
     }
 }
@@ -1057,7 +1013,6 @@ unsafe extern "C" fn HTS_Vocoder_postfilter_mcp(
         while k <= m {
             *((*v).postfilter_buff).offset(k as isize) *= 1.0f64 + beta;
             k += 1;
-            k;
         }
         e2 = HTS_b2en(v, (*v).postfilter_buff, m, alpha);
         *((*v).postfilter_buff).offset(0 as libc::c_int as isize) +=
@@ -1110,7 +1065,6 @@ unsafe extern "C" fn HTS_Vocoder_postfilter_lsp(
                 *((*v).postfilter_buff).offset(i as isize) = *lsp.offset(i as isize);
             }
             i = i.wrapping_add(1);
-            i;
         }
         HTS_movem(
             (*v).postfilter_buff,
@@ -1244,7 +1198,6 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
             while i as size_t <= m {
                 *((*v).c).offset(i as isize) *= (*v).gamma;
                 i += 1;
-                i;
             }
         }
         (*v).is_first = 0 as libc::c_int as HTS_Boolean;
@@ -1259,7 +1212,6 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
                 - *((*v).c).offset(i as isize))
                 / (*v).fprd as libc::c_double;
             i += 1;
-            i;
         }
     } else {
         HTS_Vocoder_postfilter_lsp(v, spectrum, m, alpha, beta);
@@ -1271,7 +1223,6 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
         while i as size_t <= m {
             *((*v).cc).offset(i as isize) *= (*v).gamma;
             i += 1;
-            i;
         }
         i = 0 as libc::c_int;
         while i as size_t <= m {
@@ -1279,7 +1230,6 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
                 - *((*v).c).offset(i as isize))
                 / (*v).fprd as libc::c_double;
             i += 1;
-            i;
         }
     }
     j = 0 as libc::c_int;
@@ -1320,10 +1270,8 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
         while i as size_t <= m {
             *((*v).c).offset(i as isize) += *((*v).cinc).offset(i as isize);
             i += 1;
-            i;
         }
         j += 1;
-        j;
     }
     HTS_Vocoder_end_excitation(v, p);
     HTS_movem(

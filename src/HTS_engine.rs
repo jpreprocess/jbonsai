@@ -91,7 +91,6 @@ pub unsafe extern "C" fn HTS_Engine_load(
     while i < nstream {
         *((*engine).condition.msd_threshold).offset(i as isize) = 0.5f64;
         i = i.wrapping_add(1);
-        i;
     }
     (*engine).condition.gv_weight = HTS_calloc(
         nstream,
@@ -101,7 +100,6 @@ pub unsafe extern "C" fn HTS_Engine_load(
     while i < nstream {
         *((*engine).condition.gv_weight).offset(i as isize) = 1.0f64;
         i = i.wrapping_add(1);
-        i;
     }
     option = HTS_ModelSet_get_option(&mut (*engine).ms, 0 as libc::c_int as size_t);
     find = strstr(option, b"GAMMA=\0" as *const u8 as *const libc::c_char);
@@ -139,7 +137,6 @@ pub unsafe extern "C" fn HTS_Engine_load(
     while i < num_voices {
         *((*engine).condition.duration_iw).offset(i as isize) = average_weight;
         i = i.wrapping_add(1);
-        i;
     }
     (*engine).condition.parameter_iw = HTS_calloc(
         num_voices,
@@ -157,10 +154,8 @@ pub unsafe extern "C" fn HTS_Engine_load(
             *(*((*engine).condition.parameter_iw).offset(i as isize)).offset(j as isize) =
                 average_weight;
             j = j.wrapping_add(1);
-            j;
         }
         i = i.wrapping_add(1);
-        i;
     }
     (*engine).condition.gv_iw = HTS_calloc(
         num_voices,
@@ -177,10 +172,8 @@ pub unsafe extern "C" fn HTS_Engine_load(
         while j < nstream {
             *(*((*engine).condition.gv_iw).offset(i as isize)).offset(j as isize) = average_weight;
             j = j.wrapping_add(1);
-            j;
         }
         i = i.wrapping_add(1);
-        i;
     }
     1 as libc::c_int as HTS_Boolean
 }
@@ -522,14 +515,11 @@ unsafe extern "C" fn HTS_Engine_generate_state_sequence(
                 f,
             );
             state_index = state_index.wrapping_add(1);
-            state_index;
             if state_index >= HTS_Engine_get_nstate(engine) {
                 state_index = 0 as libc::c_int as size_t;
                 model_index = model_index.wrapping_add(1);
-                model_index;
             }
             i = i.wrapping_add(1);
-            i;
         }
     }
     1 as libc::c_int as HTS_Boolean
@@ -737,7 +727,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
     while i < HTS_ModelSet_get_nvoices(ms) {
         temp += *((*condition).duration_iw).offset(i as isize);
         i = i.wrapping_add(1);
-        i;
     }
     i = 0 as libc::c_int as size_t;
     while i < HTS_ModelSet_get_nvoices(ms) {
@@ -745,7 +734,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
             *((*condition).duration_iw).offset(i as isize) /= temp;
         }
         i = i.wrapping_add(1);
-        i;
     }
     i = 0 as libc::c_int as size_t;
     while i < HTS_ModelSet_get_nvoices(ms) {
@@ -758,7 +746,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
                 as libc::c_float as libc::c_double,
         );
         i = i.wrapping_add(1);
-        i;
     }
     fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
     fprintf(
@@ -791,7 +778,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
         while j < HTS_ModelSet_get_nvoices(ms) {
             temp += *(*((*condition).parameter_iw).offset(j as isize)).offset(i as isize);
             j = j.wrapping_add(1);
-            j;
         }
         j = 0 as libc::c_int as size_t;
         while j < HTS_ModelSet_get_nvoices(ms) {
@@ -799,7 +785,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
                 *(*((*condition).parameter_iw).offset(j as isize)).offset(i as isize) /= temp;
             }
             j = j.wrapping_add(1);
-            j;
         }
         j = 0 as libc::c_int as size_t;
         while j < HTS_ModelSet_get_nvoices(ms) {
@@ -813,7 +798,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
                     as libc::c_float as libc::c_double,
             );
             j = j.wrapping_add(1);
-            j;
         }
         if HTS_ModelSet_is_msd(ms, i) != 0 {
             fprintf(
@@ -859,7 +843,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
             while j < HTS_ModelSet_get_nvoices(ms) {
                 temp += *(*((*condition).gv_iw).offset(j as isize)).offset(i as isize);
                 j = j.wrapping_add(1);
-                j;
             }
             j = 0 as libc::c_int as size_t;
             while j < HTS_ModelSet_get_nvoices(ms) {
@@ -867,7 +850,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
                     *(*((*condition).gv_iw).offset(j as isize)).offset(i as isize) /= temp;
                 }
                 j = j.wrapping_add(1);
-                j;
             }
             j = 0 as libc::c_int as size_t;
             while j < HTS_ModelSet_get_nvoices(ms) {
@@ -881,7 +863,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
                         as libc::c_float as libc::c_double,
                 );
                 j = j.wrapping_add(1);
-                j;
             }
         } else {
             fprintf(
@@ -891,7 +872,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
             );
         }
         i = i.wrapping_add(1);
-        i;
     }
     fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
     fprintf(
@@ -953,7 +933,6 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
                 l,
             );
             j = j.wrapping_add(1);
-            j;
         }
         j = 0 as libc::c_int as size_t;
         while j < HTS_ModelSet_get_nstate(ms) {
@@ -1024,16 +1003,12 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
                         n,
                     );
                     l = l.wrapping_add(1);
-                    l;
                 }
                 k = k.wrapping_add(1);
-                k;
             }
             j = j.wrapping_add(1);
-            j;
         }
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -1059,7 +1034,6 @@ pub unsafe extern "C" fn HTS_Engine_save_label(engine: *mut HTS_Engine, fp: *mut
             state = state.wrapping_add(1);
             duration = duration.wrapping_add(HTS_SStreamSet_get_duration(sss, fresh2));
             j = j.wrapping_add(1);
-            j;
         }
         fprintf(
             fp,
@@ -1070,7 +1044,6 @@ pub unsafe extern "C" fn HTS_Engine_save_label(engine: *mut HTS_Engine, fp: *mut
         );
         frame = frame.wrapping_add(duration);
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -1095,10 +1068,8 @@ pub unsafe extern "C" fn HTS_Engine_save_generated_parameter(
                 fp,
             );
             j = j.wrapping_add(1);
-            j;
         }
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -1127,7 +1098,6 @@ pub unsafe extern "C" fn HTS_Engine_save_generated_speech(
             fp,
         );
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -1274,7 +1244,6 @@ pub unsafe extern "C" fn HTS_Engine_save_riff(engine: *mut HTS_Engine, fp: *mut 
             fp,
         );
         i = i.wrapping_add(1);
-        i;
     }
 }
 #[no_mangle]
@@ -1302,7 +1271,6 @@ pub unsafe extern "C" fn HTS_Engine_clear(engine: *mut HTS_Engine) {
         while i < HTS_ModelSet_get_nvoices(&mut (*engine).ms) {
             HTS_free(*((*engine).condition.parameter_iw).offset(i as isize) as *mut libc::c_void);
             i = i.wrapping_add(1);
-            i;
         }
         HTS_free((*engine).condition.parameter_iw as *mut libc::c_void);
     }
@@ -1311,7 +1279,6 @@ pub unsafe extern "C" fn HTS_Engine_clear(engine: *mut HTS_Engine) {
         while i < HTS_ModelSet_get_nvoices(&mut (*engine).ms) {
             HTS_free(*((*engine).condition.gv_iw).offset(i as isize) as *mut libc::c_void);
             i = i.wrapping_add(1);
-            i;
         }
         HTS_free((*engine).condition.gv_iw as *mut libc::c_void);
     }

@@ -110,10 +110,8 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
             j = j.wrapping_add(1);
-            j;
         }
         i = i.wrapping_add(1);
-        i;
     }
     (*gss).gspeech = HTS_calloc(
         (*gss).total_nsample,
@@ -132,21 +130,17 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
                             .offset(k as isize) =
                             HTS_PStreamSet_get_parameter(pss, i, msd_frame, k);
                         k = k.wrapping_add(1);
-                        k;
                     }
                     msd_frame = msd_frame.wrapping_add(1);
-                    msd_frame;
                 } else {
                     k = 0 as libc::c_int as size_t;
                     while k < (*((*gss).gstream).offset(i as isize)).vector_length {
                         *(*((*((*gss).gstream).offset(i as isize)).par).offset(j as isize))
                             .offset(k as isize) = -1.0e+10f64;
                         k = k.wrapping_add(1);
-                        k;
                     }
                 }
                 j = j.wrapping_add(1);
-                j;
             }
         } else {
             j = 0 as libc::c_int as size_t;
@@ -156,14 +150,11 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
                     *(*((*((*gss).gstream).offset(i as isize)).par).offset(j as isize))
                         .offset(k as isize) = HTS_PStreamSet_get_parameter(pss, i, j, k);
                     k = k.wrapping_add(1);
-                    k;
                 }
                 j = j.wrapping_add(1);
-                j;
             }
         }
         i = i.wrapping_add(1);
-        i;
     }
     if (*gss).nstream != 2 as libc::c_int as size_t && (*gss).nstream != 3 as libc::c_int as size_t
     {
@@ -235,7 +226,6 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
             &mut *((*gss).gspeech).offset(j as isize),
         );
         i = i.wrapping_add(1);
-        i;
     }
     HTS_Vocoder_clear(&mut v);
     // if !audio.is_null() {
@@ -291,12 +281,10 @@ pub unsafe extern "C" fn HTS_GStreamSet_clear(mut gss: *mut HTS_GStreamSet) {
                             as *mut libc::c_void,
                     );
                     j = j.wrapping_add(1);
-                    j;
                 }
                 HTS_free((*((*gss).gstream).offset(i as isize)).par as *mut libc::c_void);
             }
             i = i.wrapping_add(1);
-            i;
         }
         HTS_free((*gss).gstream as *mut libc::c_void);
     }
