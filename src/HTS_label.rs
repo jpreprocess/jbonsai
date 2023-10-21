@@ -35,7 +35,7 @@ pub const _ISalpha: C2RustUnnamed = 1024;
 pub const _ISlower: C2RustUnnamed = 512;
 pub const _ISupper: C2RustUnnamed = 256;
 
-unsafe extern "C" fn isdigit_string(mut str: *mut libc::c_char) -> HTS_Boolean {
+unsafe fn isdigit_string(mut str: *mut libc::c_char) -> HTS_Boolean {
     let mut i: libc::c_int = 0;
     if sscanf(
         str,
@@ -48,12 +48,12 @@ unsafe extern "C" fn isdigit_string(mut str: *mut libc::c_char) -> HTS_Boolean {
         0 as libc::c_int as HTS_Boolean
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_initialize(mut label: *mut HTS_Label) {
+
+pub unsafe fn HTS_Label_initialize(mut label: *mut HTS_Label) {
     (*label).head = std::ptr::null_mut::<HTS_LabelString>();
     (*label).size = 0 as libc::c_int as size_t;
 }
-unsafe extern "C" fn HTS_Label_check_time(mut label: *mut HTS_Label) {
+unsafe fn HTS_Label_check_time(mut label: *mut HTS_Label) {
     let mut lstring: *mut HTS_LabelString = (*label).head;
     let mut next: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
     if !lstring.is_null() {
@@ -78,7 +78,7 @@ unsafe extern "C" fn HTS_Label_check_time(mut label: *mut HTS_Label) {
         lstring = next;
     }
 }
-unsafe extern "C" fn HTS_Label_load(
+unsafe fn HTS_Label_load(
     mut label: *mut HTS_Label,
     mut sampling_rate: size_t,
     mut fperiod: size_t,
@@ -137,8 +137,8 @@ unsafe extern "C" fn HTS_Label_load(
     }
     HTS_Label_check_time(label);
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_load_from_fn(
+
+pub unsafe fn HTS_Label_load_from_fn(
     mut label: *mut HTS_Label,
     mut sampling_rate: size_t,
     mut fperiod: size_t,
@@ -148,8 +148,8 @@ pub unsafe extern "C" fn HTS_Label_load_from_fn(
     HTS_Label_load(label, sampling_rate, fperiod, fp);
     HTS_fclose(fp);
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_load_from_strings(
+
+pub unsafe fn HTS_Label_load_from_strings(
     mut label: *mut HTS_Label,
     mut sampling_rate: size_t,
     mut fperiod: size_t,
@@ -229,12 +229,12 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
     }
     HTS_Label_check_time(label);
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_get_size(mut label: *mut HTS_Label) -> size_t {
+
+pub unsafe fn HTS_Label_get_size(mut label: *mut HTS_Label) -> size_t {
     (*label).size
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_get_string(
+
+pub unsafe fn HTS_Label_get_string(
     mut label: *mut HTS_Label,
     mut index: size_t,
 ) -> *const libc::c_char {
@@ -250,8 +250,8 @@ pub unsafe extern "C" fn HTS_Label_get_string(
     }
     (*lstring).name
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_get_start_frame(
+
+pub unsafe fn HTS_Label_get_start_frame(
     mut label: *mut HTS_Label,
     mut index: size_t,
 ) -> libc::c_double {
@@ -267,8 +267,8 @@ pub unsafe extern "C" fn HTS_Label_get_start_frame(
     }
     (*lstring).start
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_get_end_frame(
+
+pub unsafe fn HTS_Label_get_end_frame(
     mut label: *mut HTS_Label,
     mut index: size_t,
 ) -> libc::c_double {
@@ -284,8 +284,8 @@ pub unsafe extern "C" fn HTS_Label_get_end_frame(
     }
     (*lstring).end
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Label_clear(mut label: *mut HTS_Label) {
+
+pub unsafe fn HTS_Label_clear(mut label: *mut HTS_Label) {
     let mut lstring: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
     let mut next_lstring: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
     lstring = (*label).head;

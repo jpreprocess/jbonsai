@@ -36,8 +36,7 @@ use crate::{
     HTS_SStreamSet_set_mean, HTS_calloc, HTS_free, HTS_fwrite_little_endian,
 };
 
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_initialize(engine: *mut HTS_Engine) {
+pub unsafe fn HTS_Engine_initialize(engine: *mut HTS_Engine) {
     (*engine).condition.sampling_frequency = 0 as libc::c_int as size_t;
     (*engine).condition.fperiod = 0 as libc::c_int as size_t;
     (*engine).condition.audio_buff_size = 0 as libc::c_int as size_t;
@@ -62,8 +61,8 @@ pub unsafe extern "C" fn HTS_Engine_initialize(engine: *mut HTS_Engine) {
     HTS_PStreamSet_initialize(&mut (*engine).pss);
     HTS_GStreamSet_initialize(&mut (*engine).gss);
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_load(
+
+pub unsafe fn HTS_Engine_load(
     engine: *mut HTS_Engine,
     voices: *mut *mut libc::c_char,
     num_voices: size_t,
@@ -104,18 +103,15 @@ pub unsafe extern "C" fn HTS_Engine_load(
     option = HTS_ModelSet_get_option(&mut (*engine).ms, 0 as libc::c_int as size_t);
     find = strstr(option, b"GAMMA=\0" as *const u8 as *const libc::c_char);
     if !find.is_null() {
-        (*engine).condition.stage = atoi(&*find.offset((strlen
-            as unsafe extern "C" fn(*const libc::c_char) -> libc::c_ulong)(
-            b"GAMMA=\0" as *const u8 as *const libc::c_char,
-        ) as isize)) as size_t;
+        (*engine).condition.stage =
+            atoi(&*find.offset((strlen)(b"GAMMA=\0" as *const u8 as *const libc::c_char) as isize))
+                as size_t;
     }
     find = strstr(option, b"LN_GAIN=\0" as *const u8 as *const libc::c_char);
     if !find.is_null() {
-        (*engine).condition.use_log_gain = (if atoi(&*find.offset((strlen
-            as unsafe extern "C" fn(*const libc::c_char) -> libc::c_ulong)(
-            b"LN_GAIN=\0" as *const u8 as *const libc::c_char,
-        ) as isize))
-            == 1 as libc::c_int
+        (*engine).condition.use_log_gain = (if atoi(
+            &*find.offset(strlen(b"LN_GAIN=\0" as *const u8 as *const libc::c_char) as isize),
+        ) == 1 as libc::c_int
         {
             1 as libc::c_int
         } else {
@@ -124,10 +120,8 @@ pub unsafe extern "C" fn HTS_Engine_load(
     }
     find = strstr(option, b"ALPHA=\0" as *const u8 as *const libc::c_char);
     if !find.is_null() {
-        (*engine).condition.alpha = atof(&*find.offset((strlen
-            as unsafe extern "C" fn(*const libc::c_char) -> libc::c_ulong)(
-            b"ALPHA=\0" as *const u8 as *const libc::c_char,
-        ) as isize));
+        (*engine).condition.alpha =
+            atof(&*find.offset(strlen(b"ALPHA=\0" as *const u8 as *const libc::c_char) as isize));
     }
     (*engine).condition.duration_iw = HTS_calloc(
         num_voices,
@@ -177,11 +171,8 @@ pub unsafe extern "C" fn HTS_Engine_load(
     }
     1 as libc::c_int as HTS_Boolean
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_sampling_frequency(
-    engine: *mut HTS_Engine,
-    mut i: size_t,
-) {
+
+pub unsafe fn HTS_Engine_set_sampling_frequency(engine: *mut HTS_Engine, mut i: size_t) {
     if i < 1 as libc::c_int as size_t {
         i = 1 as libc::c_int as size_t;
     }
@@ -192,26 +183,23 @@ pub unsafe extern "C" fn HTS_Engine_set_sampling_frequency(
     //     (*engine).condition.audio_buff_size,
     // );
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_sampling_frequency(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_sampling_frequency(engine: *mut HTS_Engine) -> size_t {
     (*engine).condition.sampling_frequency
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_fperiod(engine: *mut HTS_Engine, mut i: size_t) {
+
+pub unsafe fn HTS_Engine_set_fperiod(engine: *mut HTS_Engine, mut i: size_t) {
     if i < 1 as libc::c_int as size_t {
         i = 1 as libc::c_int as size_t;
     }
     (*engine).condition.fperiod = i;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_fperiod(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_fperiod(engine: *mut HTS_Engine) -> size_t {
     (*engine).condition.fperiod
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_audio_buff_size(
-    engine: *mut HTS_Engine,
-    i: size_t,
-) {
+
+pub unsafe fn HTS_Engine_set_audio_buff_size(engine: *mut HTS_Engine, i: size_t) {
     (*engine).condition.audio_buff_size = i;
     // HTS_Audio_set_parameter(
     //     &mut (*engine).audio,
@@ -219,28 +207,28 @@ pub unsafe extern "C" fn HTS_Engine_set_audio_buff_size(
     //     (*engine).condition.audio_buff_size,
     // );
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_audio_buff_size(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_audio_buff_size(engine: *mut HTS_Engine) -> size_t {
     (*engine).condition.audio_buff_size
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_stop_flag(engine: *mut HTS_Engine, b: HTS_Boolean) {
+
+pub unsafe fn HTS_Engine_set_stop_flag(engine: *mut HTS_Engine, b: HTS_Boolean) {
     (*engine).condition.stop = b;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_stop_flag(engine: *mut HTS_Engine) -> HTS_Boolean {
+
+pub unsafe fn HTS_Engine_get_stop_flag(engine: *mut HTS_Engine) -> HTS_Boolean {
     (*engine).condition.stop
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_volume(engine: *mut HTS_Engine, f: libc::c_double) {
+
+pub unsafe fn HTS_Engine_set_volume(engine: *mut HTS_Engine, f: libc::c_double) {
     (*engine).condition.volume = exp(f * DB);
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_volume(engine: *mut HTS_Engine) -> libc::c_double {
+
+pub unsafe fn HTS_Engine_get_volume(engine: *mut HTS_Engine) -> libc::c_double {
     log((*engine).condition.volume) / DB
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_msd_threshold(
+
+pub unsafe fn HTS_Engine_set_msd_threshold(
     engine: *mut HTS_Engine,
     stream_index: size_t,
     mut f: libc::c_double,
@@ -253,15 +241,15 @@ pub unsafe extern "C" fn HTS_Engine_set_msd_threshold(
     }
     *((*engine).condition.msd_threshold).offset(stream_index as isize) = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_msd_threshold(
+
+pub unsafe fn HTS_Engine_get_msd_threshold(
     engine: *mut HTS_Engine,
     stream_index: size_t,
 ) -> libc::c_double {
     *((*engine).condition.msd_threshold).offset(stream_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_gv_weight(
+
+pub unsafe fn HTS_Engine_set_gv_weight(
     engine: *mut HTS_Engine,
     stream_index: size_t,
     mut f: libc::c_double,
@@ -271,29 +259,26 @@ pub unsafe extern "C" fn HTS_Engine_set_gv_weight(
     }
     *((*engine).condition.gv_weight).offset(stream_index as isize) = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_gv_weight(
+
+pub unsafe fn HTS_Engine_get_gv_weight(
     engine: *mut HTS_Engine,
     stream_index: size_t,
 ) -> libc::c_double {
     *((*engine).condition.gv_weight).offset(stream_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_speed(engine: *mut HTS_Engine, mut f: libc::c_double) {
+
+pub unsafe fn HTS_Engine_set_speed(engine: *mut HTS_Engine, mut f: libc::c_double) {
     if f < 1.0E-06f64 {
         f = 1.0E-06f64;
     }
     (*engine).condition.speed = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_phoneme_alignment_flag(
-    engine: *mut HTS_Engine,
-    b: HTS_Boolean,
-) {
+
+pub unsafe fn HTS_Engine_set_phoneme_alignment_flag(engine: *mut HTS_Engine, b: HTS_Boolean) {
     (*engine).condition.phoneme_alignment_flag = b;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_alpha(engine: *mut HTS_Engine, mut f: libc::c_double) {
+
+pub unsafe fn HTS_Engine_set_alpha(engine: *mut HTS_Engine, mut f: libc::c_double) {
     if f < 0.0f64 {
         f = 0.0f64;
     }
@@ -302,12 +287,12 @@ pub unsafe extern "C" fn HTS_Engine_set_alpha(engine: *mut HTS_Engine, mut f: li
     }
     (*engine).condition.alpha = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_alpha(engine: *mut HTS_Engine) -> libc::c_double {
+
+pub unsafe fn HTS_Engine_get_alpha(engine: *mut HTS_Engine) -> libc::c_double {
     (*engine).condition.alpha
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_beta(engine: *mut HTS_Engine, mut f: libc::c_double) {
+
+pub unsafe fn HTS_Engine_set_beta(engine: *mut HTS_Engine, mut f: libc::c_double) {
     if f < 0.0f64 {
         f = 0.0f64;
     }
@@ -316,34 +301,31 @@ pub unsafe extern "C" fn HTS_Engine_set_beta(engine: *mut HTS_Engine, mut f: lib
     }
     (*engine).condition.beta = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_beta(engine: *mut HTS_Engine) -> libc::c_double {
+
+pub unsafe fn HTS_Engine_get_beta(engine: *mut HTS_Engine) -> libc::c_double {
     (*engine).condition.beta
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_add_half_tone(
-    engine: *mut HTS_Engine,
-    f: libc::c_double,
-) {
+
+pub unsafe fn HTS_Engine_add_half_tone(engine: *mut HTS_Engine, f: libc::c_double) {
     (*engine).condition.additional_half_tone = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_duration_interpolation_weight(
+
+pub unsafe fn HTS_Engine_set_duration_interpolation_weight(
     engine: *mut HTS_Engine,
     voice_index: size_t,
     f: libc::c_double,
 ) {
     *((*engine).condition.duration_iw).offset(voice_index as isize) = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_duration_interpolation_weight(
+
+pub unsafe fn HTS_Engine_get_duration_interpolation_weight(
     engine: *mut HTS_Engine,
     voice_index: size_t,
 ) -> libc::c_double {
     *((*engine).condition.duration_iw).offset(voice_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_parameter_interpolation_weight(
+
+pub unsafe fn HTS_Engine_set_parameter_interpolation_weight(
     engine: *mut HTS_Engine,
     voice_index: size_t,
     stream_index: size_t,
@@ -352,8 +334,8 @@ pub unsafe extern "C" fn HTS_Engine_set_parameter_interpolation_weight(
     *(*((*engine).condition.parameter_iw).offset(voice_index as isize))
         .offset(stream_index as isize) = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_parameter_interpolation_weight(
+
+pub unsafe fn HTS_Engine_get_parameter_interpolation_weight(
     engine: *mut HTS_Engine,
     voice_index: size_t,
     stream_index: size_t,
@@ -361,8 +343,8 @@ pub unsafe extern "C" fn HTS_Engine_get_parameter_interpolation_weight(
     *(*((*engine).condition.parameter_iw).offset(voice_index as isize))
         .offset(stream_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_gv_interpolation_weight(
+
+pub unsafe fn HTS_Engine_set_gv_interpolation_weight(
     engine: *mut HTS_Engine,
     voice_index: size_t,
     stream_index: size_t,
@@ -370,21 +352,20 @@ pub unsafe extern "C" fn HTS_Engine_set_gv_interpolation_weight(
 ) {
     *(*((*engine).condition.gv_iw).offset(voice_index as isize)).offset(stream_index as isize) = f;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_gv_interpolation_weight(
+
+pub unsafe fn HTS_Engine_get_gv_interpolation_weight(
     engine: *mut HTS_Engine,
     voice_index: size_t,
     stream_index: size_t,
 ) -> libc::c_double {
-    *(*((*engine).condition.gv_iw).offset(voice_index as isize))
-        .offset(stream_index as isize)
+    *(*((*engine).condition.gv_iw).offset(voice_index as isize)).offset(stream_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_total_state(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_total_state(engine: *mut HTS_Engine) -> size_t {
     HTS_SStreamSet_get_total_state(&mut (*engine).sss)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_set_state_mean(
+
+pub unsafe fn HTS_Engine_set_state_mean(
     engine: *mut HTS_Engine,
     stream_index: size_t,
     state_index: size_t,
@@ -399,8 +380,8 @@ pub unsafe extern "C" fn HTS_Engine_set_state_mean(
         f,
     );
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_state_mean(
+
+pub unsafe fn HTS_Engine_get_state_mean(
     engine: *mut HTS_Engine,
     stream_index: size_t,
     state_index: size_t,
@@ -408,69 +389,62 @@ pub unsafe extern "C" fn HTS_Engine_get_state_mean(
 ) -> libc::c_double {
     HTS_SStreamSet_get_mean(&mut (*engine).sss, stream_index, state_index, vector_index)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_state_duration(
+
+pub unsafe fn HTS_Engine_get_state_duration(
     engine: *mut HTS_Engine,
     state_index: size_t,
 ) -> size_t {
     HTS_SStreamSet_get_duration(&mut (*engine).sss, state_index)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_nvoices(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_nvoices(engine: *mut HTS_Engine) -> size_t {
     HTS_ModelSet_get_nvoices(&mut (*engine).ms)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_nstream(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_nstream(engine: *mut HTS_Engine) -> size_t {
     HTS_ModelSet_get_nstream(&mut (*engine).ms)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_nstate(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_nstate(engine: *mut HTS_Engine) -> size_t {
     HTS_ModelSet_get_nstate(&mut (*engine).ms)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_fullcontext_label_format(
+
+pub unsafe fn HTS_Engine_get_fullcontext_label_format(
     engine: *mut HTS_Engine,
 ) -> *const libc::c_char {
     HTS_ModelSet_get_fullcontext_label_format(&mut (*engine).ms)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_fullcontext_label_version(
+
+pub unsafe fn HTS_Engine_get_fullcontext_label_version(
     engine: *mut HTS_Engine,
 ) -> *const libc::c_char {
     HTS_ModelSet_get_fullcontext_label_version(&mut (*engine).ms)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_total_frame(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_total_frame(engine: *mut HTS_Engine) -> size_t {
     HTS_GStreamSet_get_total_frame(&mut (*engine).gss)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_nsamples(engine: *mut HTS_Engine) -> size_t {
+
+pub unsafe fn HTS_Engine_get_nsamples(engine: *mut HTS_Engine) -> size_t {
     HTS_GStreamSet_get_total_nsamples(&mut (*engine).gss)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_generated_parameter(
+
+pub unsafe fn HTS_Engine_get_generated_parameter(
     engine: *mut HTS_Engine,
     stream_index: size_t,
     frame_index: size_t,
     vector_index: size_t,
 ) -> libc::c_double {
-    HTS_GStreamSet_get_parameter(
-        &mut (*engine).gss,
-        stream_index,
-        frame_index,
-        vector_index,
-    )
+    HTS_GStreamSet_get_parameter(&mut (*engine).gss, stream_index, frame_index, vector_index)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_get_generated_speech(
+
+pub unsafe fn HTS_Engine_get_generated_speech(
     engine: *mut HTS_Engine,
     index: size_t,
 ) -> libc::c_double {
     HTS_GStreamSet_get_speech(&mut (*engine).gss, index)
 }
-unsafe extern "C" fn HTS_Engine_generate_state_sequence(
-    engine: *mut HTS_Engine,
-) -> HTS_Boolean {
+unsafe fn HTS_Engine_generate_state_sequence(engine: *mut HTS_Engine) -> HTS_Boolean {
     let mut i: size_t = 0;
     let mut state_index: size_t = 0;
     let mut model_index: size_t = 0;
@@ -524,8 +498,8 @@ unsafe extern "C" fn HTS_Engine_generate_state_sequence(
     }
     1 as libc::c_int as HTS_Boolean
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_generate_state_sequence_from_fn(
+
+pub unsafe fn HTS_Engine_generate_state_sequence_from_fn(
     engine: *mut HTS_Engine,
     fn_0: *const libc::c_char,
 ) -> HTS_Boolean {
@@ -538,8 +512,8 @@ pub unsafe extern "C" fn HTS_Engine_generate_state_sequence_from_fn(
     );
     HTS_Engine_generate_state_sequence(engine)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_generate_state_sequence_from_strings(
+
+pub unsafe fn HTS_Engine_generate_state_sequence_from_strings(
     engine: *mut HTS_Engine,
     lines: *mut *mut libc::c_char,
     num_lines: size_t,
@@ -554,10 +528,8 @@ pub unsafe extern "C" fn HTS_Engine_generate_state_sequence_from_strings(
     );
     HTS_Engine_generate_state_sequence(engine)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_generate_parameter_sequence(
-    engine: *mut HTS_Engine,
-) -> HTS_Boolean {
+
+pub unsafe fn HTS_Engine_generate_parameter_sequence(engine: *mut HTS_Engine) -> HTS_Boolean {
     HTS_PStreamSet_create(
         &mut (*engine).pss,
         &mut (*engine).sss,
@@ -565,10 +537,8 @@ pub unsafe extern "C" fn HTS_Engine_generate_parameter_sequence(
         (*engine).condition.gv_weight,
     )
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_generate_sample_sequence(
-    engine: *mut HTS_Engine,
-) -> HTS_Boolean {
+
+pub unsafe fn HTS_Engine_generate_sample_sequence(engine: *mut HTS_Engine) -> HTS_Boolean {
     HTS_GStreamSet_create(
         &mut (*engine).gss,
         &mut (*engine).pss,
@@ -582,7 +552,7 @@ pub unsafe extern "C" fn HTS_Engine_generate_sample_sequence(
         (*engine).condition.volume,
     )
 }
-unsafe extern "C" fn HTS_Engine_synthesize(engine: *mut HTS_Engine) -> HTS_Boolean {
+unsafe fn HTS_Engine_synthesize(engine: *mut HTS_Engine) -> HTS_Boolean {
     if HTS_Engine_generate_state_sequence(engine) as libc::c_int != 1 as libc::c_int {
         HTS_Engine_refresh(engine);
         return 0 as libc::c_int as HTS_Boolean;
@@ -597,8 +567,8 @@ unsafe extern "C" fn HTS_Engine_synthesize(engine: *mut HTS_Engine) -> HTS_Boole
     }
     1 as libc::c_int as HTS_Boolean
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_synthesize_from_fn(
+
+pub unsafe fn HTS_Engine_synthesize_from_fn(
     engine: *mut HTS_Engine,
     fn_0: *const libc::c_char,
 ) -> HTS_Boolean {
@@ -611,8 +581,8 @@ pub unsafe extern "C" fn HTS_Engine_synthesize_from_fn(
     );
     HTS_Engine_synthesize(engine)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_synthesize_from_strings(
+
+pub unsafe fn HTS_Engine_synthesize_from_strings(
     engine: *mut HTS_Engine,
     lines: *mut *mut libc::c_char,
     num_lines: size_t,
@@ -627,11 +597,8 @@ pub unsafe extern "C" fn HTS_Engine_synthesize_from_strings(
     );
     HTS_Engine_synthesize(engine)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_save_information(
-    engine: *mut HTS_Engine,
-    fp: *mut FILE,
-) {
+
+pub unsafe fn HTS_Engine_save_information(engine: *mut HTS_Engine, fp: *mut FILE) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     let mut k: size_t = 0;
@@ -1011,8 +978,8 @@ pub unsafe extern "C" fn HTS_Engine_save_information(
         i = i.wrapping_add(1);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_save_label(engine: *mut HTS_Engine, fp: *mut FILE) {
+
+pub unsafe fn HTS_Engine_save_label(engine: *mut HTS_Engine, fp: *mut FILE) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     let mut frame: size_t = 0;
@@ -1046,8 +1013,8 @@ pub unsafe extern "C" fn HTS_Engine_save_label(engine: *mut HTS_Engine, fp: *mut
         i = i.wrapping_add(1);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_save_generated_parameter(
+
+pub unsafe fn HTS_Engine_save_generated_parameter(
     engine: *mut HTS_Engine,
     stream_index: size_t,
     fp: *mut FILE,
@@ -1072,11 +1039,8 @@ pub unsafe extern "C" fn HTS_Engine_save_generated_parameter(
         i = i.wrapping_add(1);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_save_generated_speech(
-    engine: *mut HTS_Engine,
-    fp: *mut FILE,
-) {
+
+pub unsafe fn HTS_Engine_save_generated_speech(engine: *mut HTS_Engine, fp: *mut FILE) {
     let mut i: size_t = 0;
     let mut x: libc::c_double = 0.;
     let mut temp: libc::c_short = 0;
@@ -1100,8 +1064,8 @@ pub unsafe extern "C" fn HTS_Engine_save_generated_speech(
         i = i.wrapping_add(1);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_save_riff(engine: *mut HTS_Engine, fp: *mut FILE) {
+
+pub unsafe fn HTS_Engine_save_riff(engine: *mut HTS_Engine, fp: *mut FILE) {
     let mut i: size_t = 0;
     let mut x: libc::c_double = 0.;
     let mut temp: libc::c_short = 0;
@@ -1246,16 +1210,16 @@ pub unsafe extern "C" fn HTS_Engine_save_riff(engine: *mut HTS_Engine, fp: *mut 
         i = i.wrapping_add(1);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_refresh(engine: *mut HTS_Engine) {
+
+pub unsafe fn HTS_Engine_refresh(engine: *mut HTS_Engine) {
     HTS_GStreamSet_clear(&mut (*engine).gss);
     HTS_PStreamSet_clear(&mut (*engine).pss);
     HTS_SStreamSet_clear(&mut (*engine).sss);
     HTS_Label_clear(&mut (*engine).label);
     (*engine).condition.stop = 0 as libc::c_int as HTS_Boolean;
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Engine_clear(engine: *mut HTS_Engine) {
+
+pub unsafe fn HTS_Engine_clear(engine: *mut HTS_Engine) {
     let mut i: size_t = 0;
     if !((*engine).condition.msd_threshold).is_null() {
         HTS_free((*engine).condition.msd_threshold as *mut libc::c_void);

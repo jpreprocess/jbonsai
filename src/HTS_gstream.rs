@@ -16,16 +16,15 @@ use crate::{
     HTS_Vocoder_clear, HTS_Vocoder_initialize, HTS_Vocoder_synthesize, HTS_calloc, HTS_free,
 };
 
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_initialize(mut gss: *mut HTS_GStreamSet) {
+pub unsafe fn HTS_GStreamSet_initialize(mut gss: *mut HTS_GStreamSet) {
     (*gss).nstream = 0 as libc::c_int as size_t;
     (*gss).total_frame = 0 as libc::c_int as size_t;
     (*gss).total_nsample = 0 as libc::c_int as size_t;
     (*gss).gstream = std::ptr::null_mut::<HTS_GStream>();
     (*gss).gspeech = std::ptr::null_mut::<libc::c_double>();
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_create(
+
+pub unsafe fn HTS_GStreamSet_create(
     mut gss: *mut HTS_GStreamSet,
     mut pss: *mut HTS_PStreamSet,
     mut stage: size_t,
@@ -233,41 +232,40 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     // }
     1 as libc::c_int as HTS_Boolean
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_get_total_nsamples(mut gss: *mut HTS_GStreamSet) -> size_t {
+
+pub unsafe fn HTS_GStreamSet_get_total_nsamples(mut gss: *mut HTS_GStreamSet) -> size_t {
     (*gss).total_nsample
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_get_total_frame(mut gss: *mut HTS_GStreamSet) -> size_t {
+
+pub unsafe fn HTS_GStreamSet_get_total_frame(mut gss: *mut HTS_GStreamSet) -> size_t {
     (*gss).total_frame
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_get_vector_length(
+
+pub unsafe fn HTS_GStreamSet_get_vector_length(
     mut gss: *mut HTS_GStreamSet,
     mut stream_index: size_t,
 ) -> size_t {
     (*((*gss).gstream).offset(stream_index as isize)).vector_length
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_get_speech(
+
+pub unsafe fn HTS_GStreamSet_get_speech(
     mut gss: *mut HTS_GStreamSet,
     mut sample_index: size_t,
 ) -> libc::c_double {
     *((*gss).gspeech).offset(sample_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_get_parameter(
+
+pub unsafe fn HTS_GStreamSet_get_parameter(
     mut gss: *mut HTS_GStreamSet,
     mut stream_index: size_t,
     mut frame_index: size_t,
     mut vector_index: size_t,
 ) -> libc::c_double {
-    *(*((*((*gss).gstream).offset(stream_index as isize)).par)
-        .offset(frame_index as isize))
-    .offset(vector_index as isize)
+    *(*((*((*gss).gstream).offset(stream_index as isize)).par).offset(frame_index as isize))
+        .offset(vector_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_clear(mut gss: *mut HTS_GStreamSet) {
+
+pub unsafe fn HTS_GStreamSet_clear(mut gss: *mut HTS_GStreamSet) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     if !((*gss).gstream).is_null() {

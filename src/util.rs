@@ -3,7 +3,6 @@ pub type HTS_Boolean = libc::c_char;
 pub type uint32_t = libc::c_uint;
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Window {
     pub size: size_t,
     pub l_width: *mut libc::c_int,
@@ -13,14 +12,12 @@ pub struct HTS_Window {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Pattern {
     pub string: *mut libc::c_char,
     pub next: *mut HTS_Pattern,
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Question {
     pub string: *mut libc::c_char,
     pub head: *mut HTS_Pattern,
@@ -28,7 +25,6 @@ pub struct HTS_Question {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Node {
     pub index: libc::c_int,
     pub pdf: size_t,
@@ -39,7 +35,6 @@ pub struct HTS_Node {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Tree {
     pub head: *mut HTS_Pattern,
     pub next: *mut HTS_Tree,
@@ -48,7 +43,6 @@ pub struct HTS_Tree {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Model {
     pub vector_length: size_t,
     pub num_windows: size_t,
@@ -61,7 +55,6 @@ pub struct HTS_Model {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_ModelSet {
     pub hts_voice_version: *mut libc::c_char,
     pub sampling_frequency: size_t,
@@ -81,7 +74,6 @@ pub struct HTS_ModelSet {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_LabelString {
     pub next: *mut HTS_LabelString,
     pub name: *mut libc::c_char,
@@ -90,14 +82,12 @@ pub struct HTS_LabelString {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Label {
     pub head: *mut HTS_LabelString,
     pub size: size_t,
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_SStream {
     pub vector_length: size_t,
     pub mean: *mut *mut libc::c_double,
@@ -114,7 +104,6 @@ pub struct HTS_SStream {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_SStreamSet {
     pub sstream: *mut HTS_SStream,
     pub nstream: size_t,
@@ -125,7 +114,6 @@ pub struct HTS_SStreamSet {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_SMatrices {
     pub mean: *mut *mut libc::c_double,
     pub ivar: *mut *mut libc::c_double,
@@ -135,7 +123,6 @@ pub struct HTS_SMatrices {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_PStream {
     pub vector_length: size_t,
     pub length: size_t,
@@ -154,7 +141,6 @@ pub struct HTS_PStream {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_PStreamSet {
     pub pstream: *mut HTS_PStream,
     pub nstream: size_t,
@@ -162,14 +148,12 @@ pub struct HTS_PStreamSet {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_GStream {
     pub vector_length: size_t,
     pub par: *mut *mut libc::c_double,
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_GStreamSet {
     pub total_nsample: size_t,
     pub total_frame: size_t,
@@ -179,7 +163,6 @@ pub struct HTS_GStreamSet {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Condition {
     pub sampling_frequency: size_t,
     pub fperiod: size_t,
@@ -201,7 +184,6 @@ pub struct HTS_Condition {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Engine {
     pub condition: HTS_Condition,
     pub ms: HTS_ModelSet,
@@ -212,7 +194,6 @@ pub struct HTS_Engine {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Vocoder {
     pub is_first: HTS_Boolean,
     pub stage: size_t,
@@ -250,7 +231,6 @@ pub struct HTS_Vocoder {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_File {
     pub type_0: libc::c_uchar,
     pub pointer: *mut libc::c_void,

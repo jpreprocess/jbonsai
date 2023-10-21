@@ -38,11 +38,7 @@ static mut HTS_pade: [libc::c_double; 21] = [
     0.00095648530f64,
     0.00003041721f64,
 ];
-unsafe extern "C" fn HTS_movem(
-    mut a: *mut libc::c_double,
-    mut b: *mut libc::c_double,
-    nitem: libc::c_int,
-) {
+unsafe fn HTS_movem(mut a: *mut libc::c_double, mut b: *mut libc::c_double, nitem: libc::c_int) {
     let mut i: libc::c_long = nitem as libc::c_long;
     if a > b {
         loop {
@@ -72,7 +68,7 @@ unsafe extern "C" fn HTS_movem(
         }
     };
 }
-unsafe extern "C" fn HTS_mlsafir(
+unsafe fn HTS_mlsafir(
     x: libc::c_double,
     mut b: *const libc::c_double,
     m: libc::c_int,
@@ -104,7 +100,7 @@ unsafe extern "C" fn HTS_mlsafir(
     }
     y
 }
-unsafe extern "C" fn HTS_mlsadf1(
+unsafe fn HTS_mlsadf1(
     mut x: libc::c_double,
     mut b: *const libc::c_double,
     _m: libc::c_int,
@@ -133,7 +129,7 @@ unsafe extern "C" fn HTS_mlsadf1(
     out += x;
     out
 }
-unsafe extern "C" fn HTS_mlsadf2(
+unsafe fn HTS_mlsadf2(
     mut x: libc::c_double,
     mut b: *const libc::c_double,
     m: libc::c_int,
@@ -167,7 +163,7 @@ unsafe extern "C" fn HTS_mlsadf2(
     out += x;
     out
 }
-unsafe extern "C" fn HTS_mlsadf(
+unsafe fn HTS_mlsadf(
     mut x: libc::c_double,
     mut b: *const libc::c_double,
     m: libc::c_int,
@@ -193,7 +189,7 @@ unsafe extern "C" fn HTS_mlsadf(
     );
     x
 }
-unsafe extern "C" fn HTS_rnd(mut next: *mut libc::c_ulong) -> libc::c_double {
+unsafe fn HTS_rnd(mut next: *mut libc::c_ulong) -> libc::c_double {
     let mut r: libc::c_double = 0.;
     *next = (*next)
         .wrapping_mul(1103515245 as libc::c_long as libc::c_ulong)
@@ -203,7 +199,7 @@ unsafe extern "C" fn HTS_rnd(mut next: *mut libc::c_ulong) -> libc::c_double {
         .wrapping_rem(32768 as libc::c_long as libc::c_ulong) as libc::c_double;
     r / 32767 as libc::c_int as libc::c_double
 }
-unsafe extern "C" fn HTS_nrandom(mut v: *mut HTS_Vocoder) -> libc::c_double {
+unsafe fn HTS_nrandom(mut v: *mut HTS_Vocoder) -> libc::c_double {
     if (*v).sw as libc::c_int == 0 as libc::c_int {
         (*v).sw = 1 as libc::c_int as libc::c_uchar;
         loop {
@@ -225,7 +221,7 @@ unsafe extern "C" fn HTS_nrandom(mut v: *mut HTS_Vocoder) -> libc::c_double {
         (*v).r2 * (*v).s
     }
 }
-unsafe extern "C" fn HTS_mseq(mut v: *mut HTS_Vocoder) -> libc::c_int {
+unsafe fn HTS_mseq(mut v: *mut HTS_Vocoder) -> libc::c_int {
     let mut x0: libc::c_int = 0;
     let mut x28: libc::c_int = 0;
     (*v).x >>= 1 as libc::c_int;
@@ -246,7 +242,7 @@ unsafe extern "C" fn HTS_mseq(mut v: *mut HTS_Vocoder) -> libc::c_int {
     }
     x0
 }
-unsafe extern "C" fn HTS_mc2b(
+unsafe fn HTS_mc2b(
     mut mc: *mut libc::c_double,
     mut b: *mut libc::c_double,
     mut m: libc::c_int,
@@ -272,7 +268,7 @@ unsafe extern "C" fn HTS_mc2b(
         }
     }
 }
-unsafe extern "C" fn HTS_b2mc(
+unsafe fn HTS_b2mc(
     mut b: *const libc::c_double,
     mut mc: *mut libc::c_double,
     mut m: libc::c_int,
@@ -291,7 +287,7 @@ unsafe extern "C" fn HTS_b2mc(
         m -= 1;
     }
 }
-unsafe extern "C" fn HTS_freqt(
+unsafe fn HTS_freqt(
     mut v: *mut HTS_Vocoder,
     mut c1: *const libc::c_double,
     m1: libc::c_int,
@@ -346,7 +342,7 @@ unsafe extern "C" fn HTS_freqt(
     }
     HTS_movem(g, c2, m2 + 1 as libc::c_int);
 }
-unsafe extern "C" fn HTS_c2ir(
+unsafe fn HTS_c2ir(
     mut c: *const libc::c_double,
     nc: libc::c_int,
     mut h: *mut libc::c_double,
@@ -370,7 +366,7 @@ unsafe extern "C" fn HTS_c2ir(
         n += 1;
     }
 }
-unsafe extern "C" fn HTS_b2en(
+unsafe fn HTS_b2en(
     mut v: *mut HTS_Vocoder,
     mut b: *const libc::c_double,
     m: libc::c_int,
@@ -411,7 +407,7 @@ unsafe extern "C" fn HTS_b2en(
     }
     en
 }
-unsafe extern "C" fn HTS_ignorm(
+unsafe fn HTS_ignorm(
     mut c1: *mut libc::c_double,
     mut c2: *mut libc::c_double,
     mut m: libc::c_int,
@@ -434,7 +430,7 @@ unsafe extern "C" fn HTS_ignorm(
         *c2.offset(0 as libc::c_int as isize) = log(*c1.offset(0 as libc::c_int as isize));
     };
 }
-unsafe extern "C" fn HTS_gnorm(
+unsafe fn HTS_gnorm(
     mut c1: *mut libc::c_double,
     mut c2: *mut libc::c_double,
     mut m: libc::c_int,
@@ -457,7 +453,7 @@ unsafe extern "C" fn HTS_gnorm(
         *c2.offset(0 as libc::c_int as isize) = exp(*c1.offset(0 as libc::c_int as isize));
     };
 }
-unsafe extern "C" fn HTS_lsp2lpc(
+unsafe fn HTS_lsp2lpc(
     mut v: *mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut a: *mut libc::c_double,
@@ -599,7 +595,7 @@ unsafe extern "C" fn HTS_lsp2lpc(
     }
     *a.offset(0 as libc::c_int as isize) = 1.0f64;
 }
-unsafe extern "C" fn HTS_gc2gc(
+unsafe fn HTS_gc2gc(
     mut v: *mut HTS_Vocoder,
     mut c1: *mut libc::c_double,
     m1: libc::c_int,
@@ -649,7 +645,7 @@ unsafe extern "C" fn HTS_gc2gc(
         i += 1;
     }
 }
-unsafe extern "C" fn HTS_mgc2mgc(
+unsafe fn HTS_mgc2mgc(
     mut v: *mut HTS_Vocoder,
     mut c1: *mut libc::c_double,
     m1: libc::c_int,
@@ -673,7 +669,7 @@ unsafe extern "C" fn HTS_mgc2mgc(
         HTS_ignorm(c2, c2, m2, g2);
     };
 }
-unsafe extern "C" fn HTS_lsp2mgc(
+unsafe fn HTS_lsp2mgc(
     mut v: *mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut mgc: *mut libc::c_double,
@@ -695,7 +691,7 @@ unsafe extern "C" fn HTS_lsp2mgc(
     }
     HTS_mgc2mgc(v, mgc, m, alpha, (*v).gamma, mgc, m, alpha, (*v).gamma);
 }
-unsafe extern "C" fn HTS_mglsadff(
+unsafe fn HTS_mglsadff(
     mut x: libc::c_double,
     mut b: *const libc::c_double,
     m: libc::c_int,
@@ -723,7 +719,7 @@ unsafe extern "C" fn HTS_mglsadff(
         a * *d.offset(0 as libc::c_int as isize) + (1 as libc::c_int as libc::c_double - a * a) * x;
     x
 }
-unsafe extern "C" fn HTS_mglsadf(
+unsafe fn HTS_mglsadf(
     mut x: libc::c_double,
     mut b: *const libc::c_double,
     m: libc::c_int,
@@ -745,7 +741,7 @@ unsafe extern "C" fn HTS_mglsadf(
     }
     x
 }
-unsafe extern "C" fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m: size_t) {
+unsafe fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m: size_t) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     let mut tmp: libc::c_double = 0.;
@@ -781,7 +777,7 @@ unsafe extern "C" fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m
         i = i.wrapping_add(1);
     }
 }
-unsafe extern "C" fn HTS_lsp2en(
+unsafe fn HTS_lsp2en(
     mut v: *mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut m: size_t,
@@ -846,14 +842,14 @@ unsafe extern "C" fn HTS_lsp2en(
     }
     en
 }
-unsafe extern "C" fn HTS_white_noise(mut v: *mut HTS_Vocoder) -> libc::c_double {
+unsafe fn HTS_white_noise(mut v: *mut HTS_Vocoder) -> libc::c_double {
     if (*v).gauss != 0 {
         HTS_nrandom(v)
     } else {
         HTS_mseq(v) as libc::c_double
     }
 }
-unsafe extern "C" fn HTS_Vocoder_initialize_excitation(
+unsafe fn HTS_Vocoder_initialize_excitation(
     mut v: *mut HTS_Vocoder,
     mut pitch: libc::c_double,
     mut nlpf: size_t,
@@ -880,10 +876,7 @@ unsafe extern "C" fn HTS_Vocoder_initialize_excitation(
         (*v).excite_buff_index = 0 as libc::c_int as size_t;
     };
 }
-unsafe extern "C" fn HTS_Vocoder_start_excitation(
-    mut v: *mut HTS_Vocoder,
-    mut pitch: libc::c_double,
-) {
+unsafe fn HTS_Vocoder_start_excitation(mut v: *mut HTS_Vocoder, mut pitch: libc::c_double) {
     if (*v).pitch_of_curr_point != 0.0f64 && pitch != 0.0f64 {
         (*v).pitch_inc_per_point = (pitch - (*v).pitch_of_curr_point) / (*v).fprd as libc::c_double;
     } else {
@@ -892,17 +885,14 @@ unsafe extern "C" fn HTS_Vocoder_start_excitation(
         (*v).pitch_counter = pitch;
     };
 }
-unsafe extern "C" fn HTS_Vocoder_excite_unvoiced_frame(
-    mut v: *mut HTS_Vocoder,
-    mut noise: libc::c_double,
-) {
+unsafe fn HTS_Vocoder_excite_unvoiced_frame(mut v: *mut HTS_Vocoder, mut noise: libc::c_double) {
     let mut center: size_t = ((*v).excite_buff_size).wrapping_sub(1 as libc::c_int as size_t)
         / 2 as libc::c_int as size_t;
     *((*v).excite_ring_buff).offset(
         (((*v).excite_buff_index).wrapping_add(center) % (*v).excite_buff_size) as isize,
     ) += noise;
 }
-unsafe extern "C" fn HTS_Vocoder_excite_voiced_frame(
+unsafe fn HTS_Vocoder_excite_voiced_frame(
     mut v: *mut HTS_Vocoder,
     mut noise: libc::c_double,
     mut pulse: libc::c_double,
@@ -936,7 +926,7 @@ unsafe extern "C" fn HTS_Vocoder_excite_voiced_frame(
         }
     }
 }
-unsafe extern "C" fn HTS_Vocoder_get_excitation(
+unsafe fn HTS_Vocoder_get_excitation(
     mut v: *mut HTS_Vocoder,
     mut lpf: *const libc::c_double,
 ) -> libc::c_double {
@@ -978,13 +968,10 @@ unsafe extern "C" fn HTS_Vocoder_get_excitation(
     }
     x
 }
-unsafe extern "C" fn HTS_Vocoder_end_excitation(
-    mut v: *mut HTS_Vocoder,
-    mut pitch: libc::c_double,
-) {
+unsafe fn HTS_Vocoder_end_excitation(mut v: *mut HTS_Vocoder, mut pitch: libc::c_double) {
     (*v).pitch_of_curr_point = pitch;
 }
-unsafe extern "C" fn HTS_Vocoder_postfilter_mcp(
+unsafe fn HTS_Vocoder_postfilter_mcp(
     mut v: *mut HTS_Vocoder,
     mut mcp: *mut libc::c_double,
     m: libc::c_int,
@@ -1020,7 +1007,7 @@ unsafe extern "C" fn HTS_Vocoder_postfilter_mcp(
         HTS_b2mc((*v).postfilter_buff, mcp, m, alpha);
     }
 }
-unsafe extern "C" fn HTS_Vocoder_postfilter_lsp(
+unsafe fn HTS_Vocoder_postfilter_lsp(
     mut v: *mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut m: size_t,
@@ -1081,8 +1068,8 @@ unsafe extern "C" fn HTS_Vocoder_postfilter_lsp(
         }
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Vocoder_initialize(
+
+pub unsafe fn HTS_Vocoder_initialize(
     mut v: *mut HTS_Vocoder,
     mut m: size_t,
     mut stage: size_t,
@@ -1153,8 +1140,8 @@ pub unsafe extern "C" fn HTS_Vocoder_initialize(
             .offset(1 as libc::c_int as isize);
     };
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Vocoder_synthesize(
+
+pub unsafe fn HTS_Vocoder_synthesize(
     mut v: *mut HTS_Vocoder,
     mut m: size_t,
     mut lf0: libc::c_double,
@@ -1280,8 +1267,8 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
         m.wrapping_add(1 as libc::c_int as size_t) as libc::c_int,
     );
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_Vocoder_clear(mut v: *mut HTS_Vocoder) {
+
+pub unsafe fn HTS_Vocoder_clear(mut v: *mut HTS_Vocoder) {
     if !v.is_null() {
         if !((*v).freqt_buff).is_null() {
             HTS_free((*v).freqt_buff as *mut libc::c_void);

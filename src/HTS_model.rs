@@ -45,7 +45,7 @@ pub const _ISalpha: C2RustUnnamed = 1024;
 pub const _ISlower: C2RustUnnamed = 512;
 pub const _ISupper: C2RustUnnamed = 256;
 
-unsafe extern "C" fn HTS_dp_match(
+unsafe fn HTS_dp_match(
     mut string: *const libc::c_char,
     mut pattern: *const libc::c_char,
     mut pos: size_t,
@@ -74,17 +74,21 @@ unsafe extern "C" fn HTS_dp_match(
         }
     }
     if (*string.offset(0 as libc::c_int as isize) as libc::c_int
-        == *pattern.offset(0 as libc::c_int as isize) as libc::c_int || *pattern.offset(0 as libc::c_int as isize) as libc::c_int == '?' as i32) && HTS_dp_match(
+        == *pattern.offset(0 as libc::c_int as isize) as libc::c_int
+        || *pattern.offset(0 as libc::c_int as isize) as libc::c_int == '?' as i32)
+        && HTS_dp_match(
             string.offset(1 as libc::c_int as isize),
             pattern.offset(1 as libc::c_int as isize),
             pos.wrapping_add(1 as libc::c_int as size_t),
             max.wrapping_add(1 as libc::c_int as size_t),
-        ) as libc::c_int == 1 as libc::c_int {
+        ) as libc::c_int
+            == 1 as libc::c_int
+    {
         return 1 as libc::c_int as HTS_Boolean;
     }
     0 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_pattern_match(
+unsafe fn HTS_pattern_match(
     mut string: *const libc::c_char,
     mut pattern: *const libc::c_char,
 ) -> HTS_Boolean {
@@ -141,7 +145,7 @@ unsafe extern "C" fn HTS_pattern_match(
         )
     }
 }
-unsafe extern "C" fn HTS_is_num(mut buff: *const libc::c_char) -> HTS_Boolean {
+unsafe fn HTS_is_num(mut buff: *const libc::c_char) -> HTS_Boolean {
     let mut i: size_t = 0;
     let mut length: size_t = strlen(buff);
     i = 0 as libc::c_int as size_t;
@@ -158,7 +162,7 @@ unsafe extern "C" fn HTS_is_num(mut buff: *const libc::c_char) -> HTS_Boolean {
     }
     1 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_name2num(mut buff: *const libc::c_char) -> size_t {
+unsafe fn HTS_name2num(mut buff: *const libc::c_char) -> size_t {
     let mut i: size_t = 0;
     i = (strlen(buff)).wrapping_sub(1 as libc::c_int as libc::c_ulong);
     while '0' as i32 <= *buff.offset(i as isize) as libc::c_int
@@ -169,7 +173,7 @@ unsafe extern "C" fn HTS_name2num(mut buff: *const libc::c_char) -> size_t {
     i = i.wrapping_add(1);
     atoi(&*buff.offset(i as isize)) as size_t
 }
-unsafe extern "C" fn HTS_get_state_num(mut string: *const libc::c_char) -> size_t {
+unsafe fn HTS_get_state_num(mut string: *const libc::c_char) -> size_t {
     let mut left: *const libc::c_char = std::ptr::null::<libc::c_char>();
     let mut right: *const libc::c_char = std::ptr::null::<libc::c_char>();
     left = strchr(string, '[' as i32);
@@ -183,12 +187,12 @@ unsafe extern "C" fn HTS_get_state_num(mut string: *const libc::c_char) -> size_
     }
     atoi(left) as size_t
 }
-unsafe extern "C" fn HTS_Question_initialize(mut question: *mut HTS_Question) {
+unsafe fn HTS_Question_initialize(mut question: *mut HTS_Question) {
     (*question).string = std::ptr::null_mut::<libc::c_char>();
     (*question).head = std::ptr::null_mut::<HTS_Pattern>();
     (*question).next = std::ptr::null_mut::<HTS_Question>();
 }
-unsafe extern "C" fn HTS_Question_clear(mut question: *mut HTS_Question) {
+unsafe fn HTS_Question_clear(mut question: *mut HTS_Question) {
     let mut pattern: *mut HTS_Pattern = std::ptr::null_mut::<HTS_Pattern>();
     let mut next_pattern: *mut HTS_Pattern = std::ptr::null_mut::<HTS_Pattern>();
     if !((*question).string).is_null() {
@@ -203,10 +207,7 @@ unsafe extern "C" fn HTS_Question_clear(mut question: *mut HTS_Question) {
     }
     HTS_Question_initialize(question);
 }
-unsafe extern "C" fn HTS_Question_load(
-    mut question: *mut HTS_Question,
-    mut fp: *mut HTS_File,
-) -> HTS_Boolean {
+unsafe fn HTS_Question_load(mut question: *mut HTS_Question, mut fp: *mut HTS_File) -> HTS_Boolean {
     let mut buff: [libc::c_char; 1024] = [0; 1024];
     let mut pattern: *mut HTS_Pattern = std::ptr::null_mut::<HTS_Pattern>();
     let mut last_pattern: *mut HTS_Pattern = std::ptr::null_mut::<HTS_Pattern>();
@@ -260,7 +261,7 @@ unsafe extern "C" fn HTS_Question_load(
     }
     1 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_Question_match(
+unsafe fn HTS_Question_match(
     mut question: *mut HTS_Question,
     mut string: *const libc::c_char,
 ) -> HTS_Boolean {
@@ -274,7 +275,7 @@ unsafe extern "C" fn HTS_Question_match(
     }
     0 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_Question_find(
+unsafe fn HTS_Question_find(
     mut question: *mut HTS_Question,
     mut string: *const libc::c_char,
 ) -> *mut HTS_Question {
@@ -286,7 +287,7 @@ unsafe extern "C" fn HTS_Question_find(
     }
     std::ptr::null_mut::<HTS_Question>()
 }
-unsafe extern "C" fn HTS_Node_initialize(mut node: *mut HTS_Node) {
+unsafe fn HTS_Node_initialize(mut node: *mut HTS_Node) {
     (*node).index = 0 as libc::c_int;
     (*node).pdf = 0 as libc::c_int as size_t;
     (*node).yes = std::ptr::null_mut::<HTS_Node>();
@@ -294,7 +295,7 @@ unsafe extern "C" fn HTS_Node_initialize(mut node: *mut HTS_Node) {
     (*node).next = std::ptr::null_mut::<HTS_Node>();
     (*node).quest = std::ptr::null_mut::<HTS_Question>();
 }
-unsafe extern "C" fn HTS_Node_clear(mut node: *mut HTS_Node) {
+unsafe fn HTS_Node_clear(mut node: *mut HTS_Node) {
     if !((*node).yes).is_null() {
         HTS_Node_clear((*node).yes);
         HTS_free((*node).yes as *mut libc::c_void);
@@ -305,7 +306,7 @@ unsafe extern "C" fn HTS_Node_clear(mut node: *mut HTS_Node) {
     }
     HTS_Node_initialize(node);
 }
-unsafe extern "C" fn HTS_Node_find(mut node: *mut HTS_Node, mut num: libc::c_int) -> *mut HTS_Node {
+unsafe fn HTS_Node_find(mut node: *mut HTS_Node, mut num: libc::c_int) -> *mut HTS_Node {
     while !node.is_null() {
         if (*node).index == num {
             return node;
@@ -314,13 +315,13 @@ unsafe extern "C" fn HTS_Node_find(mut node: *mut HTS_Node, mut num: libc::c_int
     }
     std::ptr::null_mut::<HTS_Node>()
 }
-unsafe extern "C" fn HTS_Tree_initialize(mut tree: *mut HTS_Tree) {
+unsafe fn HTS_Tree_initialize(mut tree: *mut HTS_Tree) {
     (*tree).head = std::ptr::null_mut::<HTS_Pattern>();
     (*tree).next = std::ptr::null_mut::<HTS_Tree>();
     (*tree).root = std::ptr::null_mut::<HTS_Node>();
     (*tree).state = 0 as libc::c_int as size_t;
 }
-unsafe extern "C" fn HTS_Tree_clear(mut tree: *mut HTS_Tree) {
+unsafe fn HTS_Tree_clear(mut tree: *mut HTS_Tree) {
     let mut pattern: *mut HTS_Pattern = std::ptr::null_mut::<HTS_Pattern>();
     let mut next_pattern: *mut HTS_Pattern = std::ptr::null_mut::<HTS_Pattern>();
     pattern = (*tree).head;
@@ -336,10 +337,7 @@ unsafe extern "C" fn HTS_Tree_clear(mut tree: *mut HTS_Tree) {
     }
     HTS_Tree_initialize(tree);
 }
-unsafe extern "C" fn HTS_Tree_parse_pattern(
-    mut tree: *mut HTS_Tree,
-    mut string: *mut libc::c_char,
-) {
+unsafe fn HTS_Tree_parse_pattern(mut tree: *mut HTS_Tree, mut string: *mut libc::c_char) {
     let mut left: *mut libc::c_char = std::ptr::null_mut::<libc::c_char>();
     let mut right: *mut libc::c_char = std::ptr::null_mut::<libc::c_char>();
     let mut pattern: *mut HTS_Pattern = std::ptr::null_mut::<HTS_Pattern>();
@@ -381,7 +379,7 @@ unsafe extern "C" fn HTS_Tree_parse_pattern(
         }
     }
 }
-unsafe extern "C" fn HTS_Tree_load(
+unsafe fn HTS_Tree_load(
     mut tree: *mut HTS_Tree,
     mut fp: *mut HTS_File,
     mut question: *mut HTS_Question,
@@ -483,10 +481,7 @@ unsafe extern "C" fn HTS_Tree_load(
     }
     1 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_Tree_search_node(
-    mut tree: *mut HTS_Tree,
-    mut string: *const libc::c_char,
-) -> size_t {
+unsafe fn HTS_Tree_search_node(mut tree: *mut HTS_Tree, mut string: *const libc::c_char) -> size_t {
     let mut node: *mut HTS_Node = (*tree).root;
     while !node.is_null() {
         if ((*node).quest).is_null() {
@@ -510,14 +505,14 @@ unsafe extern "C" fn HTS_Tree_search_node(
     );
     1 as libc::c_int as size_t
 }
-unsafe extern "C" fn HTS_Window_initialize(mut win: *mut HTS_Window) {
+unsafe fn HTS_Window_initialize(mut win: *mut HTS_Window) {
     (*win).size = 0 as libc::c_int as size_t;
     (*win).l_width = std::ptr::null_mut::<libc::c_int>();
     (*win).r_width = std::ptr::null_mut::<libc::c_int>();
     (*win).coefficient = std::ptr::null_mut::<*mut libc::c_double>();
     (*win).max_width = 0 as libc::c_int as size_t;
 }
-unsafe extern "C" fn HTS_Window_clear(mut win: *mut HTS_Window) {
+unsafe fn HTS_Window_clear(mut win: *mut HTS_Window) {
     let mut i: size_t = 0;
     if !((*win).coefficient).is_null() {
         i = 0 as libc::c_int as size_t;
@@ -537,7 +532,7 @@ unsafe extern "C" fn HTS_Window_clear(mut win: *mut HTS_Window) {
     }
     HTS_Window_initialize(win);
 }
-unsafe extern "C" fn HTS_Window_load(
+unsafe fn HTS_Window_load(
     mut win: *mut HTS_Window,
     mut fp: *mut *mut HTS_File,
     mut size: size_t,
@@ -624,7 +619,7 @@ unsafe extern "C" fn HTS_Window_load(
     }
     1 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_Model_initialize(mut model: *mut HTS_Model) {
+unsafe fn HTS_Model_initialize(mut model: *mut HTS_Model) {
     (*model).vector_length = 0 as libc::c_int as size_t;
     (*model).num_windows = 0 as libc::c_int as size_t;
     (*model).is_msd = 0 as libc::c_int as HTS_Boolean;
@@ -634,7 +629,7 @@ unsafe extern "C" fn HTS_Model_initialize(mut model: *mut HTS_Model) {
     (*model).tree = std::ptr::null_mut::<HTS_Tree>();
     (*model).question = std::ptr::null_mut::<HTS_Question>();
 }
-unsafe extern "C" fn HTS_Model_clear(mut model: *mut HTS_Model) {
+unsafe fn HTS_Model_clear(mut model: *mut HTS_Model) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     let mut question: *mut HTS_Question = std::ptr::null_mut::<HTS_Question>();
@@ -679,10 +674,7 @@ unsafe extern "C" fn HTS_Model_clear(mut model: *mut HTS_Model) {
     }
     HTS_Model_initialize(model);
 }
-unsafe extern "C" fn HTS_Model_load_tree(
-    mut model: *mut HTS_Model,
-    mut fp: *mut HTS_File,
-) -> HTS_Boolean {
+unsafe fn HTS_Model_load_tree(mut model: *mut HTS_Model, mut fp: *mut HTS_File) -> HTS_Boolean {
     let mut buff: [libc::c_char; 1024] = [0; 1024];
     let mut question: *mut HTS_Question = std::ptr::null_mut::<HTS_Question>();
     let mut last_question: *mut HTS_Question = std::ptr::null_mut::<HTS_Question>();
@@ -759,7 +751,7 @@ unsafe extern "C" fn HTS_Model_load_tree(
     }
     1 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_Model_load_pdf(
+unsafe fn HTS_Model_load_pdf(
     mut model: *mut HTS_Model,
     mut fp: *mut HTS_File,
     mut vector_length: size_t,
@@ -870,7 +862,7 @@ unsafe extern "C" fn HTS_Model_load_pdf(
     }
     1 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_Model_load(
+unsafe fn HTS_Model_load(
     mut model: *mut HTS_Model,
     mut pdf: *mut HTS_File,
     mut tree: *mut HTS_File,
@@ -898,7 +890,7 @@ unsafe extern "C" fn HTS_Model_load(
     }
     1 as libc::c_int as HTS_Boolean
 }
-unsafe extern "C" fn HTS_Model_get_index(
+unsafe fn HTS_Model_get_index(
     mut model: *mut HTS_Model,
     mut state_index: size_t,
     mut string: *const libc::c_char,
@@ -942,8 +934,8 @@ unsafe extern "C" fn HTS_Model_get_index(
         *pdf_index = HTS_Tree_search_node((*model).tree, string);
     };
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_initialize(mut ms: *mut HTS_ModelSet) {
+
+pub unsafe fn HTS_ModelSet_initialize(mut ms: *mut HTS_ModelSet) {
     (*ms).hts_voice_version = std::ptr::null_mut::<libc::c_char>();
     (*ms).sampling_frequency = 0 as libc::c_int as size_t;
     (*ms).frame_period = 0 as libc::c_int as size_t;
@@ -960,8 +952,8 @@ pub unsafe extern "C" fn HTS_ModelSet_initialize(mut ms: *mut HTS_ModelSet) {
     (*ms).stream = std::ptr::null_mut::<*mut HTS_Model>();
     (*ms).gv = std::ptr::null_mut::<*mut HTS_Model>();
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
+
+pub unsafe fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     if !((*ms).hts_voice_version).is_null() {
@@ -1034,7 +1026,7 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
     }
     HTS_ModelSet_initialize(ms);
 }
-unsafe extern "C" fn HTS_match_head_string(
+unsafe fn HTS_match_head_string(
     mut str: *const libc::c_char,
     mut pattern: *const libc::c_char,
     mut matched_size: *mut size_t,
@@ -1055,10 +1047,7 @@ unsafe extern "C" fn HTS_match_head_string(
         *matched_size = (*matched_size).wrapping_add(1);
     }
 }
-unsafe extern "C" fn HTS_strequal(
-    mut s1: *const libc::c_char,
-    mut s2: *const libc::c_char,
-) -> HTS_Boolean {
+unsafe fn HTS_strequal(mut s1: *const libc::c_char, mut s2: *const libc::c_char) -> HTS_Boolean {
     if s1.is_null() && s2.is_null() {
         1 as libc::c_int as HTS_Boolean
     } else if s1.is_null() || s2.is_null() {
@@ -1071,8 +1060,8 @@ unsafe extern "C" fn HTS_strequal(
         }) as HTS_Boolean;
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_load(
+
+pub unsafe fn HTS_ModelSet_load(
     mut ms: *mut HTS_ModelSet,
     mut voices: *mut *mut libc::c_char,
     mut num_voices: size_t,
@@ -1109,7 +1098,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
     let mut temp_option: *mut *mut libc::c_char = std::ptr::null_mut::<*mut libc::c_char>();
     let mut temp_duration_pdf: *mut libc::c_char = std::ptr::null_mut::<libc::c_char>();
     let mut temp_duration_tree: *mut libc::c_char = std::ptr::null_mut::<libc::c_char>();
-    let mut temp_stream_win: *mut *mut *mut libc::c_char = std::ptr::null_mut::<*mut *mut libc::c_char>();
+    let mut temp_stream_win: *mut *mut *mut libc::c_char =
+        std::ptr::null_mut::<*mut *mut libc::c_char>();
     let mut temp_stream_pdf: *mut *mut libc::c_char = std::ptr::null_mut::<*mut libc::c_char>();
     let mut temp_stream_tree: *mut *mut libc::c_char = std::ptr::null_mut::<*mut libc::c_char>();
     let mut temp_gv_pdf: *mut *mut libc::c_char = std::ptr::null_mut::<*mut libc::c_char>();
@@ -1284,7 +1274,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             buff1.as_mut_ptr(),
                             b"COMMENT:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int != 1 as libc::c_int
+                        ) as libc::c_int
+                            != 1 as libc::c_int
                         {
                             HTS_error!(
                                 0 as libc::c_int,
@@ -1642,7 +1633,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     free(*temp_option.offset(j as isize)
                                                         as *mut libc::c_void);
                                                 }
-                                                let fresh16 = &mut (*temp_option.offset(j as isize));
+                                                let fresh16 =
+                                                    &mut (*temp_option.offset(j as isize));
                                                 *fresh16 = HTS_strdup(
                                                     &mut *buff1
                                                         .as_mut_ptr()
@@ -1752,7 +1744,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             ) as *mut *mut libc::c_char;
                             k = 0 as libc::c_int as size_t;
                             while k < *num_windows.offset(j as isize) {
-                                let fresh18 = &mut (*(*temp_stream_win.offset(j as isize)).offset(k as isize));
+                                let fresh18 = &mut (*(*temp_stream_win.offset(j as isize))
+                                    .offset(k as isize));
                                 *fresh18 = std::ptr::null_mut::<libc::c_char>();
                                 k = k.wrapping_add(1);
                             }
@@ -1878,7 +1871,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                             as libc::c_int
                                                             == 1 as libc::c_int
                                                         {
-                                                            let fresh24 = &mut (*(*temp_stream_win
+                                                            let fresh24 =
+                                                                &mut (*(*temp_stream_win
                                                                     .offset(j as isize))
                                                                 .offset(k as isize));
                                                             *fresh24 =
@@ -1926,7 +1920,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                         free(*temp_stream_pdf.offset(j as isize)
                                                             as *mut libc::c_void);
                                                     }
-                                                    let fresh26 = &mut (*temp_stream_pdf.offset(j as isize));
+                                                    let fresh26 =
+                                                        &mut (*temp_stream_pdf.offset(j as isize));
                                                     *fresh26 = HTS_strdup(
                                                         &mut *buff1
                                                             .as_mut_ptr()
@@ -1970,7 +1965,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                         free(*temp_stream_tree.offset(j as isize)
                                                             as *mut libc::c_void);
                                                     }
-                                                    let fresh28 = &mut (*temp_stream_tree.offset(j as isize));
+                                                    let fresh28 =
+                                                        &mut (*temp_stream_tree.offset(j as isize));
                                                     *fresh28 = HTS_strdup(
                                                         &mut *buff1
                                                             .as_mut_ptr()
@@ -2013,7 +2009,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                         free(*temp_gv_pdf.offset(j as isize)
                                                             as *mut libc::c_void);
                                                     }
-                                                    let fresh30 = &mut (*temp_gv_pdf.offset(j as isize));
+                                                    let fresh30 =
+                                                        &mut (*temp_gv_pdf.offset(j as isize));
                                                     *fresh30 = HTS_strdup(
                                                         &mut *buff1
                                                             .as_mut_ptr()
@@ -2056,7 +2053,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                         free(*temp_gv_tree.offset(j as isize)
                                                             as *mut libc::c_void);
                                                     }
-                                                    let fresh32 = &mut (*temp_gv_tree.offset(j as isize));
+                                                    let fresh32 =
+                                                        &mut (*temp_gv_tree.offset(j as isize));
                                                     *fresh32 = HTS_strdup(
                                                         &mut *buff1
                                                             .as_mut_ptr()
@@ -2382,14 +2380,17 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 );
                                 HTS_fseek(fp, start_of_data, 0 as libc::c_int);
                             }
-                            if *use_gv.offset(j as isize) as libc::c_int == 1 as libc::c_int && HTS_Model_load(
+                            if *use_gv.offset(j as isize) as libc::c_int == 1 as libc::c_int
+                                && HTS_Model_load(
                                     &mut *(*((*ms).gv).offset(i as isize)).offset(j as isize),
                                     pdf_fp,
                                     tree_fp,
                                     *vector_length.offset(j as isize),
                                     1 as libc::c_int as size_t,
                                     0 as libc::c_int as HTS_Boolean,
-                                ) as libc::c_int != 1 as libc::c_int {
+                                ) as libc::c_int
+                                    != 1 as libc::c_int
+                            {
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
                             HTS_fclose(pdf_fp);
@@ -2503,23 +2504,23 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
     }
     (error == 0) as libc::c_int as HTS_Boolean
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_sampling_frequency(mut ms: *mut HTS_ModelSet) -> size_t {
+
+pub unsafe fn HTS_ModelSet_get_sampling_frequency(mut ms: *mut HTS_ModelSet) -> size_t {
     (*ms).sampling_frequency
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_fperiod(mut ms: *mut HTS_ModelSet) -> size_t {
+
+pub unsafe fn HTS_ModelSet_get_fperiod(mut ms: *mut HTS_ModelSet) -> size_t {
     (*ms).frame_period
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_option(
+
+pub unsafe fn HTS_ModelSet_get_option(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> *const libc::c_char {
     *((*ms).option).offset(stream_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_gv_flag(
+
+pub unsafe fn HTS_ModelSet_get_gv_flag(
     mut ms: *mut HTS_ModelSet,
     mut string: *const libc::c_char,
 ) -> HTS_Boolean {
@@ -2531,91 +2532,87 @@ pub unsafe extern "C" fn HTS_ModelSet_get_gv_flag(
         return 1 as libc::c_int as HTS_Boolean;
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_nstate(mut ms: *mut HTS_ModelSet) -> size_t {
+
+pub unsafe fn HTS_ModelSet_get_nstate(mut ms: *mut HTS_ModelSet) -> size_t {
     (*ms).num_states
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_fullcontext_label_format(
+
+pub unsafe fn HTS_ModelSet_get_fullcontext_label_format(
     mut ms: *mut HTS_ModelSet,
 ) -> *const libc::c_char {
     (*ms).fullcontext_format
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_fullcontext_label_version(
+
+pub unsafe fn HTS_ModelSet_get_fullcontext_label_version(
     mut ms: *mut HTS_ModelSet,
 ) -> *const libc::c_char {
     (*ms).fullcontext_version
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_nstream(mut ms: *mut HTS_ModelSet) -> size_t {
+
+pub unsafe fn HTS_ModelSet_get_nstream(mut ms: *mut HTS_ModelSet) -> size_t {
     (*ms).num_streams
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_nvoices(mut ms: *mut HTS_ModelSet) -> size_t {
+
+pub unsafe fn HTS_ModelSet_get_nvoices(mut ms: *mut HTS_ModelSet) -> size_t {
     (*ms).num_voices
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_vector_length(
+
+pub unsafe fn HTS_ModelSet_get_vector_length(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> size_t {
     (*(*((*ms).stream).offset(0 as libc::c_int as isize)).offset(stream_index as isize))
         .vector_length
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_is_msd(
+
+pub unsafe fn HTS_ModelSet_is_msd(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> HTS_Boolean {
-    (*(*((*ms).stream).offset(0 as libc::c_int as isize)).offset(stream_index as isize))
-        .is_msd
+    (*(*((*ms).stream).offset(0 as libc::c_int as isize)).offset(stream_index as isize)).is_msd
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_window_size(
+
+pub unsafe fn HTS_ModelSet_get_window_size(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> size_t {
     (*((*ms).window).offset(stream_index as isize)).size
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_window_left_width(
+
+pub unsafe fn HTS_ModelSet_get_window_left_width(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
     mut window_index: size_t,
 ) -> libc::c_int {
-    *((*((*ms).window).offset(stream_index as isize)).l_width)
-        .offset(window_index as isize)
+    *((*((*ms).window).offset(stream_index as isize)).l_width).offset(window_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_window_right_width(
+
+pub unsafe fn HTS_ModelSet_get_window_right_width(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
     mut window_index: size_t,
 ) -> libc::c_int {
-    *((*((*ms).window).offset(stream_index as isize)).r_width)
-        .offset(window_index as isize)
+    *((*((*ms).window).offset(stream_index as isize)).r_width).offset(window_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_window_coefficient(
+
+pub unsafe fn HTS_ModelSet_get_window_coefficient(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
     mut window_index: size_t,
     mut coefficient_index: size_t,
 ) -> libc::c_double {
-    *(*((*((*ms).window).offset(stream_index as isize)).coefficient)
-        .offset(window_index as isize))
-    .offset(coefficient_index as isize)
+    *(*((*((*ms).window).offset(stream_index as isize)).coefficient).offset(window_index as isize))
+        .offset(coefficient_index as isize)
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_window_max_width(
+
+pub unsafe fn HTS_ModelSet_get_window_max_width(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> size_t {
     (*((*ms).window).offset(stream_index as isize)).max_width
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_use_gv(
+
+pub unsafe fn HTS_ModelSet_use_gv(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> HTS_Boolean {
@@ -2628,7 +2625,7 @@ pub unsafe extern "C" fn HTS_ModelSet_use_gv(
         0 as libc::c_int as HTS_Boolean
     }
 }
-unsafe extern "C" fn HTS_Model_add_parameter(
+unsafe fn HTS_Model_add_parameter(
     mut model: *mut HTS_Model,
     mut state_index: size_t,
     mut string: *const libc::c_char,
@@ -2658,8 +2655,8 @@ unsafe extern "C" fn HTS_Model_add_parameter(
                 .offset(len.wrapping_add(len) as isize) as libc::c_double;
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_duration_index(
+
+pub unsafe fn HTS_ModelSet_get_duration_index(
     mut ms: *mut HTS_ModelSet,
     mut voice_index: size_t,
     mut string: *const libc::c_char,
@@ -2674,8 +2671,8 @@ pub unsafe extern "C" fn HTS_ModelSet_get_duration_index(
         pdf_index,
     );
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_duration(
+
+pub unsafe fn HTS_ModelSet_get_duration(
     mut ms: *mut HTS_ModelSet,
     mut string: *const libc::c_char,
     mut iw: *const libc::c_double,
@@ -2706,8 +2703,8 @@ pub unsafe extern "C" fn HTS_ModelSet_get_duration(
         i = i.wrapping_add(1);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_parameter_index(
+
+pub unsafe fn HTS_ModelSet_get_parameter_index(
     mut ms: *mut HTS_ModelSet,
     mut voice_index: size_t,
     mut stream_index: size_t,
@@ -2724,8 +2721,8 @@ pub unsafe extern "C" fn HTS_ModelSet_get_parameter_index(
         pdf_index,
     );
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_parameter(
+
+pub unsafe fn HTS_ModelSet_get_parameter(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
     mut state_index: size_t,
@@ -2766,8 +2763,8 @@ pub unsafe extern "C" fn HTS_ModelSet_get_parameter(
         i = i.wrapping_add(1);
     }
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_gv_index(
+
+pub unsafe fn HTS_ModelSet_get_gv_index(
     mut ms: *mut HTS_ModelSet,
     mut voice_index: size_t,
     mut stream_index: size_t,
@@ -2783,8 +2780,8 @@ pub unsafe extern "C" fn HTS_ModelSet_get_gv_index(
         pdf_index,
     );
 }
-#[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_gv(
+
+pub unsafe fn HTS_ModelSet_get_gv(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
     mut string: *const libc::c_char,
