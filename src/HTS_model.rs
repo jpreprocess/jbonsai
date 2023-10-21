@@ -1,7 +1,7 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
 
 
-use crate::util::*;
+use crate::{util::*, HTS_error};
 
 extern "C" {
     fn atof(__nptr: *const libc::c_char) -> libc::c_double;
@@ -50,7 +50,6 @@ extern "C" {
         separator: libc::c_char,
     ) -> HTS_Boolean;
     fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
-    fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
     fn HTS_free(p: *mut libc::c_void);
 }
 pub type C2RustUnnamed = libc::c_uint;
@@ -456,7 +455,7 @@ unsafe extern "C" fn HTS_Tree_load(
         {
             node = HTS_Node_find(last_node, atoi(buff.as_mut_ptr()));
             if node.is_null() {
-                HTS_error(
+                HTS_error!(
                     0 as libc::c_int,
                     b"HTS_Tree_load: Cannot find node %d.\n\0" as *const u8
                         as *const libc::c_char,
@@ -473,7 +472,7 @@ unsafe extern "C" fn HTS_Tree_load(
             }
             (*node).quest = HTS_Question_find(question, buff.as_mut_ptr());
             if ((*node).quest).is_null() {
-                HTS_error(
+                HTS_error!(
                     0 as libc::c_int,
                     b"HTS_Tree_load: Cannot find question %s.\n\0" as *const u8
                         as *const libc::c_char,
@@ -553,7 +552,7 @@ unsafe extern "C" fn HTS_Tree_search_node(
             node = (*node).no;
         }
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_Tree_search_node: Cannot find node.\n\0" as *const u8
             as *const libc::c_char,
@@ -753,7 +752,7 @@ unsafe extern "C" fn HTS_Model_load_tree(
     let mut last_tree: *mut HTS_Tree = 0 as *mut HTS_Tree;
     let mut state: size_t = 0;
     if model.is_null() {
-        HTS_error(
+        HTS_error!(
             0 as libc::c_int,
             b"HTS_Model_load_tree: File for trees is not specified.\n\0" as *const u8
                 as *const libc::c_char,
@@ -835,7 +834,7 @@ unsafe extern "C" fn HTS_Model_load_pdf(
     let mut result: HTS_Boolean = 1 as libc::c_int as HTS_Boolean;
     let mut len: size_t = 0;
     if model.is_null() || fp.is_null() || (*model).ntree <= 0 as libc::c_int as size_t {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_Model_load_pdf: File for pdfs is not specified.\n\0" as *const u8
                 as *const libc::c_char,
@@ -871,7 +870,7 @@ unsafe extern "C" fn HTS_Model_load_pdf(
     j = 2 as libc::c_int as size_t;
     while j <= ((*model).ntree).wrapping_add(1 as libc::c_int as size_t) {
         if *((*model).npdf).offset(j as isize) <= 0 as libc::c_int as size_t {
-            HTS_error(
+            HTS_error!(
                 1 as libc::c_int,
                 b"HTS_Model_load_pdf: # of pdfs at %d-th state should be positive.\n\0"
                     as *const u8 as *const libc::c_char,
@@ -1364,7 +1363,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             &mut matched_size,
                         ) as libc::c_int == 1 as libc::c_int)
                         {
-                            HTS_error(
+                            HTS_error!(
                                 0 as libc::c_int,
                                 b"HTS_ModelSet_load: Unknown option %s.\n\0" as *const u8
                                     as *const libc::c_char,
@@ -1734,7 +1733,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     }
                                 }
                             } else {
-                                HTS_error(
+                                HTS_error!(
                                     0 as libc::c_int,
                                     b"HTS_ModelSet_load: Unknown option %s.\n\0" as *const u8
                                         as *const libc::c_char,
@@ -2136,7 +2135,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                         }
                                     }
                                 } else {
-                                    HTS_error(
+                                    HTS_error!(
                                         0 as libc::c_int,
                                         b"HTS_ModelSet_load: Unknown option %s.\n\0" as *const u8
                                             as *const libc::c_char,

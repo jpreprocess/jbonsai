@@ -8,7 +8,7 @@
     unused_mut
 )]
 
-use crate::util::*;
+use crate::{util::*, HTS_error};
 use libc::isgraph;
 extern "C" {
     fn atof(__nptr: *const libc::c_char) -> libc::c_double;
@@ -25,7 +25,6 @@ extern "C" {
     fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
     fn HTS_strdup(string: *const libc::c_char) -> *mut libc::c_char;
     fn HTS_free(p: *mut libc::c_void);
-    fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
 }
 
 pub type C2RustUnnamed = libc::c_uint;
@@ -98,7 +97,7 @@ unsafe extern "C" fn HTS_Label_load(
     let rate: libc::c_double = sampling_rate as libc::c_double
         / (fperiod as libc::c_double * 1e+7f64);
     if !((*label).head).is_null() || (*label).size != 0 as libc::c_int as size_t {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_Label_load_from_fp: label is not initialized.\n\0" as *const u8
                 as *const libc::c_char,
@@ -176,7 +175,7 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
     let rate: libc::c_double = sampling_rate as libc::c_double
         / (fperiod as libc::c_double * 1e+7f64);
     if !((*label).head).is_null() || (*label).size != 0 as libc::c_int as size_t {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_Label_load_from_fp: label list is not initialized.\n\0" as *const u8
                 as *const libc::c_char,

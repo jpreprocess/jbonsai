@@ -270,3 +270,21 @@ pub struct HTS_File {
     pub pointer: *mut libc::c_void,
 }
 
+
+
+
+#[macro_export]
+macro_rules! HTS_error {
+    ($error:expr,$message:expr,$args:expr,) => {
+        
+    };
+    ($error:expr,$message:expr,$args:expr) => {
+        
+    };
+    ($error:expr,$message:expr) => {
+        
+    };
+    ($error:expr,$message:expr,) => {
+        
+    };
+}

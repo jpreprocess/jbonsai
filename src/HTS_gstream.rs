@@ -1,10 +1,9 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
 
-use crate::util::*;
+use crate::{util::*, HTS_error};
 
 extern "C" {
     fn HTS_free(p: *mut libc::c_void);
-    fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
     // fn HTS_Audio_flush(audio: *mut HTS_Audio);
     fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
     fn HTS_PStreamSet_get_nstream(pss: *mut HTS_PStreamSet) -> size_t;
@@ -115,7 +114,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     let mut nlpf: size_t = 0 as libc::c_int as size_t;
     let mut lpf: *mut libc::c_double = 0 as *mut libc::c_double;
     if !((*gss).gstream).is_null() || !((*gss).gspeech).is_null() {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_GStreamSet_create: HTS_GStreamSet is not initialized.\n\0" as *const u8
                 as *const libc::c_char,
@@ -210,7 +209,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     if (*gss).nstream != 2 as libc::c_int as size_t
         && (*gss).nstream != 3 as libc::c_int as size_t
     {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_GStreamSet_create: The number of streams should be 2 or 3.\n\0"
                 as *const u8 as *const libc::c_char,
@@ -221,7 +220,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     if HTS_PStreamSet_get_vector_length(pss, 1 as libc::c_int as size_t)
         != 1 as libc::c_int as size_t
     {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_GStreamSet_create: The size of lf0 static vector should be 1.\n\0"
                 as *const u8 as *const libc::c_char,
@@ -233,7 +232,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
         && (*((*gss).gstream).offset(2 as libc::c_int as isize)).vector_length
             % 2 as libc::c_int as size_t == 0 as libc::c_int as size_t
     {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_GStreamSet_create: The number of low-pass filter coefficient should be odd numbers.\0"
                 as *const u8 as *const libc::c_char,

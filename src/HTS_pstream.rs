@@ -1,5 +1,5 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
-use crate::util::*;
+use crate::{util::*, HTS_error};
 extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
     fn HTS_SStreamSet_get_window_left_width(
@@ -11,7 +11,6 @@ extern "C" {
     fn HTS_alloc_matrix(x: size_t, y: size_t) -> *mut *mut libc::c_double;
     fn HTS_free_matrix(p: *mut *mut libc::c_double, x: size_t);
     fn HTS_free(p: *mut libc::c_void);
-    fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
     fn HTS_SStreamSet_get_nstream(sss: *mut HTS_SStreamSet) -> size_t;
     fn HTS_SStreamSet_get_vector_length(
         sss: *mut HTS_SStreamSet,
@@ -473,7 +472,7 @@ pub unsafe extern "C" fn HTS_PStreamSet_create(
     let mut pst: *mut HTS_PStream = 0 as *mut HTS_PStream;
     let mut not_bound: HTS_Boolean = 0;
     if (*pss).nstream != 0 as libc::c_int as size_t {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_PstreamSet_create: HTS_PStreamSet should be clear.\n\0" as *const u8
                 as *const libc::c_char,

@@ -1,11 +1,10 @@
 #![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
 
-use crate::util::*;
+use crate::{util::*, HTS_error};
 extern "C" {
     fn fabs(_: libc::c_double) -> libc::c_double;
     fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void;
     fn HTS_free(p: *mut libc::c_void);
-    fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
     fn HTS_ModelSet_get_gv_flag(
         ms: *mut HTS_ModelSet,
         string: *const libc::c_char,
@@ -117,7 +116,7 @@ unsafe extern "C" fn HTS_set_specified_duration(
     }
     if target_length <= size {
         if target_length < size {
-            HTS_error(
+            HTS_error!(
                 -(1 as libc::c_int),
                 b"HTS_set_specified_duration: Specified frame length is too short.\n\0"
                     as *const u8 as *const libc::c_char,
@@ -412,7 +411,7 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
             } else if i.wrapping_add(1 as libc::c_int as size_t)
                 == HTS_Label_get_size(label)
             {
-                HTS_error(
+                HTS_error!(
                     -(1 as libc::c_int),
                     b"HTS_SStreamSet_create: The time of final label is not specified.\n\0"
                         as *const u8 as *const libc::c_char,

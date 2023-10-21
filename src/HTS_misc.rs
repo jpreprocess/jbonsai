@@ -1,5 +1,6 @@
 use libc::FILE;
 
+use crate::HTS_error;
 
 extern "C" {
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
@@ -42,7 +43,6 @@ extern "C" {
     fn fclose(__stream: *mut FILE) -> libc::c_int;
     static mut stderr: *mut FILE;
     static mut stdout: *mut FILE;
-    fn HTS_error(error: libc::c_int, message: *const libc::c_char, _: ...);
     // fn vfprintf(
     //     _: *mut FILE,
     //     _: *const libc::c_char,
@@ -99,6 +99,7 @@ pub struct _HTS_Data {
     pub size: size_t,
     pub index: size_t,
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fopen_from_fn(
     mut name: *const libc::c_char,
@@ -111,7 +112,7 @@ pub unsafe extern "C" fn HTS_fopen_from_fn(
     (*fp).type_0 = 0 as libc::c_int as libc::c_uchar;
     (*fp).pointer = fopen(name, opt) as *mut libc::c_void;
     if ((*fp).pointer).is_null() {
-        HTS_error(
+        HTS_error!(
             0 as libc::c_int,
             b"HTS_fopen: Cannot open %s.\n\0" as *const u8 as *const libc::c_char,
             name,
@@ -194,7 +195,7 @@ pub unsafe extern "C" fn HTS_fopen_from_fp(
         (*f_0).pointer = tmp2 as *mut libc::c_void;
         return f_0;
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_fopen_from_fp: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
@@ -251,7 +252,7 @@ pub unsafe extern "C" fn HTS_fclose(mut fp: *mut HTS_File) {
         HTS_free(fp as *mut libc::c_void);
         return;
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_fclose: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
@@ -271,7 +272,7 @@ pub unsafe extern "C" fn HTS_fgetc(mut fp: *mut HTS_File) -> libc::c_int {
         (*d).index = ((*d).index).wrapping_add(1);
         return *((*d).data).offset(fresh0 as isize) as libc::c_int;
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_fgetc: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
@@ -287,7 +288,7 @@ pub unsafe extern "C" fn HTS_feof(mut fp: *mut HTS_File) -> libc::c_int {
         let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
         return if (*d).size <= (*d).index { 1 as libc::c_int } else { 0 as libc::c_int };
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_feof: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
@@ -316,7 +317,7 @@ pub unsafe extern "C" fn HTS_fseek(
         }
         return 0 as libc::c_int;
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_fseek: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
@@ -340,7 +341,7 @@ pub unsafe extern "C" fn HTS_ftell(mut fp: *mut HTS_File) -> size_t {
         let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
         return (*d).index;
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_ftell: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
@@ -381,7 +382,7 @@ unsafe extern "C" fn HTS_fread(
             return i / size
         }
     }
-    HTS_error(
+    HTS_error!(
         0 as libc::c_int,
         b"HTS_fread: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
@@ -691,7 +692,7 @@ pub unsafe extern "C" fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_v
     mem = malloc(n);
     memset(mem, 0 as libc::c_int, n);
     if mem.is_null() {
-        HTS_error(
+        HTS_error!(
             1 as libc::c_int,
             b"HTS_calloc: Cannot allocate memory.\n\0" as *const u8
                 as *const libc::c_char,
@@ -752,24 +753,25 @@ pub unsafe extern "C" fn HTS_free_matrix(
     }
     HTS_free(p as *mut libc::c_void);
 }
+
 // #[no_mangle]
-// pub unsafe extern "C" fn HTS_error(
+// pub unsafe extern "C" fn HTS_error!(
 //     mut error: libc::c_int,
 //     mut message: *const libc::c_char,
-//     mut args: ...
+//     mut args:*const libc::c_char
 // ) {
-//     let mut arg: ::core::ffi::VaListImpl;
-//     fflush(stdout);
-//     fflush(stderr);
-//     if error > 0 as libc::c_int {
-//         fprintf(stderr, b"\nError: \0" as *const u8 as *const libc::c_char);
-//     } else {
-//         fprintf(stderr, b"\nWarning: \0" as *const u8 as *const libc::c_char);
-//     }
-//     arg = args.clone();
-//     vfprintf(stderr, message, arg.as_va_list());
-//     fflush(stderr);
-//     if error > 0 as libc::c_int {
-//         exit(error);
-//     }
+//     // let mut arg: ::core::ffi::VaListImpl;
+//     // fflush(stdout);
+//     // fflush(stderr);
+//     // if error > 0 as libc::c_int {
+//     //     fprintf(stderr, b"\nError: \0" as *const u8 as *const libc::c_char);
+//     // } else {
+//     //     fprintf(stderr, b"\nWarning: \0" as *const u8 as *const libc::c_char);
+//     // }
+//     // arg = args.clone();
+//     // vfprintf(stderr, message, arg.as_va_list());
+//     // fflush(stderr);
+//     // if error > 0 as libc::c_int {
+//     //     exit(error);
+//     // }
 // }
