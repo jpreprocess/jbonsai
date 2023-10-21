@@ -274,3 +274,10 @@ macro_rules! HTS_error {
     ($error:expr,$message:expr) => {};
     ($error:expr,$message:expr,) => {};
 }
+
+pub const MAX_F0: f64 = 20000.0;
+pub const MIN_F0: f64 = 20.0;
+pub const MAX_LF0: f64 = 9.9034875525361280454891979401956; /* log(20000.0) */
+pub const MIN_LF0: f64 = 2.9957322735539909934352235761425; /* log(20.0) */
+pub const HALF_TONE: f64 = 0.05776226504666210911810267678818; /* log(2.0) / 12.0 */
+pub const DB: f64 = 0.11512925464970228420089957273422; /* log(10.0) / 20.0 */

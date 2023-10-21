@@ -240,11 +240,11 @@ pub unsafe extern "C" fn HTS_Engine_get_stop_flag(mut engine: *mut HTS_Engine) -
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Engine_set_volume(mut engine: *mut HTS_Engine, mut f: libc::c_double) {
-    (*engine).condition.volume = exp(f * 0.11512925464970228420089957273422f64);
+    (*engine).condition.volume = exp(f * DB);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Engine_get_volume(mut engine: *mut HTS_Engine) -> libc::c_double {
-    return log((*engine).condition.volume) / 0.11512925464970228420089957273422f64;
+    return log((*engine).condition.volume) / DB;
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Engine_set_msd_threshold(
@@ -508,11 +508,11 @@ unsafe extern "C" fn HTS_Engine_generate_state_sequence(
                 i,
                 0 as libc::c_int as size_t,
             );
-            f += (*engine).condition.additional_half_tone * 0.05776226504666210911810267678818f64;
-            if f < 2.9957322735539909934352235761425f64 {
-                f = 2.9957322735539909934352235761425f64;
-            } else if f > 9.9034875525361280454891979401956f64 {
-                f = 9.9034875525361280454891979401956f64;
+            f += (*engine).condition.additional_half_tone * HALF_TONE;
+            if f < MIN_LF0 {
+                f = MIN_LF0;
+            } else if f > MAX_LF0 {
+                f = MAX_LF0;
             }
             HTS_Engine_set_state_mean(
                 engine,

@@ -1221,10 +1221,10 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
     let mut p: libc::c_double = 0.;
     if lf0 == -1.0e+10f64 {
         p = 0.0f64;
-    } else if lf0 <= 2.9957322735539909934352235761425f64 {
-        p = (*v).rate / 20.0f64;
-    } else if lf0 >= 9.9034875525361280454891979401956f64 {
-        p = (*v).rate / 20000.0f64;
+    } else if lf0 <= MIN_LF0 {
+        p = (*v).rate / MIN_F0;
+    } else if lf0 >= MAX_LF0 {
+        p = (*v).rate / MAX_F0;
     } else {
         p = (*v).rate / exp(lf0);
     }
