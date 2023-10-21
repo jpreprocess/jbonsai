@@ -15,7 +15,46 @@ extern "C" {
     fn pow(_: libc::c_double, _: libc::c_double) -> libc::c_double;
     fn sqrt(_: libc::c_double) -> libc::c_double;
 }
-static mut HTS_pade: [libc::c_double; 21] = [
+
+#[derive(Copy, Clone)]
+pub struct HTS_Vocoder {
+    pub is_first: HTS_Boolean,
+    pub stage: size_t,
+    pub gamma: libc::c_double,
+    pub use_log_gain: HTS_Boolean,
+    pub fprd: size_t,
+    pub next: libc::c_ulong,
+    pub gauss: HTS_Boolean,
+    pub rate: libc::c_double,
+    pub pitch_of_curr_point: libc::c_double,
+    pub pitch_counter: libc::c_double,
+    pub pitch_inc_per_point: libc::c_double,
+    pub excite_ring_buff: *mut libc::c_double,
+    pub excite_buff_size: size_t,
+    pub excite_buff_index: size_t,
+    pub sw: libc::c_uchar,
+    pub x: libc::c_int,
+    pub freqt_buff: *mut libc::c_double,
+    pub freqt_size: size_t,
+    pub spectrum2en_buff: *mut libc::c_double,
+    pub spectrum2en_size: size_t,
+    pub r1: libc::c_double,
+    pub r2: libc::c_double,
+    pub s: libc::c_double,
+    pub postfilter_buff: *mut libc::c_double,
+    pub postfilter_size: size_t,
+    pub c: *mut libc::c_double,
+    pub cc: *mut libc::c_double,
+    pub cinc: *mut libc::c_double,
+    pub d1: *mut libc::c_double,
+    pub lsp2lpc_buff: *mut libc::c_double,
+    pub lsp2lpc_size: size_t,
+    pub gc2gc_buff: *mut libc::c_double,
+    pub gc2gc_size: size_t,
+}
+
+
+static HTS_pade: [f64; 21] = [
     1.00000000000f64,
     1.00000000000f64,
     0.00000000000f64,
@@ -38,6 +77,7 @@ static mut HTS_pade: [libc::c_double; 21] = [
     0.00095648530f64,
     0.00003041721f64,
 ];
+
 unsafe fn HTS_movem(mut a: *mut libc::c_double, mut b: *mut libc::c_double, nitem: libc::c_int) {
     let mut i: libc::c_long = nitem as libc::c_long;
     if a > b {
@@ -199,46 +239,46 @@ unsafe fn HTS_rnd(mut next: *mut libc::c_ulong) -> libc::c_double {
         .wrapping_rem(32768 as libc::c_long as libc::c_ulong) as libc::c_double;
     r / 32767 as libc::c_int as libc::c_double
 }
-unsafe fn HTS_nrandom(mut v: *mut HTS_Vocoder) -> libc::c_double {
-    if (*v).sw as libc::c_int == 0 as libc::c_int {
-        (*v).sw = 1 as libc::c_int as libc::c_uchar;
+unsafe fn HTS_nrandom(v: &mut HTS_Vocoder) -> libc::c_double {
+    if v.sw as libc::c_int == 0 as libc::c_int {
+        v.sw = 1 as libc::c_int as libc::c_uchar;
         loop {
-            (*v).r1 = 2 as libc::c_int as libc::c_double * HTS_rnd(&mut (*v).next)
+            v.r1 = 2 as libc::c_int as libc::c_double * HTS_rnd(&mut v.next)
                 - 1 as libc::c_int as libc::c_double;
-            (*v).r2 = 2 as libc::c_int as libc::c_double * HTS_rnd(&mut (*v).next)
+            v.r2 = 2 as libc::c_int as libc::c_double * HTS_rnd(&mut v.next)
                 - 1 as libc::c_int as libc::c_double;
-            (*v).s = (*v).r1 * (*v).r1 + (*v).r2 * (*v).r2;
-            if !((*v).s > 1 as libc::c_int as libc::c_double
-                || (*v).s == 0 as libc::c_int as libc::c_double)
+            v.s = v.r1 * v.r1 + v.r2 * v.r2;
+            if !(v.s > 1 as libc::c_int as libc::c_double
+                || v.s == 0 as libc::c_int as libc::c_double)
             {
                 break;
             }
         }
-        (*v).s = sqrt(-(2 as libc::c_int) as libc::c_double * log((*v).s) / (*v).s);
-        (*v).r1 * (*v).s
+        v.s = sqrt(-(2 as libc::c_int) as libc::c_double * log(v.s) / v.s);
+        v.r1 * v.s
     } else {
-        (*v).sw = 0 as libc::c_int as libc::c_uchar;
-        (*v).r2 * (*v).s
+        v.sw = 0 as libc::c_int as libc::c_uchar;
+        v.r2 * v.s
     }
 }
-unsafe fn HTS_mseq(mut v: *mut HTS_Vocoder) -> libc::c_int {
+unsafe fn HTS_mseq(v: &mut HTS_Vocoder) -> libc::c_int {
     let mut x0: libc::c_int = 0;
     let mut x28: libc::c_int = 0;
-    (*v).x >>= 1 as libc::c_int;
-    if (*v).x & 0x1 as libc::c_int != 0 {
+    v.x >>= 1 as libc::c_int;
+    if v.x & 0x1 as libc::c_int != 0 {
         x0 = 1 as libc::c_int;
     } else {
         x0 = -(1 as libc::c_int);
     }
-    if (*v).x & 0x10000000 as libc::c_int != 0 {
+    if v.x & 0x10000000 as libc::c_int != 0 {
         x28 = 1 as libc::c_int;
     } else {
         x28 = -(1 as libc::c_int);
     }
     if x0 + x28 != 0 {
-        (*v).x &= 0x7fffffff as libc::c_int;
+        v.x &= 0x7fffffff as libc::c_int;
     } else {
-        (*v).x = ((*v).x as libc::c_uint | 0x80000000 as libc::c_uint) as libc::c_int;
+        v.x = (v.x as libc::c_uint | 0x80000000 as libc::c_uint) as libc::c_int;
     }
     x0
 }
@@ -288,7 +328,7 @@ unsafe fn HTS_b2mc(
     }
 }
 unsafe fn HTS_freqt(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut c1: *const libc::c_double,
     m1: libc::c_int,
     mut c2: *mut libc::c_double,
@@ -299,18 +339,18 @@ unsafe fn HTS_freqt(
     let mut j: libc::c_int = 0;
     let b: libc::c_double = 1 as libc::c_int as libc::c_double - a * a;
     let mut g: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
-    if m2 as size_t > (*v).freqt_size {
-        if !((*v).freqt_buff).is_null() {
-            HTS_free((*v).freqt_buff as *mut libc::c_void);
+    if m2 as size_t > v.freqt_size {
+        if !(v.freqt_buff).is_null() {
+            HTS_free(v.freqt_buff as *mut libc::c_void);
         }
-        (*v).freqt_buff = HTS_calloc(
+        v.freqt_buff = HTS_calloc(
             (m2 + m2 + 2 as libc::c_int) as size_t,
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
-        (*v).freqt_size = m2 as size_t;
+        v.freqt_size = m2 as size_t;
     }
-    g = ((*v).freqt_buff)
-        .offset((*v).freqt_size as isize)
+    g = (v.freqt_buff)
+        .offset(v.freqt_size as isize)
         .offset(1 as libc::c_int as isize);
     i = 0 as libc::c_int;
     while i < m2 + 1 as libc::c_int {
@@ -320,21 +360,21 @@ unsafe fn HTS_freqt(
     i = -m1;
     while i <= 0 as libc::c_int {
         if 0 as libc::c_int <= m2 {
-            let fresh5 = &mut (*((*v).freqt_buff).offset(0 as libc::c_int as isize));
+            let fresh5 = &mut (*(v.freqt_buff).offset(0 as libc::c_int as isize));
             *fresh5 = *g.offset(0 as libc::c_int as isize);
             *g.offset(0 as libc::c_int as isize) = *c1.offset(-i as isize) + a * *fresh5;
         }
         if 1 as libc::c_int <= m2 {
-            let fresh6 = &mut (*((*v).freqt_buff).offset(1 as libc::c_int as isize));
+            let fresh6 = &mut (*(v.freqt_buff).offset(1 as libc::c_int as isize));
             *fresh6 = *g.offset(1 as libc::c_int as isize);
             *g.offset(1 as libc::c_int as isize) =
-                b * *((*v).freqt_buff).offset(0 as libc::c_int as isize) + a * *fresh6;
+                b * *(v.freqt_buff).offset(0 as libc::c_int as isize) + a * *fresh6;
         }
         j = 2 as libc::c_int;
         while j <= m2 {
-            let fresh7 = &mut (*((*v).freqt_buff).offset(j as isize));
+            let fresh7 = &mut (*(v.freqt_buff).offset(j as isize));
             *fresh7 = *g.offset(j as isize);
-            *g.offset(j as isize) = *((*v).freqt_buff).offset((j - 1 as libc::c_int) as isize)
+            *g.offset(j as isize) = *(v.freqt_buff).offset((j - 1 as libc::c_int) as isize)
                 + a * (*fresh7 - *g.offset((j - 1 as libc::c_int) as isize));
             j += 1;
         }
@@ -367,7 +407,7 @@ unsafe fn HTS_c2ir(
     }
 }
 unsafe fn HTS_b2en(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut b: *const libc::c_double,
     m: libc::c_int,
     a: libc::c_double,
@@ -376,24 +416,24 @@ unsafe fn HTS_b2en(
     let mut en: libc::c_double = 0.0f64;
     let mut cep: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     let mut ir: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
-    if (*v).spectrum2en_size < m as size_t {
-        if !((*v).spectrum2en_buff).is_null() {
-            HTS_free((*v).spectrum2en_buff as *mut libc::c_void);
+    if v.spectrum2en_size < m as size_t {
+        if !(v.spectrum2en_buff).is_null() {
+            HTS_free(v.spectrum2en_buff as *mut libc::c_void);
         }
-        (*v).spectrum2en_buff = HTS_calloc(
+        v.spectrum2en_buff = HTS_calloc(
             (m + 1 as libc::c_int + 2 as libc::c_int * 576 as libc::c_int) as size_t,
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
-        (*v).spectrum2en_size = m as size_t;
+        v.spectrum2en_size = m as size_t;
     }
-    cep = ((*v).spectrum2en_buff)
+    cep = (v.spectrum2en_buff)
         .offset(m as isize)
         .offset(1 as libc::c_int as isize);
     ir = cep.offset(576 as libc::c_int as isize);
-    HTS_b2mc(b, (*v).spectrum2en_buff, m, a);
+    HTS_b2mc(b, v.spectrum2en_buff, m, a);
     HTS_freqt(
         v,
-        (*v).spectrum2en_buff,
+        v.spectrum2en_buff,
         m,
         cep,
         576 as libc::c_int - 1 as libc::c_int,
@@ -454,7 +494,7 @@ unsafe fn HTS_gnorm(
     };
 }
 unsafe fn HTS_lsp2lpc(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut a: *mut libc::c_double,
     m: libc::c_int,
@@ -484,17 +524,17 @@ unsafe fn HTS_lsp2lpc(
         mh2 = (m - 1 as libc::c_int) / 2 as libc::c_int;
         flag_odd = 1 as libc::c_int;
     }
-    if m as size_t > (*v).lsp2lpc_size {
-        if !((*v).lsp2lpc_buff).is_null() {
-            HTS_free((*v).lsp2lpc_buff as *mut libc::c_void);
+    if m as size_t > v.lsp2lpc_size {
+        if !(v.lsp2lpc_buff).is_null() {
+            HTS_free(v.lsp2lpc_buff as *mut libc::c_void);
         }
-        (*v).lsp2lpc_buff = HTS_calloc(
+        v.lsp2lpc_buff = HTS_calloc(
             (5 as libc::c_int * m + 6 as libc::c_int) as size_t,
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
-        (*v).lsp2lpc_size = m as size_t;
+        v.lsp2lpc_size = m as size_t;
     }
-    p = ((*v).lsp2lpc_buff).offset(m as isize);
+    p = (v.lsp2lpc_buff).offset(m as isize);
     q = p.offset(mh1 as isize);
     a0 = q.offset(mh2 as isize);
     a1 = a0.offset((mh1 + 1 as libc::c_int) as isize);
@@ -502,7 +542,7 @@ unsafe fn HTS_lsp2lpc(
     b0 = a2.offset((mh1 + 1 as libc::c_int) as isize);
     b1 = b0.offset((mh2 + 1 as libc::c_int) as isize);
     b2 = b1.offset((mh2 + 1 as libc::c_int) as isize);
-    HTS_movem(lsp, (*v).lsp2lpc_buff, m);
+    HTS_movem(lsp, v.lsp2lpc_buff, m);
     i = 0 as libc::c_int;
     while i < mh1 + 1 as libc::c_int {
         *a0.offset(i as isize) = 0.0f64;
@@ -536,7 +576,7 @@ unsafe fn HTS_lsp2lpc(
     k = 0 as libc::c_int;
     i = k;
     while i < mh1 {
-        *p.offset(i as isize) = -2.0f64 * cos(*((*v).lsp2lpc_buff).offset(k as isize));
+        *p.offset(i as isize) = -2.0f64 * cos(*(v.lsp2lpc_buff).offset(k as isize));
         i += 1;
         k += 2 as libc::c_int;
     }
@@ -544,7 +584,7 @@ unsafe fn HTS_lsp2lpc(
     i = k;
     while i < mh2 {
         *q.offset(i as isize) =
-            -2.0f64 * cos(*((*v).lsp2lpc_buff).offset((k + 1 as libc::c_int) as isize));
+            -2.0f64 * cos(*(v.lsp2lpc_buff).offset((k + 1 as libc::c_int) as isize));
         i += 1;
         k += 2 as libc::c_int;
     }
@@ -596,7 +636,7 @@ unsafe fn HTS_lsp2lpc(
     *a.offset(0 as libc::c_int as isize) = 1.0f64;
 }
 unsafe fn HTS_gc2gc(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut c1: *mut libc::c_double,
     m1: libc::c_int,
     g1: libc::c_double,
@@ -611,18 +651,18 @@ unsafe fn HTS_gc2gc(
     let mut ss1: libc::c_double = 0.;
     let mut ss2: libc::c_double = 0.;
     let mut cc: libc::c_double = 0.;
-    if m1 as size_t > (*v).gc2gc_size {
-        if !((*v).gc2gc_buff).is_null() {
-            HTS_free((*v).gc2gc_buff as *mut libc::c_void);
+    if m1 as size_t > v.gc2gc_size {
+        if !(v.gc2gc_buff).is_null() {
+            HTS_free(v.gc2gc_buff as *mut libc::c_void);
         }
-        (*v).gc2gc_buff = HTS_calloc(
+        v.gc2gc_buff = HTS_calloc(
             (m1 + 1 as libc::c_int) as size_t,
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
-        (*v).gc2gc_size = m1 as size_t;
+        v.gc2gc_size = m1 as size_t;
     }
-    HTS_movem(c1, (*v).gc2gc_buff, m1 + 1 as libc::c_int);
-    *c2.offset(0 as libc::c_int as isize) = *((*v).gc2gc_buff).offset(0 as libc::c_int as isize);
+    HTS_movem(c1, v.gc2gc_buff, m1 + 1 as libc::c_int);
+    *c2.offset(0 as libc::c_int as isize) = *(v.gc2gc_buff).offset(0 as libc::c_int as isize);
     i = 1 as libc::c_int;
     while i <= m2 {
         ss2 = 0.0f64;
@@ -631,14 +671,14 @@ unsafe fn HTS_gc2gc(
         k = 1 as libc::c_int;
         while k <= min {
             mk = i - k;
-            cc = *((*v).gc2gc_buff).offset(k as isize) * *c2.offset(mk as isize);
+            cc = *(v.gc2gc_buff).offset(k as isize) * *c2.offset(mk as isize);
             ss2 += k as libc::c_double * cc;
             ss1 += mk as libc::c_double * cc;
             k += 1;
         }
         if i <= m1 {
             *c2.offset(i as isize) =
-                *((*v).gc2gc_buff).offset(i as isize) + (g2 * ss2 - g1 * ss1) / i as libc::c_double;
+                *(v.gc2gc_buff).offset(i as isize) + (g2 * ss2 - g1 * ss1) / i as libc::c_double;
         } else {
             *c2.offset(i as isize) = (g2 * ss2 - g1 * ss1) / i as libc::c_double;
         }
@@ -646,7 +686,7 @@ unsafe fn HTS_gc2gc(
     }
 }
 unsafe fn HTS_mgc2mgc(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut c1: *mut libc::c_double,
     m1: libc::c_int,
     a1: libc::c_double,
@@ -670,7 +710,7 @@ unsafe fn HTS_mgc2mgc(
     };
 }
 unsafe fn HTS_lsp2mgc(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut mgc: *mut libc::c_double,
     m: libc::c_int,
@@ -678,18 +718,18 @@ unsafe fn HTS_lsp2mgc(
 ) {
     let mut i: libc::c_int = 0;
     HTS_lsp2lpc(v, lsp.offset(1 as libc::c_int as isize), mgc, m);
-    if (*v).use_log_gain != 0 {
+    if v.use_log_gain != 0 {
         *mgc.offset(0 as libc::c_int as isize) = exp(*lsp.offset(0 as libc::c_int as isize));
     } else {
         *mgc.offset(0 as libc::c_int as isize) = *lsp.offset(0 as libc::c_int as isize);
     }
-    HTS_ignorm(mgc, mgc, m, (*v).gamma);
+    HTS_ignorm(mgc, mgc, m, v.gamma);
     i = m;
     while i >= 1 as libc::c_int {
-        *mgc.offset(i as isize) *= -((*v).stage as libc::c_double);
+        *mgc.offset(i as isize) *= -(v.stage as libc::c_double);
         i -= 1;
     }
-    HTS_mgc2mgc(v, mgc, m, alpha, (*v).gamma, mgc, m, alpha, (*v).gamma);
+    HTS_mgc2mgc(v, mgc, m, alpha, v.gamma, mgc, m, alpha, v.gamma);
 }
 unsafe fn HTS_mglsadff(
     mut x: libc::c_double,
@@ -778,7 +818,7 @@ unsafe fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m: size_t) {
     }
 }
 unsafe fn HTS_lsp2en(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut m: size_t,
     mut alpha: libc::c_double,
@@ -786,50 +826,50 @@ unsafe fn HTS_lsp2en(
     let mut i: size_t = 0;
     let mut en: libc::c_double = 0.0f64;
     let mut buff: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
-    if (*v).spectrum2en_size < m {
-        if !((*v).spectrum2en_buff).is_null() {
-            HTS_free((*v).spectrum2en_buff as *mut libc::c_void);
+    if v.spectrum2en_size < m {
+        if !(v.spectrum2en_buff).is_null() {
+            HTS_free(v.spectrum2en_buff as *mut libc::c_void);
         }
-        (*v).spectrum2en_buff = HTS_calloc(
+        v.spectrum2en_buff = HTS_calloc(
             m.wrapping_add(1 as libc::c_int as size_t)
                 .wrapping_add(576 as libc::c_int as size_t),
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
-        (*v).spectrum2en_size = m;
+        v.spectrum2en_size = m;
     }
-    buff = ((*v).spectrum2en_buff)
+    buff = (v.spectrum2en_buff)
         .offset(m as isize)
         .offset(1 as libc::c_int as isize);
     HTS_lsp2lpc(
         v,
         lsp.offset(1 as libc::c_int as isize),
-        (*v).spectrum2en_buff,
+        v.spectrum2en_buff,
         m as libc::c_int,
     );
-    if (*v).use_log_gain != 0 {
-        *((*v).spectrum2en_buff).offset(0 as libc::c_int as isize) =
+    if v.use_log_gain != 0 {
+        *(v.spectrum2en_buff).offset(0 as libc::c_int as isize) =
             exp(*lsp.offset(0 as libc::c_int as isize));
     } else {
-        *((*v).spectrum2en_buff).offset(0 as libc::c_int as isize) =
+        *(v.spectrum2en_buff).offset(0 as libc::c_int as isize) =
             *lsp.offset(0 as libc::c_int as isize);
     }
     HTS_ignorm(
-        (*v).spectrum2en_buff,
-        (*v).spectrum2en_buff,
+        v.spectrum2en_buff,
+        v.spectrum2en_buff,
         m as libc::c_int,
-        (*v).gamma,
+        v.gamma,
     );
     i = 1 as libc::c_int as size_t;
     while i <= m {
-        *((*v).spectrum2en_buff).offset(i as isize) *= -((*v).stage as libc::c_double);
+        *(v.spectrum2en_buff).offset(i as isize) *= -(v.stage as libc::c_double);
         i = i.wrapping_add(1);
     }
     HTS_mgc2mgc(
         v,
-        (*v).spectrum2en_buff,
+        v.spectrum2en_buff,
         m as libc::c_int,
         alpha,
-        (*v).gamma,
+        v.gamma,
         buff,
         576 as libc::c_int - 1 as libc::c_int,
         0.0f64,
@@ -842,75 +882,75 @@ unsafe fn HTS_lsp2en(
     }
     en
 }
-unsafe fn HTS_white_noise(mut v: *mut HTS_Vocoder) -> libc::c_double {
-    if (*v).gauss != 0 {
+unsafe fn HTS_white_noise(v: &mut HTS_Vocoder) -> libc::c_double {
+    if v.gauss != 0 {
         HTS_nrandom(v)
     } else {
         HTS_mseq(v) as libc::c_double
     }
 }
 unsafe fn HTS_Vocoder_initialize_excitation(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut pitch: libc::c_double,
     mut nlpf: size_t,
 ) {
     let mut i: size_t = 0;
-    (*v).pitch_of_curr_point = pitch;
-    (*v).pitch_counter = pitch;
-    (*v).pitch_inc_per_point = 0.0f64;
+    v.pitch_of_curr_point = pitch;
+    v.pitch_counter = pitch;
+    v.pitch_inc_per_point = 0.0f64;
     if nlpf > 0 as libc::c_int as size_t {
-        (*v).excite_buff_size = nlpf;
-        (*v).excite_ring_buff = HTS_calloc(
-            (*v).excite_buff_size,
+        v.excite_buff_size = nlpf;
+        v.excite_ring_buff = HTS_calloc(
+            v.excite_buff_size,
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
         i = 0 as libc::c_int as size_t;
-        while i < (*v).excite_buff_size {
-            *((*v).excite_ring_buff).offset(i as isize) = 0.0f64;
+        while i < v.excite_buff_size {
+            *(v.excite_ring_buff).offset(i as isize) = 0.0f64;
             i = i.wrapping_add(1);
         }
-        (*v).excite_buff_index = 0 as libc::c_int as size_t;
+        v.excite_buff_index = 0 as libc::c_int as size_t;
     } else {
-        (*v).excite_buff_size = 0 as libc::c_int as size_t;
-        (*v).excite_ring_buff = std::ptr::null_mut::<libc::c_double>();
-        (*v).excite_buff_index = 0 as libc::c_int as size_t;
+        v.excite_buff_size = 0 as libc::c_int as size_t;
+        v.excite_ring_buff = std::ptr::null_mut::<libc::c_double>();
+        v.excite_buff_index = 0 as libc::c_int as size_t;
     };
 }
-unsafe fn HTS_Vocoder_start_excitation(mut v: *mut HTS_Vocoder, mut pitch: libc::c_double) {
-    if (*v).pitch_of_curr_point != 0.0f64 && pitch != 0.0f64 {
-        (*v).pitch_inc_per_point = (pitch - (*v).pitch_of_curr_point) / (*v).fprd as libc::c_double;
+unsafe fn HTS_Vocoder_start_excitation(v: &mut HTS_Vocoder, mut pitch: libc::c_double) {
+    if v.pitch_of_curr_point != 0.0f64 && pitch != 0.0f64 {
+        v.pitch_inc_per_point = (pitch - v.pitch_of_curr_point) / v.fprd as libc::c_double;
     } else {
-        (*v).pitch_inc_per_point = 0.0f64;
-        (*v).pitch_of_curr_point = pitch;
-        (*v).pitch_counter = pitch;
+        v.pitch_inc_per_point = 0.0f64;
+        v.pitch_of_curr_point = pitch;
+        v.pitch_counter = pitch;
     };
 }
-unsafe fn HTS_Vocoder_excite_unvoiced_frame(mut v: *mut HTS_Vocoder, mut noise: libc::c_double) {
-    let mut center: size_t = ((*v).excite_buff_size).wrapping_sub(1 as libc::c_int as size_t)
+unsafe fn HTS_Vocoder_excite_unvoiced_frame(v: &mut HTS_Vocoder, mut noise: libc::c_double) {
+    let mut center: size_t = (v.excite_buff_size).wrapping_sub(1 as libc::c_int as size_t)
         / 2 as libc::c_int as size_t;
-    *((*v).excite_ring_buff).offset(
-        (((*v).excite_buff_index).wrapping_add(center) % (*v).excite_buff_size) as isize,
+    *(v.excite_ring_buff).offset(
+        ((v.excite_buff_index).wrapping_add(center) % v.excite_buff_size) as isize,
     ) += noise;
 }
 unsafe fn HTS_Vocoder_excite_voiced_frame(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut noise: libc::c_double,
     mut pulse: libc::c_double,
     mut lpf: *const libc::c_double,
 ) {
     let mut i: size_t = 0;
-    let mut center: size_t = ((*v).excite_buff_size).wrapping_sub(1 as libc::c_int as size_t)
+    let mut center: size_t = (v.excite_buff_size).wrapping_sub(1 as libc::c_int as size_t)
         / 2 as libc::c_int as size_t;
     if noise != 0.0f64 {
         i = 0 as libc::c_int as size_t;
-        while i < (*v).excite_buff_size {
+        while i < v.excite_buff_size {
             if i == center {
-                *((*v).excite_ring_buff).offset(
-                    (((*v).excite_buff_index).wrapping_add(i) % (*v).excite_buff_size) as isize,
+                *(v.excite_ring_buff).offset(
+                    ((v.excite_buff_index).wrapping_add(i) % v.excite_buff_size) as isize,
                 ) += noise * (1.0f64 - *lpf.offset(i as isize));
             } else {
-                *((*v).excite_ring_buff).offset(
-                    (((*v).excite_buff_index).wrapping_add(i) % (*v).excite_buff_size) as isize,
+                *(v.excite_ring_buff).offset(
+                    ((v.excite_buff_index).wrapping_add(i) % v.excite_buff_size) as isize,
                 ) += noise * (0.0f64 - *lpf.offset(i as isize));
             }
             i = i.wrapping_add(1);
@@ -918,61 +958,61 @@ unsafe fn HTS_Vocoder_excite_voiced_frame(
     }
     if pulse != 0.0f64 {
         i = 0 as libc::c_int as size_t;
-        while i < (*v).excite_buff_size {
-            *((*v).excite_ring_buff).offset(
-                (((*v).excite_buff_index).wrapping_add(i) % (*v).excite_buff_size) as isize,
+        while i < v.excite_buff_size {
+            *(v.excite_ring_buff).offset(
+                ((v.excite_buff_index).wrapping_add(i) % v.excite_buff_size) as isize,
             ) += pulse * *lpf.offset(i as isize);
             i = i.wrapping_add(1);
         }
     }
 }
 unsafe fn HTS_Vocoder_get_excitation(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut lpf: *const libc::c_double,
 ) -> libc::c_double {
     let mut x: libc::c_double = 0.;
     let mut noise: libc::c_double = 0.;
     let mut pulse: libc::c_double = 0.0f64;
-    if (*v).excite_buff_size > 0 as libc::c_int as size_t {
+    if v.excite_buff_size > 0 as libc::c_int as size_t {
         noise = HTS_white_noise(v);
         pulse = 0.0f64;
-        if (*v).pitch_of_curr_point == 0.0f64 {
+        if v.pitch_of_curr_point == 0.0f64 {
             HTS_Vocoder_excite_unvoiced_frame(v, noise);
         } else {
-            (*v).pitch_counter += 1.0f64;
-            if (*v).pitch_counter >= (*v).pitch_of_curr_point {
-                pulse = sqrt((*v).pitch_of_curr_point);
-                (*v).pitch_counter -= (*v).pitch_of_curr_point;
+            v.pitch_counter += 1.0f64;
+            if v.pitch_counter >= v.pitch_of_curr_point {
+                pulse = sqrt(v.pitch_of_curr_point);
+                v.pitch_counter -= v.pitch_of_curr_point;
             }
             HTS_Vocoder_excite_voiced_frame(v, noise, pulse, lpf);
-            (*v).pitch_of_curr_point += (*v).pitch_inc_per_point;
+            v.pitch_of_curr_point += v.pitch_inc_per_point;
         }
-        x = *((*v).excite_ring_buff).offset((*v).excite_buff_index as isize);
-        *((*v).excite_ring_buff).offset((*v).excite_buff_index as isize) = 0.0f64;
-        (*v).excite_buff_index = ((*v).excite_buff_index).wrapping_add(1);
-        (*v).excite_buff_index;
-        if (*v).excite_buff_index >= (*v).excite_buff_size {
-            (*v).excite_buff_index = 0 as libc::c_int as size_t;
+        x = *(v.excite_ring_buff).offset(v.excite_buff_index as isize);
+        *(v.excite_ring_buff).offset(v.excite_buff_index as isize) = 0.0f64;
+        v.excite_buff_index = (v.excite_buff_index).wrapping_add(1);
+        v.excite_buff_index;
+        if v.excite_buff_index >= v.excite_buff_size {
+            v.excite_buff_index = 0 as libc::c_int as size_t;
         }
-    } else if (*v).pitch_of_curr_point == 0.0f64 {
+    } else if v.pitch_of_curr_point == 0.0f64 {
         x = HTS_white_noise(v);
     } else {
-        (*v).pitch_counter += 1.0f64;
-        if (*v).pitch_counter >= (*v).pitch_of_curr_point {
-            x = sqrt((*v).pitch_of_curr_point);
-            (*v).pitch_counter -= (*v).pitch_of_curr_point;
+        v.pitch_counter += 1.0f64;
+        if v.pitch_counter >= v.pitch_of_curr_point {
+            x = sqrt(v.pitch_of_curr_point);
+            v.pitch_counter -= v.pitch_of_curr_point;
         } else {
             x = 0.0f64;
         }
-        (*v).pitch_of_curr_point += (*v).pitch_inc_per_point;
+        v.pitch_of_curr_point += v.pitch_inc_per_point;
     }
     x
 }
-unsafe fn HTS_Vocoder_end_excitation(mut v: *mut HTS_Vocoder, mut pitch: libc::c_double) {
-    (*v).pitch_of_curr_point = pitch;
+unsafe fn HTS_Vocoder_end_excitation(v: &mut HTS_Vocoder, mut pitch: libc::c_double) {
+    v.pitch_of_curr_point = pitch;
 }
 unsafe fn HTS_Vocoder_postfilter_mcp(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut mcp: *mut libc::c_double,
     m: libc::c_int,
     mut alpha: libc::c_double,
@@ -982,33 +1022,33 @@ unsafe fn HTS_Vocoder_postfilter_mcp(
     let mut e2: libc::c_double = 0.;
     let mut k: libc::c_int = 0;
     if beta > 0.0f64 && m > 1 as libc::c_int {
-        if (*v).postfilter_size < m as size_t {
-            if !((*v).postfilter_buff).is_null() {
-                HTS_free((*v).postfilter_buff as *mut libc::c_void);
+        if v.postfilter_size < m as size_t {
+            if !(v.postfilter_buff).is_null() {
+                HTS_free(v.postfilter_buff as *mut libc::c_void);
             }
-            (*v).postfilter_buff = HTS_calloc(
+            v.postfilter_buff = HTS_calloc(
                 (m + 1 as libc::c_int) as size_t,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
-            (*v).postfilter_size = m as size_t;
+            v.postfilter_size = m as size_t;
         }
-        HTS_mc2b(mcp, (*v).postfilter_buff, m, alpha);
-        e1 = HTS_b2en(v, (*v).postfilter_buff, m, alpha);
-        *((*v).postfilter_buff).offset(1 as libc::c_int as isize) -=
-            beta * alpha * *((*v).postfilter_buff).offset(2 as libc::c_int as isize);
+        HTS_mc2b(mcp, v.postfilter_buff, m, alpha);
+        e1 = HTS_b2en(v, v.postfilter_buff, m, alpha);
+        *(v.postfilter_buff).offset(1 as libc::c_int as isize) -=
+            beta * alpha * *(v.postfilter_buff).offset(2 as libc::c_int as isize);
         k = 2 as libc::c_int;
         while k <= m {
-            *((*v).postfilter_buff).offset(k as isize) *= 1.0f64 + beta;
+            *(v.postfilter_buff).offset(k as isize) *= 1.0f64 + beta;
             k += 1;
         }
-        e2 = HTS_b2en(v, (*v).postfilter_buff, m, alpha);
-        *((*v).postfilter_buff).offset(0 as libc::c_int as isize) +=
+        e2 = HTS_b2en(v, v.postfilter_buff, m, alpha);
+        *(v.postfilter_buff).offset(0 as libc::c_int as isize) +=
             log(e1 / e2) / 2 as libc::c_int as libc::c_double;
-        HTS_b2mc((*v).postfilter_buff, mcp, m, alpha);
+        HTS_b2mc(v.postfilter_buff, mcp, m, alpha);
     }
 }
 unsafe fn HTS_Vocoder_postfilter_lsp(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut lsp: *mut libc::c_double,
     mut m: size_t,
     mut alpha: libc::c_double,
@@ -1020,15 +1060,15 @@ unsafe fn HTS_Vocoder_postfilter_lsp(
     let mut d1: libc::c_double = 0.;
     let mut d2: libc::c_double = 0.;
     if beta > 0.0f64 && m > 1 as libc::c_int as size_t {
-        if (*v).postfilter_size < m {
-            if !((*v).postfilter_buff).is_null() {
-                HTS_free((*v).postfilter_buff as *mut libc::c_void);
+        if v.postfilter_size < m {
+            if !(v.postfilter_buff).is_null() {
+                HTS_free(v.postfilter_buff as *mut libc::c_void);
             }
-            (*v).postfilter_buff = HTS_calloc(
+            v.postfilter_buff = HTS_calloc(
                 m.wrapping_add(1 as libc::c_int as size_t),
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
-            (*v).postfilter_size = m;
+            v.postfilter_size = m;
         }
         e1 = HTS_lsp2en(v, lsp, m, alpha);
         i = 0 as libc::c_int as size_t;
@@ -1040,7 +1080,7 @@ unsafe fn HTS_Vocoder_postfilter_lsp(
                 d2 = beta
                     * (*lsp.offset(i as isize)
                         - *lsp.offset(i.wrapping_sub(1 as libc::c_int as size_t) as isize));
-                *((*v).postfilter_buff).offset(i as isize) = *lsp
+                *(v.postfilter_buff).offset(i as isize) = *lsp
                     .offset(i.wrapping_sub(1 as libc::c_int as size_t) as isize)
                     + d2
                     + d2 * d2
@@ -1049,18 +1089,18 @@ unsafe fn HTS_Vocoder_postfilter_lsp(
                             - (d1 + d2))
                         / (d2 * d2 + d1 * d1);
             } else {
-                *((*v).postfilter_buff).offset(i as isize) = *lsp.offset(i as isize);
+                *(v.postfilter_buff).offset(i as isize) = *lsp.offset(i as isize);
             }
             i = i.wrapping_add(1);
         }
         HTS_movem(
-            (*v).postfilter_buff,
+            v.postfilter_buff,
             lsp,
             m.wrapping_add(1 as libc::c_int as size_t) as libc::c_int,
         );
         e2 = HTS_lsp2en(v, lsp, m, alpha);
         if e1 != e2 {
-            if (*v).use_log_gain != 0 {
+            if v.use_log_gain != 0 {
                 *lsp.offset(0 as libc::c_int as isize) += 0.5f64 * log(e1 / e2);
             } else {
                 *lsp.offset(0 as libc::c_int as isize) *= sqrt(e1 / e2);
@@ -1070,79 +1110,79 @@ unsafe fn HTS_Vocoder_postfilter_lsp(
 }
 
 pub unsafe fn HTS_Vocoder_initialize(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut m: size_t,
     mut stage: size_t,
     mut use_log_gain: HTS_Boolean,
     mut rate: size_t,
     mut fperiod: size_t,
 ) {
-    (*v).is_first = 1 as libc::c_int as HTS_Boolean;
-    (*v).stage = stage;
+    v.is_first = 1 as libc::c_int as HTS_Boolean;
+    v.stage = stage;
     if stage != 0 as libc::c_int as size_t {
-        (*v).gamma = -1.0f64 / (*v).stage as libc::c_double;
+        v.gamma = -1.0f64 / v.stage as libc::c_double;
     } else {
-        (*v).gamma = 0.0f64;
+        v.gamma = 0.0f64;
     }
-    (*v).use_log_gain = use_log_gain;
-    (*v).fprd = fperiod;
-    (*v).next = 1 as libc::c_int as libc::c_ulong;
-    (*v).gauss = 1 as libc::c_int as HTS_Boolean;
-    (*v).rate = rate as libc::c_double;
-    (*v).pitch_of_curr_point = 0.0f64;
-    (*v).pitch_counter = 0.0f64;
-    (*v).pitch_inc_per_point = 0.0f64;
-    (*v).excite_ring_buff = std::ptr::null_mut::<libc::c_double>();
-    (*v).excite_buff_size = 0 as libc::c_int as size_t;
-    (*v).excite_buff_index = 0 as libc::c_int as size_t;
-    (*v).sw = 0 as libc::c_int as libc::c_uchar;
-    (*v).x = 0x55555555 as libc::c_int;
-    (*v).freqt_buff = std::ptr::null_mut::<libc::c_double>();
-    (*v).freqt_size = 0 as libc::c_int as size_t;
-    (*v).gc2gc_buff = std::ptr::null_mut::<libc::c_double>();
-    (*v).gc2gc_size = 0 as libc::c_int as size_t;
-    (*v).lsp2lpc_buff = std::ptr::null_mut::<libc::c_double>();
-    (*v).lsp2lpc_size = 0 as libc::c_int as size_t;
-    (*v).postfilter_buff = std::ptr::null_mut::<libc::c_double>();
-    (*v).postfilter_size = 0 as libc::c_int as size_t;
-    (*v).spectrum2en_buff = std::ptr::null_mut::<libc::c_double>();
-    (*v).spectrum2en_size = 0 as libc::c_int as size_t;
-    if (*v).stage == 0 as libc::c_int as size_t {
-        (*v).c = HTS_calloc(
+    v.use_log_gain = use_log_gain;
+    v.fprd = fperiod;
+    v.next = 1 as libc::c_int as libc::c_ulong;
+    v.gauss = 1 as libc::c_int as HTS_Boolean;
+    v.rate = rate as libc::c_double;
+    v.pitch_of_curr_point = 0.0f64;
+    v.pitch_counter = 0.0f64;
+    v.pitch_inc_per_point = 0.0f64;
+    v.excite_ring_buff = std::ptr::null_mut::<libc::c_double>();
+    v.excite_buff_size = 0 as libc::c_int as size_t;
+    v.excite_buff_index = 0 as libc::c_int as size_t;
+    v.sw = 0 as libc::c_int as libc::c_uchar;
+    v.x = 0x55555555 as libc::c_int;
+    v.freqt_buff = std::ptr::null_mut::<libc::c_double>();
+    v.freqt_size = 0 as libc::c_int as size_t;
+    v.gc2gc_buff = std::ptr::null_mut::<libc::c_double>();
+    v.gc2gc_size = 0 as libc::c_int as size_t;
+    v.lsp2lpc_buff = std::ptr::null_mut::<libc::c_double>();
+    v.lsp2lpc_size = 0 as libc::c_int as size_t;
+    v.postfilter_buff = std::ptr::null_mut::<libc::c_double>();
+    v.postfilter_size = 0 as libc::c_int as size_t;
+    v.spectrum2en_buff = std::ptr::null_mut::<libc::c_double>();
+    v.spectrum2en_size = 0 as libc::c_int as size_t;
+    if v.stage == 0 as libc::c_int as size_t {
+        v.c = HTS_calloc(
             (m * (3 as libc::c_int + 5 as libc::c_int) as size_t)
                 .wrapping_add((5 as libc::c_int * 5 as libc::c_int) as size_t)
                 .wrapping_add(6 as libc::c_int as size_t),
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
-        (*v).cc = ((*v).c)
+        v.cc = (v.c)
             .offset(m as isize)
             .offset(1 as libc::c_int as isize);
-        (*v).cinc = ((*v).cc)
+        v.cinc = (v.cc)
             .offset(m as isize)
             .offset(1 as libc::c_int as isize);
-        (*v).d1 = ((*v).cinc)
+        v.d1 = (v.cinc)
             .offset(m as isize)
             .offset(1 as libc::c_int as isize);
     } else {
-        (*v).c = HTS_calloc(
+        v.c = HTS_calloc(
             m.wrapping_add(1 as libc::c_int as size_t)
-                * ((*v).stage).wrapping_add(3 as libc::c_int as size_t),
+                * (v.stage).wrapping_add(3 as libc::c_int as size_t),
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut libc::c_double;
-        (*v).cc = ((*v).c)
+        v.cc = (v.c)
             .offset(m as isize)
             .offset(1 as libc::c_int as isize);
-        (*v).cinc = ((*v).cc)
+        v.cinc = (v.cc)
             .offset(m as isize)
             .offset(1 as libc::c_int as isize);
-        (*v).d1 = ((*v).cinc)
+        v.d1 = (v.cinc)
             .offset(m as isize)
             .offset(1 as libc::c_int as isize);
     };
 }
 
 pub unsafe fn HTS_Vocoder_synthesize(
-    mut v: *mut HTS_Vocoder,
+    v: &mut HTS_Vocoder,
     mut m: size_t,
     mut lf0: libc::c_double,
     mut spectrum: *mut libc::c_double,
@@ -1162,89 +1202,89 @@ pub unsafe fn HTS_Vocoder_synthesize(
     if lf0 == -1.0e+10f64 {
         p = 0.0f64;
     } else if lf0 <= MIN_LF0 {
-        p = (*v).rate / MIN_F0;
+        p = v.rate / MIN_F0;
     } else if lf0 >= MAX_LF0 {
-        p = (*v).rate / MAX_F0;
+        p = v.rate / MAX_F0;
     } else {
-        p = (*v).rate / exp(lf0);
+        p = v.rate / exp(lf0);
     }
-    if (*v).is_first as libc::c_int == 1 as libc::c_int {
+    if v.is_first as libc::c_int == 1 as libc::c_int {
         HTS_Vocoder_initialize_excitation(v, p, nlpf);
-        if (*v).stage == 0 as libc::c_int as size_t {
-            HTS_mc2b(spectrum, (*v).c, m as libc::c_int, alpha);
+        if v.stage == 0 as libc::c_int as size_t {
+            HTS_mc2b(spectrum, v.c, m as libc::c_int, alpha);
         } else {
             HTS_movem(
                 spectrum,
-                (*v).c,
+                v.c,
                 m.wrapping_add(1 as libc::c_int as size_t) as libc::c_int,
             );
-            HTS_lsp2mgc(v, (*v).c, (*v).c, m as libc::c_int, alpha);
-            HTS_mc2b((*v).c, (*v).c, m as libc::c_int, alpha);
-            HTS_gnorm((*v).c, (*v).c, m as libc::c_int, (*v).gamma);
+            HTS_lsp2mgc(v, v.c, v.c, m as libc::c_int, alpha);
+            HTS_mc2b(v.c, v.c, m as libc::c_int, alpha);
+            HTS_gnorm(v.c, v.c, m as libc::c_int, v.gamma);
             i = 1 as libc::c_int;
             while i as size_t <= m {
-                *((*v).c).offset(i as isize) *= (*v).gamma;
+                *(v.c).offset(i as isize) *= v.gamma;
                 i += 1;
             }
         }
-        (*v).is_first = 0 as libc::c_int as HTS_Boolean;
+        v.is_first = 0 as libc::c_int as HTS_Boolean;
     }
     HTS_Vocoder_start_excitation(v, p);
-    if (*v).stage == 0 as libc::c_int as size_t {
+    if v.stage == 0 as libc::c_int as size_t {
         HTS_Vocoder_postfilter_mcp(v, spectrum, m as libc::c_int, alpha, beta);
-        HTS_mc2b(spectrum, (*v).cc, m as libc::c_int, alpha);
+        HTS_mc2b(spectrum, v.cc, m as libc::c_int, alpha);
         i = 0 as libc::c_int;
         while i as size_t <= m {
-            *((*v).cinc).offset(i as isize) = (*((*v).cc).offset(i as isize)
-                - *((*v).c).offset(i as isize))
-                / (*v).fprd as libc::c_double;
+            *(v.cinc).offset(i as isize) = (*(v.cc).offset(i as isize)
+                - *(v.c).offset(i as isize))
+                / v.fprd as libc::c_double;
             i += 1;
         }
     } else {
         HTS_Vocoder_postfilter_lsp(v, spectrum, m, alpha, beta);
         HTS_check_lsp_stability(spectrum, m);
-        HTS_lsp2mgc(v, spectrum, (*v).cc, m as libc::c_int, alpha);
-        HTS_mc2b((*v).cc, (*v).cc, m as libc::c_int, alpha);
-        HTS_gnorm((*v).cc, (*v).cc, m as libc::c_int, (*v).gamma);
+        HTS_lsp2mgc(v, spectrum, v.cc, m as libc::c_int, alpha);
+        HTS_mc2b(v.cc, v.cc, m as libc::c_int, alpha);
+        HTS_gnorm(v.cc, v.cc, m as libc::c_int, v.gamma);
         i = 1 as libc::c_int;
         while i as size_t <= m {
-            *((*v).cc).offset(i as isize) *= (*v).gamma;
+            *(v.cc).offset(i as isize) *= v.gamma;
             i += 1;
         }
         i = 0 as libc::c_int;
         while i as size_t <= m {
-            *((*v).cinc).offset(i as isize) = (*((*v).cc).offset(i as isize)
-                - *((*v).c).offset(i as isize))
-                / (*v).fprd as libc::c_double;
+            *(v.cinc).offset(i as isize) = (*(v.cc).offset(i as isize)
+                - *(v.c).offset(i as isize))
+                / v.fprd as libc::c_double;
             i += 1;
         }
     }
     j = 0 as libc::c_int;
-    while (j as size_t) < (*v).fprd {
+    while (j as size_t) < v.fprd {
         x = HTS_Vocoder_get_excitation(v, lpf);
-        if (*v).stage == 0 as libc::c_int as size_t {
+        if v.stage == 0 as libc::c_int as size_t {
             if x != 0.0f64 {
-                x *= exp(*((*v).c).offset(0 as libc::c_int as isize));
+                x *= exp(*(v.c).offset(0 as libc::c_int as isize));
             }
             x = HTS_mlsadf(
                 x,
-                (*v).c,
+                v.c,
                 m as libc::c_int,
                 alpha,
                 5 as libc::c_int,
-                (*v).d1,
+                v.d1,
             );
         } else {
             if 0 as libc::c_int == 0 {
-                x *= *((*v).c).offset(0 as libc::c_int as isize);
+                x *= *(v.c).offset(0 as libc::c_int as isize);
             }
             x = HTS_mglsadf(
                 x,
-                (*v).c,
+                v.c,
                 m as libc::c_int,
                 alpha,
-                (*v).stage as libc::c_int,
-                (*v).d1,
+                v.stage as libc::c_int,
+                v.d1,
             );
         }
         x *= volume;
@@ -1255,20 +1295,20 @@ pub unsafe fn HTS_Vocoder_synthesize(
         }
         i = 0 as libc::c_int;
         while i as size_t <= m {
-            *((*v).c).offset(i as isize) += *((*v).cinc).offset(i as isize);
+            *(v.c).offset(i as isize) += *(v.cinc).offset(i as isize);
             i += 1;
         }
         j += 1;
     }
     HTS_Vocoder_end_excitation(v, p);
     HTS_movem(
-        (*v).cc,
-        (*v).c,
+        v.cc,
+        v.c,
         m.wrapping_add(1 as libc::c_int as size_t) as libc::c_int,
     );
 }
 
-pub unsafe fn HTS_Vocoder_clear(mut v: *mut HTS_Vocoder) {
+pub unsafe fn HTS_Vocoder_clear(v: *mut HTS_Vocoder) {
     if !v.is_null() {
         if !((*v).freqt_buff).is_null() {
             HTS_free((*v).freqt_buff as *mut libc::c_void);

@@ -45,6 +45,77 @@ pub const _ISalpha: C2RustUnnamed = 1024;
 pub const _ISlower: C2RustUnnamed = 512;
 pub const _ISupper: C2RustUnnamed = 256;
 
+#[derive(Copy, Clone)]
+pub struct HTS_Window {
+    pub size: size_t,
+    pub l_width: *mut libc::c_int,
+    pub r_width: *mut libc::c_int,
+    pub coefficient: *mut *mut libc::c_double,
+    pub max_width: size_t,
+}
+
+#[derive(Copy, Clone)]
+pub struct HTS_Pattern {
+    pub string: *mut libc::c_char,
+    pub next: *mut HTS_Pattern,
+}
+
+#[derive(Copy, Clone)]
+pub struct HTS_Question {
+    pub string: *mut libc::c_char,
+    pub head: *mut HTS_Pattern,
+    pub next: *mut HTS_Question,
+}
+
+#[derive(Copy, Clone)]
+pub struct HTS_Node {
+    pub index: libc::c_int,
+    pub pdf: size_t,
+    pub yes: *mut HTS_Node,
+    pub no: *mut HTS_Node,
+    pub next: *mut HTS_Node,
+    pub quest: *mut HTS_Question,
+}
+
+#[derive(Copy, Clone)]
+pub struct HTS_Tree {
+    pub head: *mut HTS_Pattern,
+    pub next: *mut HTS_Tree,
+    pub root: *mut HTS_Node,
+    pub state: size_t,
+}
+
+#[derive(Copy, Clone)]
+pub struct HTS_Model {
+    pub vector_length: size_t,
+    pub num_windows: size_t,
+    pub is_msd: HTS_Boolean,
+    pub ntree: size_t,
+    pub npdf: *mut size_t,
+    pub pdf: *mut *mut *mut libc::c_float,
+    pub tree: *mut HTS_Tree,
+    pub question: *mut HTS_Question,
+}
+
+#[derive(Copy, Clone)]
+pub struct HTS_ModelSet {
+    pub hts_voice_version: *mut libc::c_char,
+    pub sampling_frequency: size_t,
+    pub frame_period: size_t,
+    pub num_voices: size_t,
+    pub num_states: size_t,
+    pub num_streams: size_t,
+    pub stream_type: *mut libc::c_char,
+    pub fullcontext_format: *mut libc::c_char,
+    pub fullcontext_version: *mut libc::c_char,
+    pub gv_off_context: *mut HTS_Question,
+    pub option: *mut *mut libc::c_char,
+    pub duration: *mut HTS_Model,
+    pub window: *mut HTS_Window,
+    pub stream: *mut *mut HTS_Model,
+    pub gv: *mut *mut HTS_Model,
+}
+
 unsafe fn HTS_dp_match(
     mut string: *const libc::c_char,
     mut pattern: *const libc::c_char,

@@ -23,7 +23,7 @@ mod tests {
     use std::{ffi::CString, mem::MaybeUninit};
 
     use crate::{
-        util::HTS_Engine, HTS_Engine_get_generated_speech, HTS_Engine_initialize, HTS_Engine_load,
+        HTS_Engine, HTS_Engine_get_generated_speech, HTS_Engine_initialize, HTS_Engine_load,
         HTS_Engine_synthesize_from_strings,
     };
 
@@ -31,7 +31,7 @@ mod tests {
     fn new() {
         let mut htsengine = MaybeUninit::<HTS_Engine>::uninit();
         unsafe {
-            HTS_Engine_initialize(htsengine.as_mut_ptr());
+            HTS_Engine_initialize(&mut *htsengine.as_mut_ptr());
         }
     }
 
@@ -49,7 +49,13 @@ mod tests {
 
     #[test]
     fn load() {
-        let mut htsengine = MaybeUninit::<HTS_Engine>::uninit();
+        let mut htsengine = {
+            let mut htsengine = MaybeUninit::<HTS_Engine>::uninit();
+            unsafe {
+                HTS_Engine_initialize(&mut *htsengine.as_mut_ptr());
+                htsengine.assume_init()
+            }
+        };
 
         let model_str = CString::new("models/nitech_jp_atr503_m001.htsvoice").unwrap();
         let voices = &[model_str.as_ptr() as *mut i8];
@@ -61,16 +67,16 @@ mod tests {
         let mut lines: Vec<*mut i8> = proto_lines.iter().map(|l| l.as_ptr() as *mut i8).collect();
 
         unsafe {
-            HTS_Engine_initialize(htsengine.as_mut_ptr());
-            HTS_Engine_load(htsengine.as_mut_ptr(), voices.as_ptr() as *mut *mut i8, 1);
+            HTS_Engine_initialize(&mut htsengine);
+            HTS_Engine_load(&mut htsengine, voices.as_ptr() as *mut *mut i8, 1);
             HTS_Engine_synthesize_from_strings(
-                htsengine.as_mut_ptr(),
+                &mut htsengine,
                 lines.as_mut_ptr(),
                 lines.len() as u64,
             );
-            let l2000 = HTS_Engine_get_generated_speech(htsengine.as_mut_ptr(), 2000);
+            let l2000 = HTS_Engine_get_generated_speech(&mut htsengine, 2000);
             assert_eq!(l2000, 19.35141137623778);
-            let l30000 = HTS_Engine_get_generated_speech(htsengine.as_mut_ptr(), 30000);
+            let l30000 = HTS_Engine_get_generated_speech(&mut htsengine, 30000);
             assert_eq!(l30000, -980.6757547598129);
         }
     }
