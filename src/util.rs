@@ -1,4 +1,3 @@
-
 pub type size_t = libc::c_ulong;
 pub type HTS_Boolean = libc::c_char;
 pub type uint32_t = libc::c_uint;
@@ -223,7 +222,6 @@ pub struct HTS_Engine {
     pub gss: HTS_GStreamSet,
 }
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HTS_Vocoder {
@@ -262,7 +260,6 @@ pub struct HTS_Vocoder {
     pub gc2gc_size: size_t,
 }
 
-
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct HTS_File {
@@ -270,21 +267,10 @@ pub struct HTS_File {
     pub pointer: *mut libc::c_void,
 }
 
-
-
-
 #[macro_export]
 macro_rules! HTS_error {
-    ($error:expr,$message:expr,$args:expr,) => {
-        
-    };
-    ($error:expr,$message:expr,$args:expr) => {
-        
-    };
-    ($error:expr,$message:expr) => {
-        
-    };
-    ($error:expr,$message:expr,) => {
-        
-    };
+    ($error:expr,$message:expr,$args:expr,) => {};
+    ($error:expr,$message:expr,$args:expr) => {};
+    ($error:expr,$message:expr) => {};
+    ($error:expr,$message:expr,) => {};
 }

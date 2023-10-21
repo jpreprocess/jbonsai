@@ -1,5 +1,12 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
-
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut
+)]
 
 use crate::{util::*, HTS_error};
 
@@ -18,21 +25,10 @@ extern "C" {
 }
 
 use crate::{
-    HTS_strdup,
-    HTS_fopen_from_fn,
-    HTS_fopen_from_fp,
-    HTS_fopen_from_data,
-    HTS_fclose,
-    HTS_feof,
-    HTS_fseek,
-    HTS_ftell,
-    HTS_fread_little_endian,
-    HTS_get_pattern_token,
-    HTS_get_token_from_fp,
-    HTS_get_token_from_fp_with_separator,
-    HTS_get_token_from_string_with_separator,
-    HTS_calloc,
-    HTS_free,
+    HTS_calloc, HTS_fclose, HTS_feof, HTS_fopen_from_data, HTS_fopen_from_fn, HTS_fopen_from_fp,
+    HTS_fread_little_endian, HTS_free, HTS_fseek, HTS_ftell, HTS_get_pattern_token,
+    HTS_get_token_from_fp, HTS_get_token_from_fp_with_separator,
+    HTS_get_token_from_string_with_separator, HTS_strdup,
 };
 
 pub type C2RustUnnamed = libc::c_uint;
@@ -69,16 +65,12 @@ unsafe extern "C" fn HTS_dp_match(
             pattern,
             pos.wrapping_add(1 as libc::c_int as size_t),
             max,
-        ) as libc::c_int == 1 as libc::c_int
+        ) as libc::c_int
+            == 1 as libc::c_int
         {
-            return 1 as libc::c_int as HTS_Boolean
+            return 1 as libc::c_int as HTS_Boolean;
         } else {
-            return HTS_dp_match(
-                string,
-                pattern.offset(1 as libc::c_int as isize),
-                pos,
-                max,
-            )
+            return HTS_dp_match(string, pattern.offset(1 as libc::c_int as isize), pos, max);
         }
     }
     if *string.offset(0 as libc::c_int as isize) as libc::c_int
@@ -90,7 +82,8 @@ unsafe extern "C" fn HTS_dp_match(
             pattern.offset(1 as libc::c_int as isize),
             pos.wrapping_add(1 as libc::c_int as size_t),
             max.wrapping_add(1 as libc::c_int as size_t),
-        ) as libc::c_int == 1 as libc::c_int
+        ) as libc::c_int
+            == 1 as libc::c_int
         {
             return 1 as libc::c_int as HTS_Boolean;
         }
@@ -130,10 +123,11 @@ unsafe extern "C" fn HTS_pattern_match(
         i = i.wrapping_add(1);
         i;
     }
-    if nstar == 2 as libc::c_int as size_t && nquestion == 0 as libc::c_int as size_t
+    if nstar == 2 as libc::c_int as size_t
+        && nquestion == 0 as libc::c_int as size_t
         && *pattern.offset(0 as libc::c_int as isize) as libc::c_int == '*' as i32
-        && *pattern.offset(i.wrapping_sub(1 as libc::c_int as size_t) as isize)
-            as libc::c_int == '*' as i32
+        && *pattern.offset(i.wrapping_sub(1 as libc::c_int as size_t) as isize) as libc::c_int
+            == '*' as i32
     {
         buff_length = i.wrapping_sub(2 as libc::c_int as size_t);
         i = 0 as libc::c_int as size_t;
@@ -147,9 +141,9 @@ unsafe extern "C" fn HTS_pattern_match(
         }
         buff[buff_length as usize] = '\0' as i32 as libc::c_char;
         if !(strstr(string, buff.as_mut_ptr())).is_null() {
-            return 1 as libc::c_int as HTS_Boolean
+            return 1 as libc::c_int as HTS_Boolean;
         } else {
-            return 0 as libc::c_int as HTS_Boolean
+            return 0 as libc::c_int as HTS_Boolean;
         }
     } else {
         return HTS_dp_match(
@@ -157,7 +151,7 @@ unsafe extern "C" fn HTS_pattern_match(
             pattern,
             0 as libc::c_int as size_t,
             (strlen(string)).wrapping_sub(max),
-        )
+        );
     };
 }
 unsafe extern "C" fn HTS_is_num(mut buff: *const libc::c_char) -> HTS_Boolean {
@@ -166,8 +160,10 @@ unsafe extern "C" fn HTS_is_num(mut buff: *const libc::c_char) -> HTS_Boolean {
     i = 0 as libc::c_int as size_t;
     while i < length {
         if !(*(*__ctype_b_loc()).offset(*buff.offset(i as isize) as libc::c_int as isize)
-            as libc::c_int & _ISdigit as libc::c_int as libc::c_ushort as libc::c_int
-            != 0 || *buff.offset(i as isize) as libc::c_int == '-' as i32)
+            as libc::c_int
+            & _ISdigit as libc::c_int as libc::c_ushort as libc::c_int
+            != 0
+            || *buff.offset(i as isize) as libc::c_int == '-' as i32)
         {
             return 0 as libc::c_int as HTS_Boolean;
         }
@@ -244,13 +240,13 @@ unsafe extern "C" fn HTS_Question_load(
         return 0 as libc::c_int as HTS_Boolean;
     }
     last_pattern = 0 as *mut HTS_Pattern;
-    if strcmp(buff.as_mut_ptr(), b"{\0" as *const u8 as *const libc::c_char)
-        == 0 as libc::c_int
+    if strcmp(
+        buff.as_mut_ptr(),
+        b"{\0" as *const u8 as *const libc::c_char,
+    ) == 0 as libc::c_int
     {
         loop {
-            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int
-                == 0 as libc::c_int
-            {
+            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int == 0 as libc::c_int {
                 HTS_Question_clear(question);
                 return 0 as libc::c_int as HTS_Boolean;
             }
@@ -265,13 +261,14 @@ unsafe extern "C" fn HTS_Question_load(
             }
             (*pattern).string = HTS_strdup(buff.as_mut_ptr());
             (*pattern).next = 0 as *mut HTS_Pattern;
-            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int
-                == 0 as libc::c_int
-            {
+            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int == 0 as libc::c_int {
                 HTS_Question_clear(question);
                 return 0 as libc::c_int as HTS_Boolean;
             }
-            if strcmp(buff.as_mut_ptr(), b"}\0" as *const u8 as *const libc::c_char) == 0
+            if strcmp(
+                buff.as_mut_ptr(),
+                b"}\0" as *const u8 as *const libc::c_char,
+            ) == 0
             {
                 break;
             }
@@ -325,10 +322,7 @@ unsafe extern "C" fn HTS_Node_clear(mut node: *mut HTS_Node) {
     }
     HTS_Node_initialize(node);
 }
-unsafe extern "C" fn HTS_Node_find(
-    mut node: *mut HTS_Node,
-    mut num: libc::c_int,
-) -> *mut HTS_Node {
+unsafe extern "C" fn HTS_Node_find(mut node: *mut HTS_Node, mut num: libc::c_int) -> *mut HTS_Node {
     while !node.is_null() {
         if (*node).index == num {
             return node;
@@ -428,28 +422,28 @@ unsafe extern "C" fn HTS_Tree_load(
     HTS_Node_initialize(node);
     last_node = node;
     (*tree).root = last_node;
-    if strcmp(buff.as_mut_ptr(), b"{\0" as *const u8 as *const libc::c_char)
-        == 0 as libc::c_int
+    if strcmp(
+        buff.as_mut_ptr(),
+        b"{\0" as *const u8 as *const libc::c_char,
+    ) == 0 as libc::c_int
     {
-        while HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int
-            == 1 as libc::c_int
-            && strcmp(buff.as_mut_ptr(), b"}\0" as *const u8 as *const libc::c_char)
-                != 0 as libc::c_int
+        while HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int == 1 as libc::c_int
+            && strcmp(
+                buff.as_mut_ptr(),
+                b"}\0" as *const u8 as *const libc::c_char,
+            ) != 0 as libc::c_int
         {
             node = HTS_Node_find(last_node, atoi(buff.as_mut_ptr()));
             if node.is_null() {
                 HTS_error!(
                     0 as libc::c_int,
-                    b"HTS_Tree_load: Cannot find node %d.\n\0" as *const u8
-                        as *const libc::c_char,
+                    b"HTS_Tree_load: Cannot find node %d.\n\0" as *const u8 as *const libc::c_char,
                     atoi(buff.as_mut_ptr()),
                 );
                 HTS_Tree_clear(tree);
                 return 0 as libc::c_int as HTS_Boolean;
             }
-            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int
-                == 0 as libc::c_int
-            {
+            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int == 0 as libc::c_int {
                 HTS_Tree_clear(tree);
                 return 0 as libc::c_int as HTS_Boolean;
             }
@@ -464,21 +458,17 @@ unsafe extern "C" fn HTS_Tree_load(
                 HTS_Tree_clear(tree);
                 return 0 as libc::c_int as HTS_Boolean;
             }
-            (*node)
-                .yes = HTS_calloc(
+            (*node).yes = HTS_calloc(
                 1 as libc::c_int as size_t,
                 ::core::mem::size_of::<HTS_Node>() as libc::c_ulong,
             ) as *mut HTS_Node;
-            (*node)
-                .no = HTS_calloc(
+            (*node).no = HTS_calloc(
                 1 as libc::c_int as size_t,
                 ::core::mem::size_of::<HTS_Node>() as libc::c_ulong,
             ) as *mut HTS_Node;
             HTS_Node_initialize((*node).yes);
             HTS_Node_initialize((*node).no);
-            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int
-                == 0 as libc::c_int
-            {
+            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int == 0 as libc::c_int {
                 (*node).quest = 0 as *mut HTS_Question;
                 free((*node).yes as *mut libc::c_void);
                 free((*node).no as *mut libc::c_void);
@@ -492,9 +482,7 @@ unsafe extern "C" fn HTS_Tree_load(
             }
             (*(*node).no).next = last_node;
             last_node = (*node).no;
-            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int
-                == 0 as libc::c_int
-            {
+            if HTS_get_pattern_token(fp, buff.as_mut_ptr()) as libc::c_int == 0 as libc::c_int {
                 (*node).quest = 0 as *mut HTS_Question;
                 free((*node).yes as *mut libc::c_void);
                 free((*node).no as *mut libc::c_void);
@@ -537,8 +525,7 @@ unsafe extern "C" fn HTS_Tree_search_node(
     }
     HTS_error!(
         0 as libc::c_int,
-        b"HTS_Tree_search_node: Cannot find node.\n\0" as *const u8
-            as *const libc::c_char,
+        b"HTS_Tree_search_node: Cannot find node.\n\0" as *const u8 as *const libc::c_char,
     );
     return 1 as libc::c_int as size_t;
 }
@@ -585,25 +572,22 @@ unsafe extern "C" fn HTS_Window_load(
         return 0 as libc::c_int as HTS_Boolean;
     }
     (*win).size = size;
-    (*win)
-        .l_width = HTS_calloc(
+    (*win).l_width = HTS_calloc(
         (*win).size,
         ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
     ) as *mut libc::c_int;
-    (*win)
-        .r_width = HTS_calloc(
+    (*win).r_width = HTS_calloc(
         (*win).size,
         ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
     ) as *mut libc::c_int;
-    (*win)
-        .coefficient = HTS_calloc(
+    (*win).coefficient = HTS_calloc(
         (*win).size,
         ::core::mem::size_of::<*mut libc::c_double>() as libc::c_ulong,
     ) as *mut *mut libc::c_double;
     i = 0 as libc::c_int as size_t;
     while i < (*win).size {
-        if HTS_get_token_from_fp(*fp.offset(i as isize), buff.as_mut_ptr())
-            as libc::c_int == 0 as libc::c_int
+        if HTS_get_token_from_fp(*fp.offset(i as isize), buff.as_mut_ptr()) as libc::c_int
+            == 0 as libc::c_int
         {
             result = 0 as libc::c_int as HTS_Boolean;
             fsize = 1 as libc::c_int as size_t;
@@ -621,14 +605,14 @@ unsafe extern "C" fn HTS_Window_load(
         ) as *mut libc::c_double;
         j = 0 as libc::c_int as size_t;
         while j < fsize {
-            if HTS_get_token_from_fp(*fp.offset(i as isize), buff.as_mut_ptr())
-                as libc::c_int == 0 as libc::c_int
+            if HTS_get_token_from_fp(*fp.offset(i as isize), buff.as_mut_ptr()) as libc::c_int
+                == 0 as libc::c_int
             {
                 result = 0 as libc::c_int as HTS_Boolean;
                 *(*((*win).coefficient).offset(i as isize)).offset(j as isize) = 0.0f64;
             } else {
-                *(*((*win).coefficient).offset(i as isize))
-                    .offset(j as isize) = atof(buff.as_mut_ptr());
+                *(*((*win).coefficient).offset(i as isize)).offset(j as isize) =
+                    atof(buff.as_mut_ptr());
             }
             j = j.wrapping_add(1);
             j;
@@ -636,8 +620,7 @@ unsafe extern "C" fn HTS_Window_load(
         length = fsize / 2 as libc::c_int as size_t;
         let ref mut fresh2 = *((*win).coefficient).offset(i as isize);
         *fresh2 = (*fresh2).offset(length as isize);
-        *((*win).l_width)
-            .offset(i as isize) = -(1 as libc::c_int) * length as libc::c_int;
+        *((*win).l_width).offset(i as isize) = -(1 as libc::c_int) * length as libc::c_int;
         *((*win).r_width).offset(i as isize) = length as libc::c_int;
         if fsize % 2 as libc::c_int as size_t == 0 as libc::c_int as size_t {
             let ref mut fresh3 = *((*win).r_width).offset(i as isize);
@@ -702,8 +685,7 @@ unsafe extern "C" fn HTS_Model_clear(mut model: *mut HTS_Model) {
             j = 1 as libc::c_int as size_t;
             while j <= *((*model).npdf).offset(i as isize) {
                 HTS_free(
-                    *(*((*model).pdf).offset(i as isize)).offset(j as isize)
-                        as *mut libc::c_void,
+                    *(*((*model).pdf).offset(i as isize)).offset(j as isize) as *mut libc::c_void
                 );
                 j = j.wrapping_add(1);
                 j;
@@ -751,8 +733,10 @@ unsafe extern "C" fn HTS_Model_load_tree(
     last_tree = 0 as *mut HTS_Tree;
     while HTS_feof(fp) == 0 {
         HTS_get_pattern_token(fp, buff.as_mut_ptr());
-        if strcmp(buff.as_mut_ptr(), b"QS\0" as *const u8 as *const libc::c_char)
-            == 0 as libc::c_int
+        if strcmp(
+            buff.as_mut_ptr(),
+            b"QS\0" as *const u8 as *const libc::c_char,
+        ) == 0 as libc::c_int
         {
             question = HTS_calloc(
                 1 as libc::c_int as size_t,
@@ -781,9 +765,7 @@ unsafe extern "C" fn HTS_Model_load_tree(
             HTS_Tree_initialize(tree);
             (*tree).state = state;
             HTS_Tree_parse_pattern(tree, buff.as_mut_ptr());
-            if HTS_Tree_load(tree, fp, (*model).question) as libc::c_int
-                == 0 as libc::c_int
-            {
+            if HTS_Tree_load(tree, fp, (*model).question) as libc::c_int == 0 as libc::c_int {
                 free(tree as *mut libc::c_void);
                 HTS_Model_clear(model);
                 return 0 as libc::c_int as HTS_Boolean;
@@ -827,8 +809,7 @@ unsafe extern "C" fn HTS_Model_load_pdf(
     (*model).vector_length = vector_length;
     (*model).num_windows = num_windows;
     (*model).is_msd = is_msd;
-    (*model)
-        .npdf = HTS_calloc(
+    (*model).npdf = HTS_calloc(
         (*model).ntree,
         ::core::mem::size_of::<size_t>() as libc::c_ulong,
     ) as *mut size_t;
@@ -855,8 +836,8 @@ unsafe extern "C" fn HTS_Model_load_pdf(
         if *((*model).npdf).offset(j as isize) <= 0 as libc::c_int as size_t {
             HTS_error!(
                 1 as libc::c_int,
-                b"HTS_Model_load_pdf: # of pdfs at %d-th state should be positive.\n\0"
-                    as *const u8 as *const libc::c_char,
+                b"HTS_Model_load_pdf: # of pdfs at %d-th state should be positive.\n\0" as *const u8
+                    as *const libc::c_char,
                 j,
             );
             result = 0 as libc::c_int as HTS_Boolean;
@@ -872,15 +853,13 @@ unsafe extern "C" fn HTS_Model_load_pdf(
         HTS_Model_initialize(model);
         return 0 as libc::c_int as HTS_Boolean;
     }
-    (*model)
-        .pdf = HTS_calloc(
+    (*model).pdf = HTS_calloc(
         (*model).ntree,
         ::core::mem::size_of::<*mut *mut libc::c_float>() as libc::c_ulong,
     ) as *mut *mut *mut libc::c_float;
     (*model).pdf = ((*model).pdf).offset(-(2 as libc::c_int as isize));
     if is_msd != 0 {
-        len = ((*model).vector_length * (*model).num_windows
-            * 2 as libc::c_int as size_t)
+        len = ((*model).vector_length * (*model).num_windows * 2 as libc::c_int as size_t)
             .wrapping_add(1 as libc::c_int as size_t);
     } else {
         len = (*model).vector_length * (*model).num_windows * 2 as libc::c_int as size_t;
@@ -897,15 +876,13 @@ unsafe extern "C" fn HTS_Model_load_pdf(
         *fresh6;
         k = 1 as libc::c_int as size_t;
         while k <= *((*model).npdf).offset(j as isize) {
-            let ref mut fresh7 = *(*((*model).pdf).offset(j as isize))
-                .offset(k as isize);
+            let ref mut fresh7 = *(*((*model).pdf).offset(j as isize)).offset(k as isize);
             *fresh7 = HTS_calloc(
                 len,
                 ::core::mem::size_of::<libc::c_float>() as libc::c_ulong,
             ) as *mut libc::c_float;
             if HTS_fread_little_endian(
-                *(*((*model).pdf).offset(j as isize)).offset(k as isize)
-                    as *mut libc::c_void,
+                *(*((*model).pdf).offset(j as isize)).offset(k as isize) as *mut libc::c_void,
                 ::core::mem::size_of::<libc::c_float>() as libc::c_ulong,
                 len,
                 fp,
@@ -933,7 +910,9 @@ unsafe extern "C" fn HTS_Model_load(
     mut num_windows: size_t,
     mut is_msd: HTS_Boolean,
 ) -> HTS_Boolean {
-    if model.is_null() || pdf.is_null() || vector_length == 0 as libc::c_int as size_t
+    if model.is_null()
+        || pdf.is_null()
+        || vector_length == 0 as libc::c_int as size_t
         || num_windows == 0 as libc::c_int as size_t
     {
         return 0 as libc::c_int as HTS_Boolean;
@@ -1068,9 +1047,7 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
         while i < (*ms).num_voices {
             j = 0 as libc::c_int as size_t;
             while j < (*ms).num_streams {
-                HTS_Model_clear(
-                    &mut *(*((*ms).stream).offset(i as isize)).offset(j as isize),
-                );
+                HTS_Model_clear(&mut *(*((*ms).stream).offset(i as isize)).offset(j as isize));
                 j = j.wrapping_add(1);
                 j;
             }
@@ -1085,9 +1062,7 @@ pub unsafe extern "C" fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
         while i < (*ms).num_voices {
             j = 0 as libc::c_int as size_t;
             while j < (*ms).num_streams {
-                HTS_Model_clear(
-                    &mut *(*((*ms).gv).offset(i as isize)).offset(j as isize),
-                );
+                HTS_Model_clear(&mut *(*((*ms).gv).offset(i as isize)).offset(j as isize));
                 j = j.wrapping_add(1);
                 j;
             }
@@ -1119,22 +1094,22 @@ unsafe extern "C" fn HTS_match_head_string(
         }
         *matched_size = (*matched_size).wrapping_add(1);
         *matched_size;
-    };
+    }
 }
 unsafe extern "C" fn HTS_strequal(
     mut s1: *const libc::c_char,
     mut s2: *const libc::c_char,
 ) -> HTS_Boolean {
     if s1.is_null() && s2.is_null() {
-        return 1 as libc::c_int as HTS_Boolean
+        return 1 as libc::c_int as HTS_Boolean;
     } else if s1.is_null() || s2.is_null() {
-        return 0 as libc::c_int as HTS_Boolean
+        return 0 as libc::c_int as HTS_Boolean;
     } else {
         return (if strcmp(s1, s2) == 0 as libc::c_int {
             1 as libc::c_int
         } else {
             0 as libc::c_int
-        }) as HTS_Boolean
+        }) as HTS_Boolean;
     };
 }
 #[no_mangle]
@@ -1175,8 +1150,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
     let mut temp_option: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
     let mut temp_duration_pdf: *mut libc::c_char = 0 as *mut libc::c_char;
     let mut temp_duration_tree: *mut libc::c_char = 0 as *mut libc::c_char;
-    let mut temp_stream_win: *mut *mut *mut libc::c_char = 0
-        as *mut *mut *mut libc::c_char;
+    let mut temp_stream_win: *mut *mut *mut libc::c_char = 0 as *mut *mut *mut libc::c_char;
     let mut temp_stream_pdf: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
     let mut temp_stream_tree: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
     let mut temp_gv_pdf: *mut *mut libc::c_char = 0 as *mut *mut libc::c_char;
@@ -1214,14 +1188,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                 fp,
                 buff1.as_mut_ptr(),
                 '\n' as i32 as libc::c_char,
-            ) as libc::c_int != 1 as libc::c_int
+            ) as libc::c_int
+                != 1 as libc::c_int
             {
                 error = 1 as libc::c_int as HTS_Boolean;
                 break;
             } else if HTS_strequal(
                 buff1.as_mut_ptr(),
                 b"[GLOBAL]\0" as *const u8 as *const libc::c_char,
-            ) as libc::c_int != 1 as libc::c_int
+            ) as libc::c_int
+                != 1 as libc::c_int
             {
                 error = 1 as libc::c_int as HTS_Boolean;
                 break;
@@ -1231,7 +1207,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         fp,
                         buff1.as_mut_ptr(),
                         '\n' as i32 as libc::c_char,
-                    ) as libc::c_int != 1 as libc::c_int
+                    ) as libc::c_int
+                        != 1 as libc::c_int
                     {
                         error = 1 as libc::c_int as HTS_Boolean;
                         break;
@@ -1239,7 +1216,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         if HTS_strequal(
                             buff1.as_mut_ptr(),
                             b"[STREAM]\0" as *const u8 as *const libc::c_char,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             break;
                         }
@@ -1247,104 +1225,108 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             buff1.as_mut_ptr(),
                             b"HTS_VOICE_VERSION:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             if !temp_hts_voice_version.is_null() {
                                 free(temp_hts_voice_version as *mut libc::c_void);
                             }
-                            temp_hts_voice_version = HTS_strdup(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            );
+                            temp_hts_voice_version =
+                                HTS_strdup(&mut *buff1.as_mut_ptr().offset(matched_size as isize));
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"SAMPLING_FREQUENCY:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
-                            temp_sampling_frequency = atoi(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            ) as size_t;
+                            temp_sampling_frequency =
+                                atoi(&mut *buff1.as_mut_ptr().offset(matched_size as isize))
+                                    as size_t;
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"FRAME_PERIOD:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
-                            temp_frame_period = atoi(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            ) as size_t;
+                            temp_frame_period =
+                                atoi(&mut *buff1.as_mut_ptr().offset(matched_size as isize))
+                                    as size_t;
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"NUM_STATES:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
-                            temp_num_states = atoi(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            ) as size_t;
+                            temp_num_states =
+                                atoi(&mut *buff1.as_mut_ptr().offset(matched_size as isize))
+                                    as size_t;
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"NUM_STREAMS:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
-                            temp_num_streams = atoi(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            ) as size_t;
+                            temp_num_streams =
+                                atoi(&mut *buff1.as_mut_ptr().offset(matched_size as isize))
+                                    as size_t;
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"STREAM_TYPE:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             if !temp_stream_type.is_null() {
                                 free(temp_stream_type as *mut libc::c_void);
                             }
-                            temp_stream_type = HTS_strdup(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            );
+                            temp_stream_type =
+                                HTS_strdup(&mut *buff1.as_mut_ptr().offset(matched_size as isize));
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"FULLCONTEXT_FORMAT:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             if !temp_fullcontext_format.is_null() {
                                 free(temp_fullcontext_format as *mut libc::c_void);
                             }
-                            temp_fullcontext_format = HTS_strdup(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            );
+                            temp_fullcontext_format =
+                                HTS_strdup(&mut *buff1.as_mut_ptr().offset(matched_size as isize));
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
-                            b"FULLCONTEXT_VERSION:\0" as *const u8
-                                as *const libc::c_char,
+                            b"FULLCONTEXT_VERSION:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             if !temp_fullcontext_version.is_null() {
                                 free(temp_fullcontext_version as *mut libc::c_void);
                             }
-                            temp_fullcontext_version = HTS_strdup(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            );
+                            temp_fullcontext_version =
+                                HTS_strdup(&mut *buff1.as_mut_ptr().offset(matched_size as isize));
                         } else if HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"GV_OFF_CONTEXT:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             if !temp_gv_off_context.is_null() {
                                 free(temp_gv_off_context as *mut libc::c_void);
                             }
-                            temp_gv_off_context = HTS_strdup(
-                                &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                            );
+                            temp_gv_off_context =
+                                HTS_strdup(&mut *buff1.as_mut_ptr().offset(matched_size as isize));
                         } else if !(HTS_match_head_string(
                             buff1.as_mut_ptr(),
                             b"COMMENT:\0" as *const u8 as *const libc::c_char,
                             &mut matched_size,
-                        ) as libc::c_int == 1 as libc::c_int)
+                        ) as libc::c_int
+                            == 1 as libc::c_int)
                         {
                             HTS_error!(
                                 0 as libc::c_int,
@@ -1366,8 +1348,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     (*ms).fullcontext_version = temp_fullcontext_version;
                     gv_off_context = temp_gv_off_context;
                 } else {
-                    if HTS_strequal((*ms).hts_voice_version, temp_hts_voice_version)
-                        as libc::c_int != 1 as libc::c_int
+                    if HTS_strequal((*ms).hts_voice_version, temp_hts_voice_version) as libc::c_int
+                        != 1 as libc::c_int
                     {
                         error = 1 as libc::c_int as HTS_Boolean;
                     }
@@ -1389,12 +1371,14 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         error = 1 as libc::c_int as HTS_Boolean;
                     }
                     if HTS_strequal((*ms).fullcontext_format, temp_fullcontext_format)
-                        as libc::c_int != 1 as libc::c_int
+                        as libc::c_int
+                        != 1 as libc::c_int
                     {
                         error = 1 as libc::c_int as HTS_Boolean;
                     }
                     if HTS_strequal((*ms).fullcontext_version, temp_fullcontext_version)
-                        as libc::c_int != 1 as libc::c_int
+                        as libc::c_int
+                        != 1 as libc::c_int
                     {
                         error = 1 as libc::c_int as HTS_Boolean;
                     }
@@ -1432,7 +1416,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             &mut matched_size,
                             buff2.as_mut_ptr(),
                             ',' as i32 as libc::c_char,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             let ref mut fresh8 = *stream_type_list.offset(j as isize);
                             *fresh8 = HTS_strdup(buff2.as_mut_ptr());
@@ -1455,8 +1440,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     ) as *mut size_t;
                     j = 0 as libc::c_int as size_t;
                     while j < (*ms).num_streams {
-                        *temp_vector_length
-                            .offset(j as isize) = 0 as libc::c_int as size_t;
+                        *temp_vector_length.offset(j as isize) = 0 as libc::c_int as size_t;
                         j = j.wrapping_add(1);
                         j;
                     }
@@ -1466,8 +1450,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     ) as *mut HTS_Boolean;
                     j = 0 as libc::c_int as size_t;
                     while j < (*ms).num_streams {
-                        *temp_is_msd
-                            .offset(j as isize) = 0 as libc::c_int as HTS_Boolean;
+                        *temp_is_msd.offset(j as isize) = 0 as libc::c_int as HTS_Boolean;
                         j = j.wrapping_add(1);
                         j;
                     }
@@ -1477,8 +1460,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     ) as *mut size_t;
                     j = 0 as libc::c_int as size_t;
                     while j < (*ms).num_streams {
-                        *temp_num_windows
-                            .offset(j as isize) = 0 as libc::c_int as size_t;
+                        *temp_num_windows.offset(j as isize) = 0 as libc::c_int as size_t;
                         j = j.wrapping_add(1);
                         j;
                     }
@@ -1488,8 +1470,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                     ) as *mut HTS_Boolean;
                     j = 0 as libc::c_int as size_t;
                     while j < (*ms).num_streams {
-                        *temp_use_gv
-                            .offset(j as isize) = 0 as libc::c_int as HTS_Boolean;
+                        *temp_use_gv.offset(j as isize) = 0 as libc::c_int as HTS_Boolean;
                         j = j.wrapping_add(1);
                         j;
                     }
@@ -1509,7 +1490,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             fp,
                             buff1.as_mut_ptr(),
                             '\n' as i32 as libc::c_char,
-                        ) as libc::c_int != 1 as libc::c_int
+                        ) as libc::c_int
+                            != 1 as libc::c_int
                         {
                             error = 1 as libc::c_int as HTS_Boolean;
                             break;
@@ -1525,14 +1507,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 buff1.as_mut_ptr(),
                                 b"VECTOR_LENGTH[\0" as *const u8 as *const libc::c_char,
                                 &mut matched_size,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 if HTS_get_token_from_string_with_separator(
                                     buff1.as_mut_ptr(),
                                     &mut matched_size,
                                     buff2.as_mut_ptr(),
                                     ']' as i32 as libc::c_char,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     let fresh11 = matched_size;
                                     matched_size = matched_size.wrapping_add(1);
@@ -1544,12 +1528,12 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 buff2.as_mut_ptr(),
                                             ) == 0 as libc::c_int
                                             {
-                                                *temp_vector_length
-                                                    .offset(
-                                                        j as isize,
-                                                    ) = atoi(
-                                                    &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                                                ) as size_t;
+                                                *temp_vector_length.offset(j as isize) = atoi(
+                                                    &mut *buff1
+                                                        .as_mut_ptr()
+                                                        .offset(matched_size as isize),
+                                                )
+                                                    as size_t;
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
@@ -1562,14 +1546,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 buff1.as_mut_ptr(),
                                 b"IS_MSD[\0" as *const u8 as *const libc::c_char,
                                 &mut matched_size,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 if HTS_get_token_from_string_with_separator(
                                     buff1.as_mut_ptr(),
                                     &mut matched_size,
                                     buff2.as_mut_ptr(),
                                     ']' as i32 as libc::c_char,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     let fresh12 = matched_size;
                                     matched_size = matched_size.wrapping_add(1);
@@ -1581,16 +1567,15 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 buff2.as_mut_ptr(),
                                             ) == 0 as libc::c_int
                                             {
-                                                *temp_is_msd
-                                                    .offset(
-                                                        j as isize,
-                                                    ) = (if buff1[matched_size as usize] as libc::c_int
-                                                    == '1' as i32
-                                                {
-                                                    1 as libc::c_int
-                                                } else {
-                                                    0 as libc::c_int
-                                                }) as HTS_Boolean;
+                                                *temp_is_msd.offset(j as isize) =
+                                                    (if buff1[matched_size as usize] as libc::c_int
+                                                        == '1' as i32
+                                                    {
+                                                        1 as libc::c_int
+                                                    } else {
+                                                        0 as libc::c_int
+                                                    })
+                                                        as HTS_Boolean;
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
@@ -1603,14 +1588,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 buff1.as_mut_ptr(),
                                 b"NUM_WINDOWS[\0" as *const u8 as *const libc::c_char,
                                 &mut matched_size,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 if HTS_get_token_from_string_with_separator(
                                     buff1.as_mut_ptr(),
                                     &mut matched_size,
                                     buff2.as_mut_ptr(),
                                     ']' as i32 as libc::c_char,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     let fresh13 = matched_size;
                                     matched_size = matched_size.wrapping_add(1);
@@ -1622,12 +1609,12 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 buff2.as_mut_ptr(),
                                             ) == 0 as libc::c_int
                                             {
-                                                *temp_num_windows
-                                                    .offset(
-                                                        j as isize,
-                                                    ) = atoi(
-                                                    &mut *buff1.as_mut_ptr().offset(matched_size as isize),
-                                                ) as size_t;
+                                                *temp_num_windows.offset(j as isize) = atoi(
+                                                    &mut *buff1
+                                                        .as_mut_ptr()
+                                                        .offset(matched_size as isize),
+                                                )
+                                                    as size_t;
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
@@ -1640,14 +1627,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 buff1.as_mut_ptr(),
                                 b"USE_GV[\0" as *const u8 as *const libc::c_char,
                                 &mut matched_size,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 if HTS_get_token_from_string_with_separator(
                                     buff1.as_mut_ptr(),
                                     &mut matched_size,
                                     buff2.as_mut_ptr(),
                                     ']' as i32 as libc::c_char,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     let fresh14 = matched_size;
                                     matched_size = matched_size.wrapping_add(1);
@@ -1659,16 +1648,15 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                 buff2.as_mut_ptr(),
                                             ) == 0 as libc::c_int
                                             {
-                                                *temp_use_gv
-                                                    .offset(
-                                                        j as isize,
-                                                    ) = (if buff1[matched_size as usize] as libc::c_int
-                                                    == '1' as i32
-                                                {
-                                                    1 as libc::c_int
-                                                } else {
-                                                    0 as libc::c_int
-                                                }) as HTS_Boolean;
+                                                *temp_use_gv.offset(j as isize) =
+                                                    (if buff1[matched_size as usize] as libc::c_int
+                                                        == '1' as i32
+                                                    {
+                                                        1 as libc::c_int
+                                                    } else {
+                                                        0 as libc::c_int
+                                                    })
+                                                        as HTS_Boolean;
                                                 break;
                                             } else {
                                                 j = j.wrapping_add(1);
@@ -1681,14 +1669,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 buff1.as_mut_ptr(),
                                 b"OPTION[\0" as *const u8 as *const libc::c_char,
                                 &mut matched_size,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 if HTS_get_token_from_string_with_separator(
                                     buff1.as_mut_ptr(),
                                     &mut matched_size,
                                     buff2.as_mut_ptr(),
                                     ']' as i32 as libc::c_char,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     let fresh15 = matched_size;
                                     matched_size = matched_size.wrapping_add(1);
@@ -1701,11 +1691,15 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                             ) == 0 as libc::c_int
                                             {
                                                 if !(*temp_option.offset(j as isize)).is_null() {
-                                                    free(*temp_option.offset(j as isize) as *mut libc::c_void);
+                                                    free(*temp_option.offset(j as isize)
+                                                        as *mut libc::c_void);
                                                 }
-                                                let ref mut fresh16 = *temp_option.offset(j as isize);
+                                                let ref mut fresh16 =
+                                                    *temp_option.offset(j as isize);
                                                 *fresh16 = HTS_strdup(
-                                                    &mut *buff1.as_mut_ptr().offset(matched_size as isize),
+                                                    &mut *buff1
+                                                        .as_mut_ptr()
+                                                        .offset(matched_size as isize),
                                                 );
                                                 break;
                                             } else {
@@ -1777,7 +1771,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             if HTS_strequal(
                                 *((*ms).option).offset(j as isize),
                                 *temp_option.offset(j as isize),
-                            ) as libc::c_int != 1 as libc::c_int
+                            ) as libc::c_int
+                                != 1 as libc::c_int
                             {
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
@@ -1806,8 +1801,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         temp_duration_tree = 0 as *mut libc::c_char;
                         temp_stream_win = HTS_calloc(
                             (*ms).num_streams,
-                            ::core::mem::size_of::<*mut *mut libc::c_char>()
-                                as libc::c_ulong,
+                            ::core::mem::size_of::<*mut *mut libc::c_char>() as libc::c_ulong,
                         ) as *mut *mut *mut libc::c_char;
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
@@ -1818,8 +1812,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             ) as *mut *mut libc::c_char;
                             k = 0 as libc::c_int as size_t;
                             while k < *num_windows.offset(j as isize) {
-                                let ref mut fresh18 = *(*temp_stream_win.offset(j as isize))
-                                    .offset(k as isize);
+                                let ref mut fresh18 =
+                                    *(*temp_stream_win.offset(j as isize)).offset(k as isize);
                                 *fresh18 = 0 as *mut libc::c_char;
                                 k = k.wrapping_add(1);
                                 k;
@@ -1876,7 +1870,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 fp,
                                 buff1.as_mut_ptr(),
                                 '\n' as i32 as libc::c_char,
-                            ) as libc::c_int != 1 as libc::c_int
+                            ) as libc::c_int
+                                != 1 as libc::c_int
                             {
                                 error = 1 as libc::c_int as HTS_Boolean;
                                 break;
@@ -1892,7 +1887,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     buff1.as_mut_ptr(),
                                     b"DURATION_PDF:\0" as *const u8 as *const libc::c_char,
                                     &mut matched_size,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     if !temp_duration_pdf.is_null() {
                                         free(temp_duration_pdf as *mut libc::c_void);
@@ -1904,7 +1900,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     buff1.as_mut_ptr(),
                                     b"DURATION_TREE:\0" as *const u8 as *const libc::c_char,
                                     &mut matched_size,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     if !temp_duration_tree.is_null() {
                                         free(temp_duration_tree as *mut libc::c_void);
@@ -1916,14 +1913,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     buff1.as_mut_ptr(),
                                     b"STREAM_WIN[\0" as *const u8 as *const libc::c_char,
                                     &mut matched_size,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     if HTS_get_token_from_string_with_separator(
                                         buff1.as_mut_ptr(),
                                         &mut matched_size,
                                         buff2.as_mut_ptr(),
                                         ']' as i32 as libc::c_char,
-                                    ) as libc::c_int == 1 as libc::c_int
+                                    ) as libc::c_int
+                                        == 1 as libc::c_int
                                     {
                                         let fresh23 = matched_size;
                                         matched_size = matched_size.wrapping_add(1);
@@ -1942,11 +1941,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                             &mut matched_size,
                                                             buff2.as_mut_ptr(),
                                                             ',' as i32 as libc::c_char,
-                                                        ) as libc::c_int == 1 as libc::c_int
+                                                        )
+                                                            as libc::c_int
+                                                            == 1 as libc::c_int
                                                         {
-                                                            let ref mut fresh24 = *(*temp_stream_win.offset(j as isize))
+                                                            let ref mut fresh24 =
+                                                                *(*temp_stream_win
+                                                                    .offset(j as isize))
                                                                 .offset(k as isize);
-                                                            *fresh24 = HTS_strdup(buff2.as_mut_ptr());
+                                                            *fresh24 =
+                                                                HTS_strdup(buff2.as_mut_ptr());
                                                         } else {
                                                             error = 1 as libc::c_int as HTS_Boolean;
                                                         }
@@ -1965,14 +1969,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     buff1.as_mut_ptr(),
                                     b"STREAM_PDF[\0" as *const u8 as *const libc::c_char,
                                     &mut matched_size,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     if HTS_get_token_from_string_with_separator(
                                         buff1.as_mut_ptr(),
                                         &mut matched_size,
                                         buff2.as_mut_ptr(),
                                         ']' as i32 as libc::c_char,
-                                    ) as libc::c_int == 1 as libc::c_int
+                                    ) as libc::c_int
+                                        == 1 as libc::c_int
                                     {
                                         let fresh25 = matched_size;
                                         matched_size = matched_size.wrapping_add(1);
@@ -1984,14 +1990,18 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     buff2.as_mut_ptr(),
                                                 ) == 0 as libc::c_int
                                                 {
-                                                    if !(*temp_stream_pdf.offset(j as isize)).is_null() {
-                                                        free(
-                                                            *temp_stream_pdf.offset(j as isize) as *mut libc::c_void,
-                                                        );
+                                                    if !(*temp_stream_pdf.offset(j as isize))
+                                                        .is_null()
+                                                    {
+                                                        free(*temp_stream_pdf.offset(j as isize)
+                                                            as *mut libc::c_void);
                                                     }
-                                                    let ref mut fresh26 = *temp_stream_pdf.offset(j as isize);
+                                                    let ref mut fresh26 =
+                                                        *temp_stream_pdf.offset(j as isize);
                                                     *fresh26 = HTS_strdup(
-                                                        &mut *buff1.as_mut_ptr().offset(matched_size as isize),
+                                                        &mut *buff1
+                                                            .as_mut_ptr()
+                                                            .offset(matched_size as isize),
                                                     );
                                                     break;
                                                 } else {
@@ -2005,14 +2015,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     buff1.as_mut_ptr(),
                                     b"STREAM_TREE[\0" as *const u8 as *const libc::c_char,
                                     &mut matched_size,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     if HTS_get_token_from_string_with_separator(
                                         buff1.as_mut_ptr(),
                                         &mut matched_size,
                                         buff2.as_mut_ptr(),
                                         ']' as i32 as libc::c_char,
-                                    ) as libc::c_int == 1 as libc::c_int
+                                    ) as libc::c_int
+                                        == 1 as libc::c_int
                                     {
                                         let fresh27 = matched_size;
                                         matched_size = matched_size.wrapping_add(1);
@@ -2024,14 +2036,18 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     buff2.as_mut_ptr(),
                                                 ) == 0 as libc::c_int
                                                 {
-                                                    if !(*temp_stream_tree.offset(j as isize)).is_null() {
-                                                        free(
-                                                            *temp_stream_tree.offset(j as isize) as *mut libc::c_void,
-                                                        );
+                                                    if !(*temp_stream_tree.offset(j as isize))
+                                                        .is_null()
+                                                    {
+                                                        free(*temp_stream_tree.offset(j as isize)
+                                                            as *mut libc::c_void);
                                                     }
-                                                    let ref mut fresh28 = *temp_stream_tree.offset(j as isize);
+                                                    let ref mut fresh28 =
+                                                        *temp_stream_tree.offset(j as isize);
                                                     *fresh28 = HTS_strdup(
-                                                        &mut *buff1.as_mut_ptr().offset(matched_size as isize),
+                                                        &mut *buff1
+                                                            .as_mut_ptr()
+                                                            .offset(matched_size as isize),
                                                     );
                                                     break;
                                                 } else {
@@ -2045,14 +2061,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     buff1.as_mut_ptr(),
                                     b"GV_PDF[\0" as *const u8 as *const libc::c_char,
                                     &mut matched_size,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     if HTS_get_token_from_string_with_separator(
                                         buff1.as_mut_ptr(),
                                         &mut matched_size,
                                         buff2.as_mut_ptr(),
                                         ']' as i32 as libc::c_char,
-                                    ) as libc::c_int == 1 as libc::c_int
+                                    ) as libc::c_int
+                                        == 1 as libc::c_int
                                     {
                                         let fresh29 = matched_size;
                                         matched_size = matched_size.wrapping_add(1);
@@ -2064,12 +2082,17 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     buff2.as_mut_ptr(),
                                                 ) == 0 as libc::c_int
                                                 {
-                                                    if !(*temp_gv_pdf.offset(j as isize)).is_null() {
-                                                        free(*temp_gv_pdf.offset(j as isize) as *mut libc::c_void);
+                                                    if !(*temp_gv_pdf.offset(j as isize)).is_null()
+                                                    {
+                                                        free(*temp_gv_pdf.offset(j as isize)
+                                                            as *mut libc::c_void);
                                                     }
-                                                    let ref mut fresh30 = *temp_gv_pdf.offset(j as isize);
+                                                    let ref mut fresh30 =
+                                                        *temp_gv_pdf.offset(j as isize);
                                                     *fresh30 = HTS_strdup(
-                                                        &mut *buff1.as_mut_ptr().offset(matched_size as isize),
+                                                        &mut *buff1
+                                                            .as_mut_ptr()
+                                                            .offset(matched_size as isize),
                                                     );
                                                     break;
                                                 } else {
@@ -2083,14 +2106,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     buff1.as_mut_ptr(),
                                     b"GV_TREE[\0" as *const u8 as *const libc::c_char,
                                     &mut matched_size,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     if HTS_get_token_from_string_with_separator(
                                         buff1.as_mut_ptr(),
                                         &mut matched_size,
                                         buff2.as_mut_ptr(),
                                         ']' as i32 as libc::c_char,
-                                    ) as libc::c_int == 1 as libc::c_int
+                                    ) as libc::c_int
+                                        == 1 as libc::c_int
                                     {
                                         let fresh31 = matched_size;
                                         matched_size = matched_size.wrapping_add(1);
@@ -2102,12 +2127,17 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                                     buff2.as_mut_ptr(),
                                                 ) == 0 as libc::c_int
                                                 {
-                                                    if !(*temp_gv_tree.offset(j as isize)).is_null() {
-                                                        free(*temp_gv_tree.offset(j as isize) as *mut libc::c_void);
+                                                    if !(*temp_gv_tree.offset(j as isize)).is_null()
+                                                    {
+                                                        free(*temp_gv_tree.offset(j as isize)
+                                                            as *mut libc::c_void);
                                                     }
-                                                    let ref mut fresh32 = *temp_gv_tree.offset(j as isize);
+                                                    let ref mut fresh32 =
+                                                        *temp_gv_tree.offset(j as isize);
                                                     *fresh32 = HTS_strdup(
-                                                        &mut *buff1.as_mut_ptr().offset(matched_size as isize),
+                                                        &mut *buff1
+                                                            .as_mut_ptr()
+                                                            .offset(matched_size as isize),
                                                     );
                                                     break;
                                                 } else {
@@ -2134,8 +2164,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         while j < (*ms).num_streams {
                             k = 0 as libc::c_int as size_t;
                             while k < *num_windows.offset(j as isize) {
-                                if (*(*temp_stream_win.offset(j as isize))
-                                    .offset(k as isize))
+                                if (*(*temp_stream_win.offset(j as isize)).offset(k as isize))
                                     .is_null()
                                 {
                                     error = 1 as libc::c_int as HTS_Boolean;
@@ -2155,34 +2184,27 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             j;
                         }
                         if i == 0 as libc::c_int as size_t {
-                            (*ms)
-                                .duration = HTS_calloc(
+                            (*ms).duration = HTS_calloc(
                                 num_voices,
                                 ::core::mem::size_of::<HTS_Model>() as libc::c_ulong,
                             ) as *mut HTS_Model;
                             j = 0 as libc::c_int as size_t;
                             while j < num_voices {
-                                HTS_Model_initialize(
-                                    &mut *((*ms).duration).offset(j as isize),
-                                );
+                                HTS_Model_initialize(&mut *((*ms).duration).offset(j as isize));
                                 j = j.wrapping_add(1);
                                 j;
                             }
-                            (*ms)
-                                .window = HTS_calloc(
+                            (*ms).window = HTS_calloc(
                                 (*ms).num_streams,
                                 ::core::mem::size_of::<HTS_Window>() as libc::c_ulong,
                             ) as *mut HTS_Window;
                             j = 0 as libc::c_int as size_t;
                             while j < (*ms).num_streams {
-                                HTS_Window_initialize(
-                                    &mut *((*ms).window).offset(j as isize),
-                                );
+                                HTS_Window_initialize(&mut *((*ms).window).offset(j as isize));
                                 j = j.wrapping_add(1);
                                 j;
                             }
-                            (*ms)
-                                .stream = HTS_calloc(
+                            (*ms).stream = HTS_calloc(
                                 num_voices,
                                 ::core::mem::size_of::<*mut HTS_Model>() as libc::c_ulong,
                             ) as *mut *mut HTS_Model;
@@ -2205,8 +2227,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 j = j.wrapping_add(1);
                                 j;
                             }
-                            (*ms)
-                                .gv = HTS_calloc(
+                            (*ms).gv = HTS_calloc(
                                 num_voices,
                                 ::core::mem::size_of::<*mut HTS_Model>() as libc::c_ulong,
                             ) as *mut *mut HTS_Model;
@@ -2238,12 +2259,12 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             &mut matched_size,
                             buff2.as_mut_ptr(),
                             '-' as i32 as libc::c_char,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             s = atoi(buff2.as_mut_ptr()) as size_t;
-                            e = atoi(
-                                &mut *temp_duration_pdf.offset(matched_size as isize),
-                            ) as size_t;
+                            e = atoi(&mut *temp_duration_pdf.offset(matched_size as isize))
+                                as size_t;
                             HTS_fseek(fp, s as libc::c_long, 1 as libc::c_int);
                             pdf_fp = HTS_fopen_from_fp(
                                 fp,
@@ -2257,12 +2278,12 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             &mut matched_size,
                             buff2.as_mut_ptr(),
                             '-' as i32 as libc::c_char,
-                        ) as libc::c_int == 1 as libc::c_int
+                        ) as libc::c_int
+                            == 1 as libc::c_int
                         {
                             s = atoi(buff2.as_mut_ptr()) as size_t;
-                            e = atoi(
-                                &mut *temp_duration_tree.offset(matched_size as isize),
-                            ) as size_t;
+                            e = atoi(&mut *temp_duration_tree.offset(matched_size as isize))
+                                as size_t;
                             HTS_fseek(fp, s as libc::c_long, 1 as libc::c_int);
                             tree_fp = HTS_fopen_from_fp(
                                 fp,
@@ -2277,7 +2298,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                             (*ms).num_states,
                             1 as libc::c_int as size_t,
                             0 as libc::c_int as HTS_Boolean,
-                        ) as libc::c_int != 1 as libc::c_int
+                        ) as libc::c_int
+                            != 1 as libc::c_int
                         {
                             error = 1 as libc::c_int as HTS_Boolean;
                         }
@@ -2304,13 +2326,14 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     &mut matched_size,
                                     buff2.as_mut_ptr(),
                                     '-' as i32 as libc::c_char,
-                                ) as libc::c_int == 1 as libc::c_int
+                                ) as libc::c_int
+                                    == 1 as libc::c_int
                                 {
                                     s = atoi(buff2.as_mut_ptr()) as size_t;
                                     e = atoi(
                                         &mut *(*(*temp_stream_win.offset(j as isize))
                                             .offset(k as isize))
-                                            .offset(matched_size as isize),
+                                        .offset(matched_size as isize),
                                     ) as size_t;
                                     HTS_fseek(fp, s as libc::c_long, 1 as libc::c_int);
                                     let ref mut fresh36 = *win_fp.offset(k as isize);
@@ -2327,7 +2350,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 &mut *((*ms).window).offset(j as isize),
                                 win_fp,
                                 *num_windows.offset(j as isize),
-                            ) as libc::c_int != 1 as libc::c_int
+                            ) as libc::c_int
+                                != 1 as libc::c_int
                             {
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
@@ -2351,7 +2375,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 &mut matched_size,
                                 buff2.as_mut_ptr(),
                                 '-' as i32 as libc::c_char,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 s = atoi(buff2.as_mut_ptr()) as size_t;
                                 e = atoi(
@@ -2371,7 +2396,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 &mut matched_size,
                                 buff2.as_mut_ptr(),
                                 '-' as i32 as libc::c_char,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 s = atoi(buff2.as_mut_ptr()) as size_t;
                                 e = atoi(
@@ -2386,14 +2412,14 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 HTS_fseek(fp, start_of_data, 0 as libc::c_int);
                             }
                             if HTS_Model_load(
-                                &mut *(*((*ms).stream).offset(i as isize))
-                                    .offset(j as isize),
+                                &mut *(*((*ms).stream).offset(i as isize)).offset(j as isize),
                                 pdf_fp,
                                 tree_fp,
                                 *vector_length.offset(j as isize),
                                 *num_windows.offset(j as isize),
                                 *is_msd.offset(j as isize),
-                            ) as libc::c_int != 1 as libc::c_int
+                            ) as libc::c_int
+                                != 1 as libc::c_int
                             {
                                 error = 1 as libc::c_int as HTS_Boolean;
                             }
@@ -2412,7 +2438,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 &mut matched_size,
                                 buff2.as_mut_ptr(),
                                 '-' as i32 as libc::c_char,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 s = atoi(buff2.as_mut_ptr()) as size_t;
                                 e = atoi(
@@ -2432,7 +2459,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 &mut matched_size,
                                 buff2.as_mut_ptr(),
                                 '-' as i32 as libc::c_char,
-                            ) as libc::c_int == 1 as libc::c_int
+                            ) as libc::c_int
+                                == 1 as libc::c_int
                             {
                                 s = atoi(buff2.as_mut_ptr()) as size_t;
                                 e = atoi(
@@ -2446,9 +2474,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                 );
                                 HTS_fseek(fp, start_of_data, 0 as libc::c_int);
                             }
-                            if *use_gv.offset(j as isize) as libc::c_int
-                                == 1 as libc::c_int
-                            {
+                            if *use_gv.offset(j as isize) as libc::c_int == 1 as libc::c_int {
                                 if HTS_Model_load(
                                     &mut *(*((*ms).gv).offset(i as isize)).offset(j as isize),
                                     pdf_fp,
@@ -2456,7 +2482,8 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                                     *vector_length.offset(j as isize),
                                     1 as libc::c_int as size_t,
                                     0 as libc::c_int as HTS_Boolean,
-                                ) as libc::c_int != 1 as libc::c_int
+                                ) as libc::c_int
+                                    != 1 as libc::c_int
                                 {
                                     error = 1 as libc::c_int as HTS_Boolean;
                                 }
@@ -2476,21 +2503,16 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         while j < (*ms).num_streams {
                             k = 0 as libc::c_int as size_t;
                             while k < *num_windows.offset(j as isize) {
-                                if !(*(*temp_stream_win.offset(j as isize))
-                                    .offset(k as isize))
+                                if !(*(*temp_stream_win.offset(j as isize)).offset(k as isize))
                                     .is_null()
                                 {
-                                    free(
-                                        *(*temp_stream_win.offset(j as isize)).offset(k as isize)
-                                            as *mut libc::c_void,
-                                    );
+                                    free(*(*temp_stream_win.offset(j as isize)).offset(k as isize)
+                                        as *mut libc::c_void);
                                 }
                                 k = k.wrapping_add(1);
                                 k;
                             }
-                            free(
-                                *temp_stream_win.offset(j as isize) as *mut libc::c_void,
-                            );
+                            free(*temp_stream_win.offset(j as isize) as *mut libc::c_void);
                             j = j.wrapping_add(1);
                             j;
                         }
@@ -2498,9 +2520,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
                             if !(*temp_stream_pdf.offset(j as isize)).is_null() {
-                                free(
-                                    *temp_stream_pdf.offset(j as isize) as *mut libc::c_void,
-                                );
+                                free(*temp_stream_pdf.offset(j as isize) as *mut libc::c_void);
                             }
                             j = j.wrapping_add(1);
                             j;
@@ -2509,9 +2529,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
                         j = 0 as libc::c_int as size_t;
                         while j < (*ms).num_streams {
                             if !(*temp_stream_tree.offset(j as isize)).is_null() {
-                                free(
-                                    *temp_stream_tree.offset(j as isize) as *mut libc::c_void,
-                                );
+                                free(*temp_stream_tree.offset(j as isize) as *mut libc::c_void);
                             }
                             j = j.wrapping_add(1);
                             j;
@@ -2556,8 +2574,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
             buff1.as_mut_ptr() as *mut libc::c_void,
             (strlen(buff1.as_mut_ptr())).wrapping_add(1 as libc::c_int as libc::c_ulong),
         );
-        (*ms)
-            .gv_off_context = HTS_calloc(
+        (*ms).gv_off_context = HTS_calloc(
             1 as libc::c_int as size_t,
             ::core::mem::size_of::<HTS_Question>() as libc::c_ulong,
         ) as *mut HTS_Question;
@@ -2592,9 +2609,7 @@ pub unsafe extern "C" fn HTS_ModelSet_load(
     return (error == 0) as libc::c_int as HTS_Boolean;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_ModelSet_get_sampling_frequency(
-    mut ms: *mut HTS_ModelSet,
-) -> size_t {
+pub unsafe extern "C" fn HTS_ModelSet_get_sampling_frequency(mut ms: *mut HTS_ModelSet) -> size_t {
     return (*ms).sampling_frequency;
 }
 #[no_mangle]
@@ -2614,13 +2629,11 @@ pub unsafe extern "C" fn HTS_ModelSet_get_gv_flag(
     mut string: *const libc::c_char,
 ) -> HTS_Boolean {
     if ((*ms).gv_off_context).is_null() {
-        return 1 as libc::c_int as HTS_Boolean
-    } else if HTS_Question_match((*ms).gv_off_context, string) as libc::c_int
-        == 1 as libc::c_int
-    {
-        return 0 as libc::c_int as HTS_Boolean
+        return 1 as libc::c_int as HTS_Boolean;
+    } else if HTS_Question_match((*ms).gv_off_context, string) as libc::c_int == 1 as libc::c_int {
+        return 0 as libc::c_int as HTS_Boolean;
     } else {
-        return 1 as libc::c_int as HTS_Boolean
+        return 1 as libc::c_int as HTS_Boolean;
     };
 }
 #[no_mangle]
@@ -2652,8 +2665,7 @@ pub unsafe extern "C" fn HTS_ModelSet_get_vector_length(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> size_t {
-    return (*(*((*ms).stream).offset(0 as libc::c_int as isize))
-        .offset(stream_index as isize))
+    return (*(*((*ms).stream).offset(0 as libc::c_int as isize)).offset(stream_index as isize))
         .vector_length;
 }
 #[no_mangle]
@@ -2661,8 +2673,7 @@ pub unsafe extern "C" fn HTS_ModelSet_is_msd(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
 ) -> HTS_Boolean {
-    return (*(*((*ms).stream).offset(0 as libc::c_int as isize))
-        .offset(stream_index as isize))
+    return (*(*((*ms).stream).offset(0 as libc::c_int as isize)).offset(stream_index as isize))
         .is_msd;
 }
 #[no_mangle]
@@ -2699,7 +2710,7 @@ pub unsafe extern "C" fn HTS_ModelSet_get_window_coefficient(
 ) -> libc::c_double {
     return *(*((*((*ms).window).offset(stream_index as isize)).coefficient)
         .offset(window_index as isize))
-        .offset(coefficient_index as isize);
+    .offset(coefficient_index as isize);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_ModelSet_get_window_max_width(
@@ -2714,11 +2725,12 @@ pub unsafe extern "C" fn HTS_ModelSet_use_gv(
     mut stream_index: size_t,
 ) -> HTS_Boolean {
     if (*(*((*ms).gv).offset(0 as libc::c_int as isize)).offset(stream_index as isize))
-        .vector_length != 0 as libc::c_int as size_t
+        .vector_length
+        != 0 as libc::c_int as size_t
     {
-        return 1 as libc::c_int as HTS_Boolean
+        return 1 as libc::c_int as HTS_Boolean;
     } else {
-        return 0 as libc::c_int as HTS_Boolean
+        return 0 as libc::c_int as HTS_Boolean;
     };
 }
 unsafe extern "C" fn HTS_Model_add_parameter(
@@ -2737,25 +2749,19 @@ unsafe extern "C" fn HTS_Model_add_parameter(
     HTS_Model_get_index(model, state_index, string, &mut tree_index, &mut pdf_index);
     i = 0 as libc::c_int as size_t;
     while i < len {
-        *mean.offset(i as isize)
-            += weight
-                * *(*(*((*model).pdf).offset(tree_index as isize))
-                    .offset(pdf_index as isize))
-                    .offset(i as isize) as libc::c_double;
-        *vari.offset(i as isize)
-            += weight
-                * *(*(*((*model).pdf).offset(tree_index as isize))
-                    .offset(pdf_index as isize))
-                    .offset(i.wrapping_add(len) as isize) as libc::c_double;
+        *mean.offset(i as isize) += weight
+            * *(*(*((*model).pdf).offset(tree_index as isize)).offset(pdf_index as isize))
+                .offset(i as isize) as libc::c_double;
+        *vari.offset(i as isize) += weight
+            * *(*(*((*model).pdf).offset(tree_index as isize)).offset(pdf_index as isize))
+                .offset(i.wrapping_add(len) as isize) as libc::c_double;
         i = i.wrapping_add(1);
         i;
     }
     if !msd.is_null() && (*model).is_msd as libc::c_int == 1 as libc::c_int {
-        *msd
-            += weight
-                * *(*(*((*model).pdf).offset(tree_index as isize))
-                    .offset(pdf_index as isize))
-                    .offset(len.wrapping_add(len) as isize) as libc::c_double;
+        *msd += weight
+            * *(*(*((*model).pdf).offset(tree_index as isize)).offset(pdf_index as isize))
+                .offset(len.wrapping_add(len) as isize) as libc::c_double;
     }
 }
 #[no_mangle]
@@ -2819,8 +2825,7 @@ pub unsafe extern "C" fn HTS_ModelSet_get_parameter_index(
     mut pdf_index: *mut size_t,
 ) {
     HTS_Model_get_index(
-        &mut *(*((*ms).stream).offset(voice_index as isize))
-            .offset(stream_index as isize),
+        &mut *(*((*ms).stream).offset(voice_index as isize)).offset(stream_index as isize),
         state_index,
         string,
         tree_index,
@@ -2841,9 +2846,8 @@ pub unsafe extern "C" fn HTS_ModelSet_get_parameter(
     let mut i: size_t = 0;
     let mut len: size_t = (*(*((*ms).stream).offset(0 as libc::c_int as isize))
         .offset(stream_index as isize))
-        .vector_length
-        * (*(*((*ms).stream).offset(0 as libc::c_int as isize))
-            .offset(stream_index as isize))
+    .vector_length
+        * (*(*((*ms).stream).offset(0 as libc::c_int as isize)).offset(stream_index as isize))
             .num_windows;
     i = 0 as libc::c_int as size_t;
     while i < len {
@@ -2901,7 +2905,7 @@ pub unsafe extern "C" fn HTS_ModelSet_get_gv(
     let mut i: size_t = 0;
     let mut len: size_t = (*(*((*ms).stream).offset(0 as libc::c_int as isize))
         .offset(stream_index as isize))
-        .vector_length;
+    .vector_length;
     i = 0 as libc::c_int as size_t;
     while i < len {
         *mean.offset(i as isize) = 0.0f64;

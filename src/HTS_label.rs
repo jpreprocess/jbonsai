@@ -17,13 +17,8 @@ extern "C" {
 }
 
 use crate::{
-    HTS_fopen_from_fn,
-    HTS_fclose,
-    HTS_get_token_from_fp,
-    HTS_get_token_from_string,
-    HTS_calloc,
-    HTS_strdup,
-    HTS_free,
+    HTS_calloc, HTS_fclose, HTS_fopen_from_fn, HTS_free, HTS_get_token_from_fp,
+    HTS_get_token_from_string, HTS_strdup,
 };
 
 pub type C2RustUnnamed = libc::c_uint;
@@ -48,9 +43,9 @@ unsafe extern "C" fn isdigit_string(mut str: *mut libc::c_char) -> HTS_Boolean {
         &mut i as *mut libc::c_int,
     ) == 1 as libc::c_int
     {
-        return 1 as libc::c_int as HTS_Boolean
+        return 1 as libc::c_int as HTS_Boolean;
     } else {
-        return 0 as libc::c_int as HTS_Boolean
+        return 0 as libc::c_int as HTS_Boolean;
     };
 }
 #[no_mangle]
@@ -93,8 +88,8 @@ unsafe extern "C" fn HTS_Label_load(
     let mut lstring: *mut HTS_LabelString = 0 as *mut HTS_LabelString;
     let mut start: libc::c_double = 0.;
     let mut end: libc::c_double = 0.;
-    let rate: libc::c_double = sampling_rate as libc::c_double
-        / (fperiod as libc::c_double * 1e+7f64);
+    let rate: libc::c_double =
+        sampling_rate as libc::c_double / (fperiod as libc::c_double * 1e+7f64);
     if !((*label).head).is_null() || (*label).size != 0 as libc::c_int as size_t {
         HTS_error!(
             1 as libc::c_int,
@@ -104,9 +99,9 @@ unsafe extern "C" fn HTS_Label_load(
         return;
     }
     while HTS_get_token_from_fp(fp, buff.as_mut_ptr()) != 0 {
-        if *(*__ctype_b_loc())
-            .offset(buff[0 as libc::c_int as usize] as libc::c_int as isize)
-            as libc::c_int & _ISgraph as libc::c_int as libc::c_ushort as libc::c_int
+        if *(*__ctype_b_loc()).offset(buff[0 as libc::c_int as usize] as libc::c_int as isize)
+            as libc::c_int
+            & _ISgraph as libc::c_int as libc::c_ushort as libc::c_int
             == 0
         {
             break;
@@ -114,8 +109,7 @@ unsafe extern "C" fn HTS_Label_load(
         (*label).size = ((*label).size).wrapping_add(1);
         (*label).size;
         if !lstring.is_null() {
-            (*lstring)
-                .next = HTS_calloc(
+            (*lstring).next = HTS_calloc(
                 1 as libc::c_int as size_t,
                 ::core::mem::size_of::<HTS_LabelString>() as libc::c_ulong,
             ) as *mut HTS_LabelString;
@@ -150,10 +144,7 @@ pub unsafe extern "C" fn HTS_Label_load_from_fn(
     mut fperiod: size_t,
     mut fn_0: *const libc::c_char,
 ) {
-    let mut fp: *mut HTS_File = HTS_fopen_from_fn(
-        fn_0,
-        b"r\0" as *const u8 as *const libc::c_char,
-    );
+    let mut fp: *mut HTS_File = HTS_fopen_from_fn(fn_0, b"r\0" as *const u8 as *const libc::c_char);
     HTS_Label_load(label, sampling_rate, fperiod, fp);
     HTS_fclose(fp);
 }
@@ -171,8 +162,8 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
     let mut data_index: size_t = 0;
     let mut start: libc::c_double = 0.;
     let mut end: libc::c_double = 0.;
-    let rate: libc::c_double = sampling_rate as libc::c_double
-        / (fperiod as libc::c_double * 1e+7f64);
+    let rate: libc::c_double =
+        sampling_rate as libc::c_double / (fperiod as libc::c_double * 1e+7f64);
     if !((*label).head).is_null() || (*label).size != 0 as libc::c_int as size_t {
         HTS_error!(
             1 as libc::c_int,
@@ -183,11 +174,10 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
     }
     i = 0 as libc::c_int as size_t;
     while i < num_lines {
-        if *(*__ctype_b_loc())
-            .offset(
-                *(*lines.offset(i as isize)).offset(0 as libc::c_int as isize)
-                    as libc::c_int as isize,
-            ) as libc::c_int & _ISgraph as libc::c_int as libc::c_ushort as libc::c_int
+        if *(*__ctype_b_loc()).offset(
+            *(*lines.offset(i as isize)).offset(0 as libc::c_int as isize) as libc::c_int as isize,
+        ) as libc::c_int
+            & _ISgraph as libc::c_int as libc::c_ushort as libc::c_int
             == 0
         {
             break;
@@ -195,8 +185,7 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
         (*label).size = ((*label).size).wrapping_add(1);
         (*label).size;
         if !lstring.is_null() {
-            (*lstring)
-                .next = HTS_calloc(
+            (*lstring).next = HTS_calloc(
                 1 as libc::c_int as size_t,
                 ::core::mem::size_of::<HTS_LabelString>() as libc::c_ulong,
             ) as *mut HTS_LabelString;

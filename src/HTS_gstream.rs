@@ -1,19 +1,19 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case, non_upper_case_globals, unused_assignments, unused_mut)]
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut
+)]
 
 use crate::{util::*, HTS_error};
 
 use crate::{
-    HTS_free,
-    HTS_calloc,
-    HTS_PStreamSet_get_nstream,
-    HTS_PStreamSet_get_vector_length,
-    HTS_PStreamSet_get_total_frame,
-    HTS_PStreamSet_get_parameter,
-    HTS_PStreamSet_get_msd_flag,
-    HTS_PStreamSet_is_msd,
-    HTS_Vocoder_initialize,
-    HTS_Vocoder_synthesize,
-    HTS_Vocoder_clear,
+    HTS_PStreamSet_get_msd_flag, HTS_PStreamSet_get_nstream, HTS_PStreamSet_get_parameter,
+    HTS_PStreamSet_get_total_frame, HTS_PStreamSet_get_vector_length, HTS_PStreamSet_is_msd,
+    HTS_Vocoder_clear, HTS_Vocoder_initialize, HTS_Vocoder_synthesize, HTS_calloc, HTS_free,
 };
 
 #[no_mangle]
@@ -90,15 +90,14 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     (*gss).nstream = HTS_PStreamSet_get_nstream(pss);
     (*gss).total_frame = HTS_PStreamSet_get_total_frame(pss);
     (*gss).total_nsample = fperiod * (*gss).total_frame;
-    (*gss)
-        .gstream = HTS_calloc(
+    (*gss).gstream = HTS_calloc(
         (*gss).nstream,
         ::core::mem::size_of::<HTS_GStream>() as libc::c_ulong,
     ) as *mut HTS_GStream;
     i = 0 as libc::c_int as size_t;
     while i < (*gss).nstream {
-        (*((*gss).gstream).offset(i as isize))
-            .vector_length = HTS_PStreamSet_get_vector_length(pss, i);
+        (*((*gss).gstream).offset(i as isize)).vector_length =
+            HTS_PStreamSet_get_vector_length(pss, i);
         let ref mut fresh0 = (*((*gss).gstream).offset(i as isize)).par;
         *fresh0 = HTS_calloc(
             (*gss).total_frame,
@@ -106,8 +105,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
         ) as *mut *mut libc::c_double;
         j = 0 as libc::c_int as size_t;
         while j < (*gss).total_frame {
-            let ref mut fresh1 = *((*((*gss).gstream).offset(i as isize)).par)
-                .offset(j as isize);
+            let ref mut fresh1 = *((*((*gss).gstream).offset(i as isize)).par).offset(j as isize);
             *fresh1 = HTS_calloc(
                 (*((*gss).gstream).offset(i as isize)).vector_length,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
@@ -118,8 +116,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
         i = i.wrapping_add(1);
         i;
     }
-    (*gss)
-        .gspeech = HTS_calloc(
+    (*gss).gspeech = HTS_calloc(
         (*gss).total_nsample,
         ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
     ) as *mut libc::c_double;
@@ -132,11 +129,9 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
                 if HTS_PStreamSet_get_msd_flag(pss, i, j) != 0 {
                     k = 0 as libc::c_int as size_t;
                     while k < (*((*gss).gstream).offset(i as isize)).vector_length {
-                        *(*((*((*gss).gstream).offset(i as isize)).par)
-                            .offset(j as isize))
-                            .offset(
-                                k as isize,
-                            ) = HTS_PStreamSet_get_parameter(pss, i, msd_frame, k);
+                        *(*((*((*gss).gstream).offset(i as isize)).par).offset(j as isize))
+                            .offset(k as isize) =
+                            HTS_PStreamSet_get_parameter(pss, i, msd_frame, k);
                         k = k.wrapping_add(1);
                         k;
                     }
@@ -145,8 +140,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
                 } else {
                     k = 0 as libc::c_int as size_t;
                     while k < (*((*gss).gstream).offset(i as isize)).vector_length {
-                        *(*((*((*gss).gstream).offset(i as isize)).par)
-                            .offset(j as isize))
+                        *(*((*((*gss).gstream).offset(i as isize)).par).offset(j as isize))
                             .offset(k as isize) = -1.0e+10f64;
                         k = k.wrapping_add(1);
                         k;
@@ -172,13 +166,12 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
         i = i.wrapping_add(1);
         i;
     }
-    if (*gss).nstream != 2 as libc::c_int as size_t
-        && (*gss).nstream != 3 as libc::c_int as size_t
+    if (*gss).nstream != 2 as libc::c_int as size_t && (*gss).nstream != 3 as libc::c_int as size_t
     {
         HTS_error!(
             1 as libc::c_int,
-            b"HTS_GStreamSet_create: The number of streams should be 2 or 3.\n\0"
-                as *const u8 as *const libc::c_char,
+            b"HTS_GStreamSet_create: The number of streams should be 2 or 3.\n\0" as *const u8
+                as *const libc::c_char,
         );
         HTS_GStreamSet_clear(gss);
         return 0 as libc::c_int as HTS_Boolean;
@@ -188,15 +181,16 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     {
         HTS_error!(
             1 as libc::c_int,
-            b"HTS_GStreamSet_create: The size of lf0 static vector should be 1.\n\0"
-                as *const u8 as *const libc::c_char,
+            b"HTS_GStreamSet_create: The size of lf0 static vector should be 1.\n\0" as *const u8
+                as *const libc::c_char,
         );
         HTS_GStreamSet_clear(gss);
         return 0 as libc::c_int as HTS_Boolean;
     }
     if (*gss).nstream >= 3 as libc::c_int as size_t
         && (*((*gss).gstream).offset(2 as libc::c_int as isize)).vector_length
-            % 2 as libc::c_int as size_t == 0 as libc::c_int as size_t
+            % 2 as libc::c_int as size_t
+            == 0 as libc::c_int as size_t
     {
         HTS_error!(
             1 as libc::c_int,
@@ -224,17 +218,15 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
         if (*gss).nstream >= 3 as libc::c_int as size_t {
             lpf = &mut *(*((*((*gss).gstream).offset(2 as libc::c_int as isize)).par)
                 .offset(i as isize))
-                .offset(0 as libc::c_int as isize) as *mut libc::c_double;
+            .offset(0 as libc::c_int as isize) as *mut libc::c_double;
         }
         HTS_Vocoder_synthesize(
             &mut v,
             ((*((*gss).gstream).offset(0 as libc::c_int as isize)).vector_length)
                 .wrapping_sub(1 as libc::c_int as size_t),
-            *(*((*((*gss).gstream).offset(1 as libc::c_int as isize)).par)
-                .offset(i as isize))
+            *(*((*((*gss).gstream).offset(1 as libc::c_int as isize)).par).offset(i as isize))
                 .offset(0 as libc::c_int as isize),
-            &mut *(*((*((*gss).gstream).offset(0 as libc::c_int as isize)).par)
-                .offset(i as isize))
+            &mut *(*((*((*gss).gstream).offset(0 as libc::c_int as isize)).par).offset(i as isize))
                 .offset(0 as libc::c_int as isize),
             nlpf,
             lpf,
@@ -254,15 +246,11 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     return 1 as libc::c_int as HTS_Boolean;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_get_total_nsamples(
-    mut gss: *mut HTS_GStreamSet,
-) -> size_t {
+pub unsafe extern "C" fn HTS_GStreamSet_get_total_nsamples(mut gss: *mut HTS_GStreamSet) -> size_t {
     return (*gss).total_nsample;
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_GStreamSet_get_total_frame(
-    mut gss: *mut HTS_GStreamSet,
-) -> size_t {
+pub unsafe extern "C" fn HTS_GStreamSet_get_total_frame(mut gss: *mut HTS_GStreamSet) -> size_t {
     return (*gss).total_frame;
 }
 #[no_mangle]
@@ -288,7 +276,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_get_parameter(
 ) -> libc::c_double {
     return *(*((*((*gss).gstream).offset(stream_index as isize)).par)
         .offset(frame_index as isize))
-        .offset(vector_index as isize);
+    .offset(vector_index as isize);
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_clear(mut gss: *mut HTS_GStreamSet) {
@@ -307,9 +295,7 @@ pub unsafe extern "C" fn HTS_GStreamSet_clear(mut gss: *mut HTS_GStreamSet) {
                     j = j.wrapping_add(1);
                     j;
                 }
-                HTS_free(
-                    (*((*gss).gstream).offset(i as isize)).par as *mut libc::c_void,
-                );
+                HTS_free((*((*gss).gstream).offset(i as isize)).par as *mut libc::c_void);
             }
             i = i.wrapping_add(1);
             i;
