@@ -36,7 +36,6 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     mut beta: libc::c_double,
     mut stop: *mut HTS_Boolean,
     mut volume: libc::c_double,
-    mut audio: *mut HTS_Audio,
 ) -> HTS_Boolean {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
@@ -234,7 +233,6 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
             beta,
             volume,
             &mut *((*gss).gspeech).offset(j as isize),
-            audio,
         );
         i = i.wrapping_add(1);
         i;

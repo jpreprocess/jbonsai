@@ -1211,7 +1211,6 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
     mut beta: libc::c_double,
     mut volume: libc::c_double,
     mut rawdata: *mut libc::c_double,
-    mut audio: *mut HTS_Audio,
 ) {
     let mut x: libc::c_double = 0.;
     let mut i: libc::c_int = 0;
@@ -1316,16 +1315,6 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
             let fresh8 = rawidx;
             rawidx += 1;
             *rawdata.offset(fresh8 as isize) = x;
-        }
-        if !audio.is_null() {
-            if x > 32767.0f64 {
-                xs = 32767 as libc::c_int as libc::c_short;
-            } else if x < -32768.0f64 {
-                xs = -(32768 as libc::c_int) as libc::c_short;
-            } else {
-                xs = x as libc::c_short;
-            }
-            // HTS_Audio_write(audio, xs);
         }
         i = 0 as libc::c_int;
         while i as size_t <= m {

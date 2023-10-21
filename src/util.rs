@@ -4,16 +4,6 @@ pub type uint32_t = libc::c_uint;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-pub struct HTS_Audio {
-    pub sampling_frequency: size_t,
-    pub max_buff_size: size_t,
-    pub buff: *mut libc::c_short,
-    pub buff_size: size_t,
-    pub audio_interface: *mut libc::c_void,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
 pub struct HTS_Window {
     pub size: size_t,
     pub l_width: *mut libc::c_int,
@@ -214,7 +204,6 @@ pub struct HTS_Condition {
 #[repr(C)]
 pub struct HTS_Engine {
     pub condition: HTS_Condition,
-    pub audio: HTS_Audio,
     pub ms: HTS_ModelSet,
     pub label: HTS_Label,
     pub sss: HTS_SStreamSet,

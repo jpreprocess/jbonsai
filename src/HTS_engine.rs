@@ -590,11 +590,6 @@ pub unsafe extern "C" fn HTS_Engine_generate_sample_sequence(
         (*engine).condition.beta,
         &mut (*engine).condition.stop,
         (*engine).condition.volume,
-        if (*engine).condition.audio_buff_size > 0 as libc::c_int as size_t {
-            &mut (*engine).audio
-        } else {
-            std::ptr::null_mut::<HTS_Audio>()
-        },
     )
 }
 unsafe extern "C" fn HTS_Engine_synthesize(engine: *mut HTS_Engine) -> HTS_Boolean {
