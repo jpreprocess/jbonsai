@@ -9,7 +9,7 @@
 )]
 
 use crate::{util::*, HTS_error};
-use libc::isgraph;
+
 extern "C" {
     fn atof(__nptr: *const libc::c_char) -> libc::c_double;
     fn __ctype_b_loc() -> *mut *const libc::c_ushort;
@@ -43,19 +43,19 @@ unsafe extern "C" fn isdigit_string(mut str: *mut libc::c_char) -> HTS_Boolean {
         &mut i as *mut libc::c_int,
     ) == 1 as libc::c_int
     {
-        return 1 as libc::c_int as HTS_Boolean;
+        1 as libc::c_int as HTS_Boolean
     } else {
-        return 0 as libc::c_int as HTS_Boolean;
-    };
+        0 as libc::c_int as HTS_Boolean
+    }
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Label_initialize(mut label: *mut HTS_Label) {
-    (*label).head = 0 as *mut HTS_LabelString;
+    (*label).head = std::ptr::null_mut::<HTS_LabelString>();
     (*label).size = 0 as libc::c_int as size_t;
 }
 unsafe extern "C" fn HTS_Label_check_time(mut label: *mut HTS_Label) {
     let mut lstring: *mut HTS_LabelString = (*label).head;
-    let mut next: *mut HTS_LabelString = 0 as *mut HTS_LabelString;
+    let mut next: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
     if !lstring.is_null() {
         (*lstring).start = 0.0f64;
     }
@@ -85,7 +85,7 @@ unsafe extern "C" fn HTS_Label_load(
     mut fp: *mut HTS_File,
 ) {
     let mut buff: [libc::c_char; 1024] = [0; 1024];
-    let mut lstring: *mut HTS_LabelString = 0 as *mut HTS_LabelString;
+    let mut lstring: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
     let mut start: libc::c_double = 0.;
     let mut end: libc::c_double = 0.;
     let rate: libc::c_double =
@@ -132,7 +132,7 @@ unsafe extern "C" fn HTS_Label_load(
             (*lstring).start = -1.0f64;
             (*lstring).end = -1.0f64;
         }
-        (*lstring).next = 0 as *mut HTS_LabelString;
+        (*lstring).next = std::ptr::null_mut::<HTS_LabelString>();
         (*lstring).name = HTS_strdup(buff.as_mut_ptr());
     }
     HTS_Label_check_time(label);
@@ -157,7 +157,7 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
     mut num_lines: size_t,
 ) {
     let mut buff: [libc::c_char; 1024] = [0; 1024];
-    let mut lstring: *mut HTS_LabelString = 0 as *mut HTS_LabelString;
+    let mut lstring: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
     let mut i: size_t = 0;
     let mut data_index: size_t = 0;
     let mut start: libc::c_double = 0.;
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
             (*lstring).end = -1.0f64;
             (*lstring).name = HTS_strdup(*lines.offset(i as isize));
         }
-        (*lstring).next = 0 as *mut HTS_LabelString;
+        (*lstring).next = std::ptr::null_mut::<HTS_LabelString>();
         i = i.wrapping_add(1);
         i;
     }
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Label_get_size(mut label: *mut HTS_Label) -> size_t {
-    return (*label).size;
+    (*label).size
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Label_get_string(
@@ -248,9 +248,9 @@ pub unsafe extern "C" fn HTS_Label_get_string(
         i;
     }
     if lstring.is_null() {
-        return 0 as *const libc::c_char;
+        return std::ptr::null::<libc::c_char>();
     }
-    return (*lstring).name;
+    (*lstring).name
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Label_get_start_frame(
@@ -268,7 +268,7 @@ pub unsafe extern "C" fn HTS_Label_get_start_frame(
     if lstring.is_null() {
         return -1.0f64;
     }
-    return (*lstring).start;
+    (*lstring).start
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Label_get_end_frame(
@@ -286,12 +286,12 @@ pub unsafe extern "C" fn HTS_Label_get_end_frame(
     if lstring.is_null() {
         return -1.0f64;
     }
-    return (*lstring).end;
+    (*lstring).end
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_Label_clear(mut label: *mut HTS_Label) {
-    let mut lstring: *mut HTS_LabelString = 0 as *mut HTS_LabelString;
-    let mut next_lstring: *mut HTS_LabelString = 0 as *mut HTS_LabelString;
+    let mut lstring: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
+    let mut next_lstring: *mut HTS_LabelString = std::ptr::null_mut::<HTS_LabelString>();
     lstring = (*label).head;
     while !lstring.is_null() {
         next_lstring = (*lstring).next;

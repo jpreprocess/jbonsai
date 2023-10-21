@@ -47,8 +47,8 @@ unsafe extern "C" fn HTS_movem(
     if a > b {
         loop {
             let fresh0 = i;
-            i = i - 1;
-            if !(fresh0 != 0) {
+            i -= 1;
+            if fresh0 == 0 {
                 break;
             }
             let fresh1 = a;
@@ -62,8 +62,8 @@ unsafe extern "C" fn HTS_movem(
         b = b.offset(i as isize);
         loop {
             let fresh3 = i;
-            i = i - 1;
-            if !(fresh3 != 0) {
+            i -= 1;
+            if fresh3 == 0 {
                 break;
             }
             a = a.offset(-1);
@@ -105,12 +105,12 @@ unsafe extern "C" fn HTS_mlsafir(
         i -= 1;
         i;
     }
-    return y;
+    y
 }
 unsafe extern "C" fn HTS_mlsadf1(
     mut x: libc::c_double,
     mut b: *const libc::c_double,
-    m: libc::c_int,
+    _m: libc::c_int,
     a: libc::c_double,
     aa: libc::c_double,
     pd: libc::c_int,
@@ -119,7 +119,7 @@ unsafe extern "C" fn HTS_mlsadf1(
 ) -> libc::c_double {
     let mut v: libc::c_double = 0.;
     let mut out: libc::c_double = 0.0f64;
-    let mut pt: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut pt: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     let mut i: libc::c_int = 0;
     pt = &mut *d.offset((pd + 1 as libc::c_int) as isize) as *mut libc::c_double;
     i = pd;
@@ -135,7 +135,7 @@ unsafe extern "C" fn HTS_mlsadf1(
     }
     *pt.offset(0 as libc::c_int as isize) = x;
     out += x;
-    return out;
+    out
 }
 unsafe extern "C" fn HTS_mlsadf2(
     mut x: libc::c_double,
@@ -149,7 +149,7 @@ unsafe extern "C" fn HTS_mlsadf2(
 ) -> libc::c_double {
     let mut v: libc::c_double = 0.;
     let mut out: libc::c_double = 0.0f64;
-    let mut pt: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut pt: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     let mut i: libc::c_int = 0;
     pt = &mut *d.offset((pd * (m + 2 as libc::c_int)) as isize) as *mut libc::c_double;
     i = pd;
@@ -170,7 +170,7 @@ unsafe extern "C" fn HTS_mlsadf2(
     }
     *pt.offset(0 as libc::c_int as isize) = x;
     out += x;
-    return out;
+    out
 }
 unsafe extern "C" fn HTS_mlsadf(
     mut x: libc::c_double,
@@ -196,7 +196,7 @@ unsafe extern "C" fn HTS_mlsadf(
         &mut *d.offset((2 as libc::c_int * (pd + 1 as libc::c_int)) as isize),
         ppade,
     );
-    return x;
+    x
 }
 unsafe extern "C" fn HTS_rnd(mut next: *mut libc::c_ulong) -> libc::c_double {
     let mut r: libc::c_double = 0.;
@@ -206,7 +206,7 @@ unsafe extern "C" fn HTS_rnd(mut next: *mut libc::c_ulong) -> libc::c_double {
     r = (*next)
         .wrapping_div(65536 as libc::c_long as libc::c_ulong)
         .wrapping_rem(32768 as libc::c_long as libc::c_ulong) as libc::c_double;
-    return r / 32767 as libc::c_int as libc::c_double;
+    r / 32767 as libc::c_int as libc::c_double
 }
 unsafe extern "C" fn HTS_nrandom(mut v: *mut HTS_Vocoder) -> libc::c_double {
     if (*v).sw as libc::c_int == 0 as libc::c_int {
@@ -224,11 +224,11 @@ unsafe extern "C" fn HTS_nrandom(mut v: *mut HTS_Vocoder) -> libc::c_double {
             }
         }
         (*v).s = sqrt(-(2 as libc::c_int) as libc::c_double * log((*v).s) / (*v).s);
-        return (*v).r1 * (*v).s;
+        (*v).r1 * (*v).s
     } else {
         (*v).sw = 0 as libc::c_int as libc::c_uchar;
-        return (*v).r2 * (*v).s;
-    };
+        (*v).r2 * (*v).s
+    }
 }
 unsafe extern "C" fn HTS_mseq(mut v: *mut HTS_Vocoder) -> libc::c_int {
     let mut x0: libc::c_int = 0;
@@ -249,7 +249,7 @@ unsafe extern "C" fn HTS_mseq(mut v: *mut HTS_Vocoder) -> libc::c_int {
     } else {
         (*v).x = ((*v).x as libc::c_uint | 0x80000000 as libc::c_uint) as libc::c_int;
     }
-    return x0;
+    x0
 }
 unsafe extern "C" fn HTS_mc2b(
     mut mc: *mut libc::c_double,
@@ -289,7 +289,7 @@ unsafe extern "C" fn HTS_b2mc(
 ) {
     let mut d: libc::c_double = 0.;
     let mut o: libc::c_double = 0.;
-    let ref mut fresh4 = *mc.offset(m as isize);
+    let fresh4 = &mut (*mc.offset(m as isize));
     *fresh4 = *b.offset(m as isize);
     d = *fresh4;
     m -= 1;
@@ -313,7 +313,7 @@ unsafe extern "C" fn HTS_freqt(
     let mut i: libc::c_int = 0;
     let mut j: libc::c_int = 0;
     let b: libc::c_double = 1 as libc::c_int as libc::c_double - a * a;
-    let mut g: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut g: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     if m2 as size_t > (*v).freqt_size {
         if !((*v).freqt_buff).is_null() {
             HTS_free((*v).freqt_buff as *mut libc::c_void);
@@ -336,19 +336,19 @@ unsafe extern "C" fn HTS_freqt(
     i = -m1;
     while i <= 0 as libc::c_int {
         if 0 as libc::c_int <= m2 {
-            let ref mut fresh5 = *((*v).freqt_buff).offset(0 as libc::c_int as isize);
+            let fresh5 = &mut (*((*v).freqt_buff).offset(0 as libc::c_int as isize));
             *fresh5 = *g.offset(0 as libc::c_int as isize);
             *g.offset(0 as libc::c_int as isize) = *c1.offset(-i as isize) + a * *fresh5;
         }
         if 1 as libc::c_int <= m2 {
-            let ref mut fresh6 = *((*v).freqt_buff).offset(1 as libc::c_int as isize);
+            let fresh6 = &mut (*((*v).freqt_buff).offset(1 as libc::c_int as isize));
             *fresh6 = *g.offset(1 as libc::c_int as isize);
             *g.offset(1 as libc::c_int as isize) =
                 b * *((*v).freqt_buff).offset(0 as libc::c_int as isize) + a * *fresh6;
         }
         j = 2 as libc::c_int;
         while j <= m2 {
-            let ref mut fresh7 = *((*v).freqt_buff).offset(j as isize);
+            let fresh7 = &mut (*((*v).freqt_buff).offset(j as isize));
             *fresh7 = *g.offset(j as isize);
             *g.offset(j as isize) = *((*v).freqt_buff).offset((j - 1 as libc::c_int) as isize)
                 + a * (*fresh7 - *g.offset((j - 1 as libc::c_int) as isize));
@@ -394,8 +394,8 @@ unsafe extern "C" fn HTS_b2en(
 ) -> libc::c_double {
     let mut i: libc::c_int = 0;
     let mut en: libc::c_double = 0.0f64;
-    let mut cep: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut ir: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut cep: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut ir: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     if (*v).spectrum2en_size < m as size_t {
         if !((*v).spectrum2en_buff).is_null() {
             HTS_free((*v).spectrum2en_buff as *mut libc::c_void);
@@ -426,7 +426,7 @@ unsafe extern "C" fn HTS_b2en(
         i += 1;
         i;
     }
-    return en;
+    en
 }
 unsafe extern "C" fn HTS_ignorm(
     mut c1: *mut libc::c_double,
@@ -490,14 +490,14 @@ unsafe extern "C" fn HTS_lsp2lpc(
     let mut xx: libc::c_double = 0.;
     let mut xf: libc::c_double = 0.;
     let mut xff: libc::c_double = 0.;
-    let mut p: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut q: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut a0: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut a1: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut a2: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut b0: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut b1: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut b2: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut p: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut q: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut a0: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut a1: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut a2: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut b0: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut b1: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut b2: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     flag_odd = 0 as libc::c_int;
     if m % 2 as libc::c_int == 0 as libc::c_int {
         mh2 = m / 2 as libc::c_int;
@@ -757,7 +757,7 @@ unsafe extern "C" fn HTS_mglsadff(
     }
     *d.offset(0 as libc::c_int as isize) =
         a * *d.offset(0 as libc::c_int as isize) + (1 as libc::c_int as libc::c_double - a * a) * x;
-    return x;
+    x
 }
 unsafe extern "C" fn HTS_mglsadf(
     mut x: libc::c_double,
@@ -780,13 +780,13 @@ unsafe extern "C" fn HTS_mglsadf(
         i += 1;
         i;
     }
-    return x;
+    x
 }
 unsafe extern "C" fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m: size_t) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     let mut tmp: libc::c_double = 0.;
-    let mut min: libc::c_double = 0.25f64 * 3.14159265358979323846f64
+    let mut min: libc::c_double = 0.25f64 * 3.141_592_653_589_793_f64
         / m.wrapping_add(1 as libc::c_int as size_t) as libc::c_double;
     let mut find: HTS_Boolean = 0;
     i = 0 as libc::c_int as size_t;
@@ -809,8 +809,8 @@ unsafe extern "C" fn HTS_check_lsp_stability(mut lsp: *mut libc::c_double, mut m
             *lsp.offset(1 as libc::c_int as isize) = min;
             find = 1 as libc::c_int as HTS_Boolean;
         }
-        if *lsp.offset(m as isize) > 3.14159265358979323846f64 - min {
-            *lsp.offset(m as isize) = 3.14159265358979323846f64 - min;
+        if *lsp.offset(m as isize) > 3.141_592_653_589_793_f64 - min {
+            *lsp.offset(m as isize) = 3.141_592_653_589_793_f64 - min;
             find = 1 as libc::c_int as HTS_Boolean;
         }
         if find as libc::c_int == 0 as libc::c_int {
@@ -828,7 +828,7 @@ unsafe extern "C" fn HTS_lsp2en(
 ) -> libc::c_double {
     let mut i: size_t = 0;
     let mut en: libc::c_double = 0.0f64;
-    let mut buff: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut buff: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     if (*v).spectrum2en_size < m {
         if !((*v).spectrum2en_buff).is_null() {
             HTS_free((*v).spectrum2en_buff as *mut libc::c_void);
@@ -885,14 +885,14 @@ unsafe extern "C" fn HTS_lsp2en(
         i = i.wrapping_add(1);
         i;
     }
-    return en;
+    en
 }
 unsafe extern "C" fn HTS_white_noise(mut v: *mut HTS_Vocoder) -> libc::c_double {
     if (*v).gauss != 0 {
-        return HTS_nrandom(v);
+        HTS_nrandom(v)
     } else {
-        return HTS_mseq(v) as libc::c_double;
-    };
+        HTS_mseq(v) as libc::c_double
+    }
 }
 unsafe extern "C" fn HTS_Vocoder_initialize_excitation(
     mut v: *mut HTS_Vocoder,
@@ -918,7 +918,7 @@ unsafe extern "C" fn HTS_Vocoder_initialize_excitation(
         (*v).excite_buff_index = 0 as libc::c_int as size_t;
     } else {
         (*v).excite_buff_size = 0 as libc::c_int as size_t;
-        (*v).excite_ring_buff = 0 as *mut libc::c_double;
+        (*v).excite_ring_buff = std::ptr::null_mut::<libc::c_double>();
         (*v).excite_buff_index = 0 as libc::c_int as size_t;
     };
 }
@@ -1020,7 +1020,7 @@ unsafe extern "C" fn HTS_Vocoder_get_excitation(
         }
         (*v).pitch_of_curr_point += (*v).pitch_inc_per_point;
     }
-    return x;
+    x
 }
 unsafe extern "C" fn HTS_Vocoder_end_excitation(
     mut v: *mut HTS_Vocoder,
@@ -1151,20 +1151,20 @@ pub unsafe extern "C" fn HTS_Vocoder_initialize(
     (*v).pitch_of_curr_point = 0.0f64;
     (*v).pitch_counter = 0.0f64;
     (*v).pitch_inc_per_point = 0.0f64;
-    (*v).excite_ring_buff = 0 as *mut libc::c_double;
+    (*v).excite_ring_buff = std::ptr::null_mut::<libc::c_double>();
     (*v).excite_buff_size = 0 as libc::c_int as size_t;
     (*v).excite_buff_index = 0 as libc::c_int as size_t;
     (*v).sw = 0 as libc::c_int as libc::c_uchar;
     (*v).x = 0x55555555 as libc::c_int;
-    (*v).freqt_buff = 0 as *mut libc::c_double;
+    (*v).freqt_buff = std::ptr::null_mut::<libc::c_double>();
     (*v).freqt_size = 0 as libc::c_int as size_t;
-    (*v).gc2gc_buff = 0 as *mut libc::c_double;
+    (*v).gc2gc_buff = std::ptr::null_mut::<libc::c_double>();
     (*v).gc2gc_size = 0 as libc::c_int as size_t;
-    (*v).lsp2lpc_buff = 0 as *mut libc::c_double;
+    (*v).lsp2lpc_buff = std::ptr::null_mut::<libc::c_double>();
     (*v).lsp2lpc_size = 0 as libc::c_int as size_t;
-    (*v).postfilter_buff = 0 as *mut libc::c_double;
+    (*v).postfilter_buff = std::ptr::null_mut::<libc::c_double>();
     (*v).postfilter_size = 0 as libc::c_int as size_t;
-    (*v).spectrum2en_buff = 0 as *mut libc::c_double;
+    (*v).spectrum2en_buff = std::ptr::null_mut::<libc::c_double>();
     (*v).spectrum2en_size = 0 as libc::c_int as size_t;
     if (*v).stage == 0 as libc::c_int as size_t {
         (*v).c = HTS_calloc(
@@ -1314,7 +1314,7 @@ pub unsafe extern "C" fn HTS_Vocoder_synthesize(
         x *= volume;
         if !rawdata.is_null() {
             let fresh8 = rawidx;
-            rawidx = rawidx + 1;
+            rawidx += 1;
             *rawdata.offset(fresh8 as isize) = x;
         }
         if !audio.is_null() {
@@ -1348,38 +1348,38 @@ pub unsafe extern "C" fn HTS_Vocoder_clear(mut v: *mut HTS_Vocoder) {
     if !v.is_null() {
         if !((*v).freqt_buff).is_null() {
             HTS_free((*v).freqt_buff as *mut libc::c_void);
-            (*v).freqt_buff = 0 as *mut libc::c_double;
+            (*v).freqt_buff = std::ptr::null_mut::<libc::c_double>();
         }
         (*v).freqt_size = 0 as libc::c_int as size_t;
         if !((*v).gc2gc_buff).is_null() {
             HTS_free((*v).gc2gc_buff as *mut libc::c_void);
-            (*v).gc2gc_buff = 0 as *mut libc::c_double;
+            (*v).gc2gc_buff = std::ptr::null_mut::<libc::c_double>();
         }
         (*v).gc2gc_size = 0 as libc::c_int as size_t;
         if !((*v).lsp2lpc_buff).is_null() {
             HTS_free((*v).lsp2lpc_buff as *mut libc::c_void);
-            (*v).lsp2lpc_buff = 0 as *mut libc::c_double;
+            (*v).lsp2lpc_buff = std::ptr::null_mut::<libc::c_double>();
         }
         (*v).lsp2lpc_size = 0 as libc::c_int as size_t;
         if !((*v).postfilter_buff).is_null() {
             HTS_free((*v).postfilter_buff as *mut libc::c_void);
-            (*v).postfilter_buff = 0 as *mut libc::c_double;
+            (*v).postfilter_buff = std::ptr::null_mut::<libc::c_double>();
         }
         (*v).postfilter_size = 0 as libc::c_int as size_t;
         if !((*v).spectrum2en_buff).is_null() {
             HTS_free((*v).spectrum2en_buff as *mut libc::c_void);
-            (*v).spectrum2en_buff = 0 as *mut libc::c_double;
+            (*v).spectrum2en_buff = std::ptr::null_mut::<libc::c_double>();
         }
         (*v).spectrum2en_size = 0 as libc::c_int as size_t;
         if !((*v).c).is_null() {
             HTS_free((*v).c as *mut libc::c_void);
-            (*v).c = 0 as *mut libc::c_double;
+            (*v).c = std::ptr::null_mut::<libc::c_double>();
         }
         (*v).excite_buff_size = 0 as libc::c_int as size_t;
         (*v).excite_buff_index = 0 as libc::c_int as size_t;
         if !((*v).excite_ring_buff).is_null() {
             HTS_free((*v).excite_ring_buff as *mut libc::c_void);
-            (*v).excite_ring_buff = 0 as *mut libc::c_double;
+            (*v).excite_ring_buff = std::ptr::null_mut::<libc::c_double>();
         }
     }
 }

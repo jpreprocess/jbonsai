@@ -26,7 +26,7 @@ use crate::{
 unsafe extern "C" fn HTS_set_default_duration(
     mut duration: *mut size_t,
     mut mean: *mut libc::c_double,
-    mut vari: *mut libc::c_double,
+    mut _vari: *mut libc::c_double,
     mut size: size_t,
 ) -> libc::c_double {
     let mut i: size_t = 0;
@@ -44,7 +44,7 @@ unsafe extern "C" fn HTS_set_default_duration(
         i = i.wrapping_add(1);
         i;
     }
-    return sum as libc::c_double;
+    sum as libc::c_double
 }
 unsafe extern "C" fn HTS_set_specified_duration(
     mut duration: *mut size_t,
@@ -123,7 +123,7 @@ unsafe extern "C" fn HTS_set_specified_duration(
             }
             sum = sum.wrapping_add(1);
             sum;
-            let ref mut fresh0 = *duration.offset(j as isize);
+            let fresh0 = &mut (*duration.offset(j as isize));
             *fresh0 = (*fresh0).wrapping_add(1);
             *fresh0;
         } else {
@@ -147,19 +147,19 @@ unsafe extern "C" fn HTS_set_specified_duration(
             }
             sum = sum.wrapping_sub(1);
             sum;
-            let ref mut fresh1 = *duration.offset(j as isize);
+            let fresh1 = &mut (*duration.offset(j as isize));
             *fresh1 = (*fresh1).wrapping_sub(1);
             *fresh1;
         }
     }
-    return target_length as libc::c_double;
+    target_length as libc::c_double
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_initialize(mut sss: *mut HTS_SStreamSet) {
     (*sss).nstream = 0 as libc::c_int as size_t;
     (*sss).nstate = 0 as libc::c_int as size_t;
-    (*sss).sstream = 0 as *mut HTS_SStream;
-    (*sss).duration = 0 as *mut size_t;
+    (*sss).sstream = std::ptr::null_mut::<HTS_SStream>();
+    (*sss).duration = std::ptr::null_mut::<size_t>();
     (*sss).total_state = 0 as libc::c_int as size_t;
     (*sss).total_frame = 0 as libc::c_int as size_t;
 }
@@ -180,9 +180,9 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
     let mut temp: libc::c_double = 0.;
     let mut shift: libc::c_int = 0;
     let mut state: size_t = 0;
-    let mut sst: *mut HTS_SStream = 0 as *mut HTS_SStream;
-    let mut duration_mean: *mut libc::c_double = 0 as *mut libc::c_double;
-    let mut duration_vari: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut sst: *mut HTS_SStream = std::ptr::null_mut::<HTS_SStream>();
+    let mut duration_mean: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
+    let mut duration_vari: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     let mut frame_length: libc::c_double = 0.;
     let mut next_time: size_t = 0;
     let mut next_state: size_t = 0;
@@ -280,16 +280,16 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
         } else {
-            (*sst).msd = 0 as *mut libc::c_double;
+            (*sst).msd = std::ptr::null_mut::<libc::c_double>();
         }
         j = 0 as libc::c_int as size_t;
         while j < (*sss).total_state {
-            let ref mut fresh2 = *((*sst).mean).offset(j as isize);
+            let fresh2 = &mut (*((*sst).mean).offset(j as isize));
             *fresh2 = HTS_calloc(
                 (*sst).vector_length * HTS_ModelSet_get_window_size(ms, i),
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
-            let ref mut fresh3 = *((*sst).vari).offset(j as isize);
+            let fresh3 = &mut (*((*sst).vari).offset(j as isize));
             *fresh3 = HTS_calloc(
                 (*sst).vector_length * HTS_ModelSet_get_window_size(ms, i),
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
@@ -309,7 +309,7 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
                 j;
             }
         } else {
-            (*sst).gv_switch = 0 as *mut HTS_Boolean;
+            (*sst).gv_switch = std::ptr::null_mut::<HTS_Boolean>();
         }
         i = i.wrapping_add(1);
         i;
@@ -423,7 +423,7 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
                         parameter_iw as *const *const libc::c_double,
                         *((*sst).mean).offset(state as isize),
                         *((*sst).vari).offset(state as isize),
-                        0 as *mut libc::c_double,
+                        std::ptr::null_mut::<libc::c_double>(),
                     );
                 }
                 k = k.wrapping_add(1);
@@ -462,20 +462,20 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
             if *((*sst).win_l_width).offset(j as isize) + *((*sst).win_r_width).offset(j as isize)
                 == 0 as libc::c_int
             {
-                let ref mut fresh4 = *((*sst).win_coefficient).offset(j as isize);
+                let fresh4 = &mut (*((*sst).win_coefficient).offset(j as isize));
                 *fresh4 = HTS_calloc(
                     (-(2 as libc::c_int) * *((*sst).win_l_width).offset(j as isize)
                         + 1 as libc::c_int) as size_t,
                     ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
                 ) as *mut libc::c_double;
             } else {
-                let ref mut fresh5 = *((*sst).win_coefficient).offset(j as isize);
+                let fresh5 = &mut (*((*sst).win_coefficient).offset(j as isize));
                 *fresh5 = HTS_calloc(
                     (-(2 as libc::c_int) * *((*sst).win_l_width).offset(j as isize)) as size_t,
                     ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
                 ) as *mut libc::c_double;
             }
-            let ref mut fresh6 = *((*sst).win_coefficient).offset(j as isize);
+            let fresh6 = &mut (*((*sst).win_coefficient).offset(j as isize));
             *fresh6 = (*fresh6).offset(-(*((*sst).win_l_width).offset(j as isize) as isize));
             shift = *((*sst).win_l_width).offset(j as isize);
             while shift <= *((*sst).win_r_width).offset(j as isize) {
@@ -511,8 +511,8 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
                 (*sst).gv_vari,
             );
         } else {
-            (*sst).gv_mean = 0 as *mut libc::c_double;
-            (*sst).gv_vari = 0 as *mut libc::c_double;
+            (*sst).gv_mean = std::ptr::null_mut::<libc::c_double>();
+            (*sst).gv_vari = std::ptr::null_mut::<libc::c_double>();
         }
         i = i.wrapping_add(1);
         i;
@@ -541,37 +541,37 @@ pub unsafe extern "C" fn HTS_SStreamSet_create(
         i = i.wrapping_add(1);
         i;
     }
-    return 1 as libc::c_int as HTS_Boolean;
+    1 as libc::c_int as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_nstream(mut sss: *mut HTS_SStreamSet) -> size_t {
-    return (*sss).nstream;
+    (*sss).nstream
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_vector_length(
     mut sss: *mut HTS_SStreamSet,
     mut stream_index: size_t,
 ) -> size_t {
-    return (*((*sss).sstream).offset(stream_index as isize)).vector_length;
+    (*((*sss).sstream).offset(stream_index as isize)).vector_length
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_is_msd(
     mut sss: *mut HTS_SStreamSet,
     mut stream_index: size_t,
 ) -> HTS_Boolean {
-    return (if !((*((*sss).sstream).offset(stream_index as isize)).msd).is_null() {
+    (if !((*((*sss).sstream).offset(stream_index as isize)).msd).is_null() {
         1 as libc::c_int
     } else {
         0 as libc::c_int
-    }) as HTS_Boolean;
+    }) as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_total_state(mut sss: *mut HTS_SStreamSet) -> size_t {
-    return (*sss).total_state;
+    (*sss).total_state
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_total_frame(mut sss: *mut HTS_SStreamSet) -> size_t {
-    return (*sss).total_frame;
+    (*sss).total_frame
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_msd(
@@ -579,14 +579,14 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_msd(
     mut stream_index: size_t,
     mut state_index: size_t,
 ) -> libc::c_double {
-    return *((*((*sss).sstream).offset(stream_index as isize)).msd).offset(state_index as isize);
+    *((*((*sss).sstream).offset(stream_index as isize)).msd).offset(state_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_window_size(
     mut sss: *mut HTS_SStreamSet,
     mut stream_index: size_t,
 ) -> size_t {
-    return (*((*sss).sstream).offset(stream_index as isize)).win_size;
+    (*((*sss).sstream).offset(stream_index as isize)).win_size
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_window_left_width(
@@ -594,8 +594,8 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_window_left_width(
     mut stream_index: size_t,
     mut window_index: size_t,
 ) -> libc::c_int {
-    return *((*((*sss).sstream).offset(stream_index as isize)).win_l_width)
-        .offset(window_index as isize);
+    *((*((*sss).sstream).offset(stream_index as isize)).win_l_width)
+        .offset(window_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_window_right_width(
@@ -603,8 +603,8 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_window_right_width(
     mut stream_index: size_t,
     mut window_index: size_t,
 ) -> libc::c_int {
-    return *((*((*sss).sstream).offset(stream_index as isize)).win_r_width)
-        .offset(window_index as isize);
+    *((*((*sss).sstream).offset(stream_index as isize)).win_r_width)
+        .offset(window_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_window_coefficient(
@@ -613,34 +613,34 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_window_coefficient(
     mut window_index: size_t,
     mut coefficient_index: libc::c_int,
 ) -> libc::c_double {
-    return *(*((*((*sss).sstream).offset(stream_index as isize)).win_coefficient)
+    *(*((*((*sss).sstream).offset(stream_index as isize)).win_coefficient)
         .offset(window_index as isize))
-    .offset(coefficient_index as isize);
+    .offset(coefficient_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_window_max_width(
     mut sss: *mut HTS_SStreamSet,
     mut stream_index: size_t,
 ) -> size_t {
-    return (*((*sss).sstream).offset(stream_index as isize)).win_max_width;
+    (*((*sss).sstream).offset(stream_index as isize)).win_max_width
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_use_gv(
     mut sss: *mut HTS_SStreamSet,
     mut stream_index: size_t,
 ) -> HTS_Boolean {
-    return (if !((*((*sss).sstream).offset(stream_index as isize)).gv_mean).is_null() {
+    (if !((*((*sss).sstream).offset(stream_index as isize)).gv_mean).is_null() {
         1 as libc::c_int
     } else {
         0 as libc::c_int
-    }) as HTS_Boolean;
+    }) as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_duration(
     mut sss: *mut HTS_SStreamSet,
     mut state_index: size_t,
 ) -> size_t {
-    return *((*sss).duration).offset(state_index as isize);
+    *((*sss).duration).offset(state_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_mean(
@@ -649,9 +649,9 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_mean(
     mut state_index: size_t,
     mut vector_index: size_t,
 ) -> libc::c_double {
-    return *(*((*((*sss).sstream).offset(stream_index as isize)).mean)
+    *(*((*((*sss).sstream).offset(stream_index as isize)).mean)
         .offset(state_index as isize))
-    .offset(vector_index as isize);
+    .offset(vector_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_set_mean(
@@ -671,9 +671,9 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_vari(
     mut state_index: size_t,
     mut vector_index: size_t,
 ) -> libc::c_double {
-    return *(*((*((*sss).sstream).offset(stream_index as isize)).vari)
+    *(*((*((*sss).sstream).offset(stream_index as isize)).vari)
         .offset(state_index as isize))
-    .offset(vector_index as isize);
+    .offset(vector_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_set_vari(
@@ -692,8 +692,8 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_gv_mean(
     mut stream_index: size_t,
     mut vector_index: size_t,
 ) -> libc::c_double {
-    return *((*((*sss).sstream).offset(stream_index as isize)).gv_mean)
-        .offset(vector_index as isize);
+    *((*((*sss).sstream).offset(stream_index as isize)).gv_mean)
+        .offset(vector_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_get_gv_vari(
@@ -701,8 +701,8 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_gv_vari(
     mut stream_index: size_t,
     mut vector_index: size_t,
 ) -> libc::c_double {
-    return *((*((*sss).sstream).offset(stream_index as isize)).gv_vari)
-        .offset(vector_index as isize);
+    *((*((*sss).sstream).offset(stream_index as isize)).gv_vari)
+        .offset(vector_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_set_gv_switch(
@@ -719,14 +719,14 @@ pub unsafe extern "C" fn HTS_SStreamSet_get_gv_switch(
     mut stream_index: size_t,
     mut state_index: size_t,
 ) -> HTS_Boolean {
-    return *((*((*sss).sstream).offset(stream_index as isize)).gv_switch)
-        .offset(state_index as isize);
+    *((*((*sss).sstream).offset(stream_index as isize)).gv_switch)
+        .offset(state_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_SStreamSet_clear(mut sss: *mut HTS_SStreamSet) {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
-    let mut sst: *mut HTS_SStream = 0 as *mut HTS_SStream;
+    let mut sst: *mut HTS_SStream = std::ptr::null_mut::<HTS_SStream>();
     if !((*sss).sstream).is_null() {
         i = 0 as libc::c_int as size_t;
         while i < (*sss).nstream {
@@ -745,7 +745,7 @@ pub unsafe extern "C" fn HTS_SStreamSet_clear(mut sss: *mut HTS_SStreamSet) {
             HTS_free((*sst).vari as *mut libc::c_void);
             j = 0 as libc::c_int as size_t;
             while j < (*sst).win_size {
-                let ref mut fresh7 = *((*sst).win_coefficient).offset(j as isize);
+                let fresh7 = &mut (*((*sst).win_coefficient).offset(j as isize));
                 *fresh7 = (*fresh7).offset(*((*sst).win_l_width).offset(j as isize) as isize);
                 HTS_free(*((*sst).win_coefficient).offset(j as isize) as *mut libc::c_void);
                 j = j.wrapping_add(1);

@@ -83,10 +83,10 @@ pub struct _HTS_Data {
 
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fopen_from_fn(
-    mut name: *const libc::c_char,
-    mut opt: *const libc::c_char,
+    name: *const libc::c_char,
+    opt: *const libc::c_char,
 ) -> *mut HTS_File {
-    let mut fp: *mut HTS_File = HTS_calloc(
+    let fp: *mut HTS_File = HTS_calloc(
         1 as libc::c_int as size_t,
         ::core::mem::size_of::<HTS_File>() as libc::c_ulong,
     ) as *mut HTS_File;
@@ -99,20 +99,20 @@ pub unsafe extern "C" fn HTS_fopen_from_fn(
             name,
         );
         HTS_free(fp as *mut libc::c_void);
-        return 0 as *mut HTS_File;
+        return std::ptr::null_mut::<HTS_File>();
     }
-    return fp;
+    fp
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fopen_from_fp(
-    mut fp: *mut HTS_File,
-    mut size: size_t,
+    fp: *mut HTS_File,
+    size: size_t,
 ) -> *mut HTS_File {
     if fp.is_null() || size == 0 as libc::c_int as size_t {
-        return 0 as *mut HTS_File;
+        return std::ptr::null_mut::<HTS_File>();
     } else if (*fp).type_0 as libc::c_int == 0 as libc::c_int {
-        let mut d: *mut HTS_Data = 0 as *mut HTS_Data;
-        let mut f: *mut HTS_File = 0 as *mut HTS_File;
+        let mut d: *mut HTS_Data = std::ptr::null_mut::<HTS_Data>();
+        let mut f: *mut HTS_File = std::ptr::null_mut::<HTS_File>();
         d = HTS_calloc(
             1 as libc::c_int as size_t,
             ::core::mem::size_of::<HTS_Data>() as libc::c_ulong,
@@ -132,7 +132,7 @@ pub unsafe extern "C" fn HTS_fopen_from_fp(
         {
             free((*d).data as *mut libc::c_void);
             free(d as *mut libc::c_void);
-            return 0 as *mut HTS_File;
+            return std::ptr::null_mut::<HTS_File>();
         }
         f = HTS_calloc(
             1 as libc::c_int as size_t,
@@ -142,12 +142,12 @@ pub unsafe extern "C" fn HTS_fopen_from_fp(
         (*f).pointer = d as *mut libc::c_void;
         return f;
     } else if (*fp).type_0 as libc::c_int == 1 as libc::c_int {
-        let mut f_0: *mut HTS_File = 0 as *mut HTS_File;
-        let mut tmp1: *mut HTS_Data = 0 as *mut HTS_Data;
-        let mut tmp2: *mut HTS_Data = 0 as *mut HTS_Data;
+        let mut f_0: *mut HTS_File = std::ptr::null_mut::<HTS_File>();
+        let mut tmp1: *mut HTS_Data = std::ptr::null_mut::<HTS_Data>();
+        let mut tmp2: *mut HTS_Data = std::ptr::null_mut::<HTS_Data>();
         tmp1 = (*fp).pointer as *mut HTS_Data;
         if ((*tmp1).index).wrapping_add(size) > (*tmp1).size {
-            return 0 as *mut HTS_File;
+            return std::ptr::null_mut::<HTS_File>();
         }
         tmp2 = HTS_calloc(
             1 as libc::c_int as size_t,
@@ -178,17 +178,17 @@ pub unsafe extern "C" fn HTS_fopen_from_fp(
         0 as libc::c_int,
         b"HTS_fopen_from_fp: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
-    return 0 as *mut HTS_File;
+    std::ptr::null_mut::<HTS_File>()
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fopen_from_data(
-    mut data: *mut libc::c_void,
-    mut size: size_t,
+    data: *mut libc::c_void,
+    size: size_t,
 ) -> *mut HTS_File {
-    let mut d: *mut HTS_Data = 0 as *mut HTS_Data;
-    let mut f: *mut HTS_File = 0 as *mut HTS_File;
+    let mut d: *mut HTS_Data = std::ptr::null_mut::<HTS_Data>();
+    let mut f: *mut HTS_File = std::ptr::null_mut::<HTS_File>();
     if data.is_null() || size == 0 as libc::c_int as size_t {
-        return 0 as *mut HTS_File;
+        return std::ptr::null_mut::<HTS_File>();
     }
     d = HTS_calloc(
         1 as libc::c_int as size_t,
@@ -207,12 +207,11 @@ pub unsafe extern "C" fn HTS_fopen_from_data(
     ) as *mut HTS_File;
     (*f).type_0 = 1 as libc::c_int as libc::c_uchar;
     (*f).pointer = d as *mut libc::c_void;
-    return f;
+    f
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_fclose(mut fp: *mut HTS_File) {
+pub unsafe extern "C" fn HTS_fclose(fp: *mut HTS_File) {
     if fp.is_null() {
-        return;
     } else if (*fp).type_0 as libc::c_int == 0 as libc::c_int {
         if !((*fp).pointer).is_null() {
             fclose((*fp).pointer as *mut FILE);
@@ -221,7 +220,7 @@ pub unsafe extern "C" fn HTS_fclose(mut fp: *mut HTS_File) {
         return;
     } else if (*fp).type_0 as libc::c_int == 1 as libc::c_int {
         if !((*fp).pointer).is_null() {
-            let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
+            let d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
             if !((*d).data).is_null() {
                 HTS_free((*d).data as *mut libc::c_void);
             }
@@ -236,13 +235,13 @@ pub unsafe extern "C" fn HTS_fclose(mut fp: *mut HTS_File) {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_fgetc(mut fp: *mut HTS_File) -> libc::c_int {
+pub unsafe extern "C" fn HTS_fgetc(fp: *mut HTS_File) -> libc::c_int {
     if fp.is_null() {
         return -(1 as libc::c_int);
     } else if (*fp).type_0 as libc::c_int == 0 as libc::c_int {
         return fgetc((*fp).pointer as *mut FILE);
     } else if (*fp).type_0 as libc::c_int == 1 as libc::c_int {
-        let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
+        let d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
         if (*d).size <= (*d).index {
             return -(1 as libc::c_int);
         }
@@ -254,16 +253,16 @@ pub unsafe extern "C" fn HTS_fgetc(mut fp: *mut HTS_File) -> libc::c_int {
         0 as libc::c_int,
         b"HTS_fgetc: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
-    return -(1 as libc::c_int);
+    -(1 as libc::c_int)
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_feof(mut fp: *mut HTS_File) -> libc::c_int {
+pub unsafe extern "C" fn HTS_feof(fp: *mut HTS_File) -> libc::c_int {
     if fp.is_null() {
         return 1 as libc::c_int;
     } else if (*fp).type_0 as libc::c_int == 0 as libc::c_int {
         return feof((*fp).pointer as *mut FILE);
     } else if (*fp).type_0 as libc::c_int == 1 as libc::c_int {
-        let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
+        let d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
         return if (*d).size <= (*d).index {
             1 as libc::c_int
         } else {
@@ -274,20 +273,20 @@ pub unsafe extern "C" fn HTS_feof(mut fp: *mut HTS_File) -> libc::c_int {
         0 as libc::c_int,
         b"HTS_feof: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
-    return 1 as libc::c_int;
+    1 as libc::c_int
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fseek(
-    mut fp: *mut HTS_File,
-    mut offset: libc::c_long,
-    mut origin: libc::c_int,
+    fp: *mut HTS_File,
+    offset: libc::c_long,
+    origin: libc::c_int,
 ) -> libc::c_int {
     if fp.is_null() {
         return 1 as libc::c_int;
     } else if (*fp).type_0 as libc::c_int == 0 as libc::c_int {
         return fseek((*fp).pointer as *mut FILE, offset, origin);
     } else if (*fp).type_0 as libc::c_int == 1 as libc::c_int {
-        let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
+        let d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
         if origin == 0 as libc::c_int {
             (*d).index = offset as size_t;
         } else if origin == 1 as libc::c_int {
@@ -303,10 +302,10 @@ pub unsafe extern "C" fn HTS_fseek(
         0 as libc::c_int,
         b"HTS_fseek: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
-    return 1 as libc::c_int;
+    1 as libc::c_int
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_ftell(mut fp: *mut HTS_File) -> size_t {
+pub unsafe extern "C" fn HTS_ftell(fp: *mut HTS_File) -> size_t {
     if fp.is_null() {
         return 0 as libc::c_int as size_t;
     } else if (*fp).type_0 as libc::c_int == 0 as libc::c_int {
@@ -320,20 +319,20 @@ pub unsafe extern "C" fn HTS_ftell(mut fp: *mut HTS_File) -> size_t {
         fgetpos((*fp).pointer as *mut FILE, &mut pos);
         return pos.__pos as size_t;
     } else if (*fp).type_0 as libc::c_int == 1 as libc::c_int {
-        let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
+        let d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
         return (*d).index;
     }
     HTS_error!(
         0 as libc::c_int,
         b"HTS_ftell: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
-    return 0 as libc::c_int as size_t;
+    0 as libc::c_int as size_t
 }
 unsafe extern "C" fn HTS_fread(
-    mut buf: *mut libc::c_void,
-    mut size: size_t,
-    mut n: size_t,
-    mut fp: *mut HTS_File,
+    buf: *mut libc::c_void,
+    size: size_t,
+    n: size_t,
+    fp: *mut HTS_File,
 ) -> size_t {
     if fp.is_null() || size == 0 as libc::c_int as size_t || n == 0 as libc::c_int as size_t {
         return 0 as libc::c_int as size_t;
@@ -341,13 +340,13 @@ unsafe extern "C" fn HTS_fread(
     if (*fp).type_0 as libc::c_int == 0 as libc::c_int {
         return fread(buf, size, n, (*fp).pointer as *mut FILE);
     } else if (*fp).type_0 as libc::c_int == 1 as libc::c_int {
-        let mut d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
+        let d: *mut HTS_Data = (*fp).pointer as *mut HTS_Data;
         let mut i: size_t = 0;
-        let mut length: size_t = size * n;
-        let mut c: *mut libc::c_uchar = buf as *mut libc::c_uchar;
+        let length: size_t = size * n;
+        let c: *mut libc::c_uchar = buf as *mut libc::c_uchar;
         i = 0 as libc::c_int as size_t;
         while i < length {
-            if !((*d).index < (*d).size) {
+            if (*d).index >= (*d).size {
                 break;
             }
             let fresh1 = (*d).index;
@@ -366,10 +365,10 @@ unsafe extern "C" fn HTS_fread(
         0 as libc::c_int,
         b"HTS_fread: Unknown file type.\n\0" as *const u8 as *const libc::c_char,
     );
-    return 0 as libc::c_int as size_t;
+    0 as libc::c_int as size_t
 }
-unsafe extern "C" fn HTS_byte_swap(mut p: *mut libc::c_void, mut size: size_t, mut block: size_t) {
-    let mut q: *mut libc::c_char = 0 as *mut libc::c_char;
+unsafe extern "C" fn HTS_byte_swap(p: *mut libc::c_void, size: size_t, block: size_t) {
+    let mut q: *mut libc::c_char = std::ptr::null_mut::<libc::c_char>();
     let mut tmp: libc::c_char = 0;
     let mut i: size_t = 0;
     let mut j: size_t = 0;
@@ -397,38 +396,38 @@ unsafe extern "C" fn HTS_byte_swap(mut p: *mut libc::c_void, mut size: size_t, m
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fread_big_endian(
-    mut buf: *mut libc::c_void,
-    mut size: size_t,
-    mut n: size_t,
-    mut fp: *mut HTS_File,
+    buf: *mut libc::c_void,
+    size: size_t,
+    n: size_t,
+    fp: *mut HTS_File,
 ) -> size_t {
-    let mut block: size_t = HTS_fread(buf, size, n, fp);
+    let block: size_t = HTS_fread(buf, size, n, fp);
     HTS_byte_swap(buf, size, block);
-    return block;
+    block
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fread_little_endian(
-    mut buf: *mut libc::c_void,
-    mut size: size_t,
-    mut n: size_t,
-    mut fp: *mut HTS_File,
+    buf: *mut libc::c_void,
+    size: size_t,
+    n: size_t,
+    fp: *mut HTS_File,
 ) -> size_t {
-    let mut block: size_t = HTS_fread(buf, size, n, fp);
-    return block;
+    let block: size_t = HTS_fread(buf, size, n, fp);
+    block
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_fwrite_little_endian(
-    mut buf: *const libc::c_void,
-    mut size: size_t,
-    mut n: size_t,
-    mut fp: *mut FILE,
+    buf: *const libc::c_void,
+    size: size_t,
+    n: size_t,
+    fp: *mut FILE,
 ) -> size_t {
-    return fwrite(buf, size, n, fp);
+    fwrite(buf, size, n, fp)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_get_pattern_token(
-    mut fp: *mut HTS_File,
-    mut buff: *mut libc::c_char,
+    fp: *mut HTS_File,
+    buff: *mut libc::c_char,
 ) -> HTS_Boolean {
     let mut c: libc::c_char = 0;
     let mut i: size_t = 0;
@@ -488,12 +487,12 @@ pub unsafe extern "C" fn HTS_get_pattern_token(
         }
     }
     *buff.offset(i as isize) = '\0' as i32 as libc::c_char;
-    return 1 as libc::c_int as HTS_Boolean;
+    1 as libc::c_int as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_get_token_from_fp(
-    mut fp: *mut HTS_File,
-    mut buff: *mut libc::c_char,
+    fp: *mut HTS_File,
+    buff: *mut libc::c_char,
 ) -> HTS_Boolean {
     let mut c: libc::c_char = 0;
     let mut i: size_t = 0;
@@ -530,13 +529,13 @@ pub unsafe extern "C" fn HTS_get_token_from_fp(
         }
     }
     *buff.offset(i as isize) = '\0' as i32 as libc::c_char;
-    return 1 as libc::c_int as HTS_Boolean;
+    1 as libc::c_int as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_get_token_from_fp_with_separator(
-    mut fp: *mut HTS_File,
-    mut buff: *mut libc::c_char,
-    mut separator: libc::c_char,
+    fp: *mut HTS_File,
+    buff: *mut libc::c_char,
+    separator: libc::c_char,
 ) -> HTS_Boolean {
     let mut c: libc::c_char = 0;
     let mut i: size_t = 0;
@@ -567,13 +566,13 @@ pub unsafe extern "C" fn HTS_get_token_from_fp_with_separator(
         }
     }
     *buff.offset(i as isize) = '\0' as i32 as libc::c_char;
-    return 1 as libc::c_int as HTS_Boolean;
+    1 as libc::c_int as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_get_token_from_string(
-    mut string: *const libc::c_char,
-    mut index: *mut size_t,
-    mut buff: *mut libc::c_char,
+    string: *const libc::c_char,
+    index: *mut size_t,
+    buff: *mut libc::c_char,
 ) -> HTS_Boolean {
     let mut c: libc::c_char = 0;
     let mut i: size_t = 0;
@@ -612,14 +611,14 @@ pub unsafe extern "C" fn HTS_get_token_from_string(
         i;
     }
     *buff.offset(i as isize) = '\0' as i32 as libc::c_char;
-    return 1 as libc::c_int as HTS_Boolean;
+    1 as libc::c_int as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_get_token_from_string_with_separator(
-    mut str: *const libc::c_char,
-    mut index: *mut size_t,
-    mut buff: *mut libc::c_char,
-    mut separator: libc::c_char,
+    str: *const libc::c_char,
+    index: *mut size_t,
+    buff: *mut libc::c_char,
+    separator: libc::c_char,
 ) -> HTS_Boolean {
     let mut c: libc::c_char = 0;
     let mut len: size_t = 0 as libc::c_int as size_t;
@@ -652,17 +651,17 @@ pub unsafe extern "C" fn HTS_get_token_from_string_with_separator(
     }
     *buff.offset(len as isize) = '\0' as i32 as libc::c_char;
     if len > 0 as libc::c_int as size_t {
-        return 1 as libc::c_int as HTS_Boolean;
+        1 as libc::c_int as HTS_Boolean
     } else {
-        return 0 as libc::c_int as HTS_Boolean;
-    };
+        0 as libc::c_int as HTS_Boolean
+    }
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_void {
-    let mut n: size_t = num * size;
-    let mut mem: *mut libc::c_void = 0 as *mut libc::c_void;
+    let n: size_t = num * size;
+    let mut mem: *mut libc::c_void = std::ptr::null_mut::<libc::c_void>();
     if n == 0 as libc::c_int as size_t {
-        return 0 as *mut libc::c_void;
+        return std::ptr::null_mut::<libc::c_void>();
     }
     mem = malloc(n);
     memset(mem, 0 as libc::c_int, n);
@@ -672,30 +671,30 @@ pub unsafe extern "C" fn HTS_calloc(num: size_t, size: size_t) -> *mut libc::c_v
             b"HTS_calloc: Cannot allocate memory.\n\0" as *const u8 as *const libc::c_char,
         );
     }
-    return mem;
+    mem
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_free(mut ptr: *mut libc::c_void) {
+pub unsafe extern "C" fn HTS_free(ptr: *mut libc::c_void) {
     free(ptr);
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_strdup(mut string: *const libc::c_char) -> *mut libc::c_char {
-    let mut buff: *mut libc::c_char = HTS_calloc(
+pub unsafe extern "C" fn HTS_strdup(string: *const libc::c_char) -> *mut libc::c_char {
+    let buff: *mut libc::c_char = HTS_calloc(
         (strlen(string)).wrapping_add(1 as libc::c_int as libc::c_ulong),
         ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
     ) as *mut libc::c_char;
     strcpy(buff, string);
-    return buff;
+    buff
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_alloc_matrix(
-    mut x: size_t,
-    mut y: size_t,
+    x: size_t,
+    y: size_t,
 ) -> *mut *mut libc::c_double {
     let mut i: size_t = 0;
-    let mut p: *mut *mut libc::c_double = 0 as *mut *mut libc::c_double;
+    let mut p: *mut *mut libc::c_double = std::ptr::null_mut::<*mut libc::c_double>();
     if x == 0 as libc::c_int as size_t || y == 0 as libc::c_int as size_t {
-        return 0 as *mut *mut libc::c_double;
+        return std::ptr::null_mut::<*mut libc::c_double>();
     }
     p = HTS_calloc(
         x,
@@ -703,16 +702,16 @@ pub unsafe extern "C" fn HTS_alloc_matrix(
     ) as *mut *mut libc::c_double;
     i = 0 as libc::c_int as size_t;
     while i < x {
-        let ref mut fresh9 = *p.offset(i as isize);
+        let fresh9 = &mut (*p.offset(i as isize));
         *fresh9 = HTS_calloc(y, ::core::mem::size_of::<libc::c_double>() as libc::c_ulong)
             as *mut libc::c_double;
         i = i.wrapping_add(1);
         i;
     }
-    return p;
+    p
 }
 #[no_mangle]
-pub unsafe extern "C" fn HTS_free_matrix(mut p: *mut *mut libc::c_double, mut x: size_t) {
+pub unsafe extern "C" fn HTS_free_matrix(p: *mut *mut libc::c_double, x: size_t) {
     let mut i: size_t = 0;
     i = 0 as libc::c_int as size_t;
     while i < x {

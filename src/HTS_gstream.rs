@@ -21,8 +21,8 @@ pub unsafe extern "C" fn HTS_GStreamSet_initialize(mut gss: *mut HTS_GStreamSet)
     (*gss).nstream = 0 as libc::c_int as size_t;
     (*gss).total_frame = 0 as libc::c_int as size_t;
     (*gss).total_nsample = 0 as libc::c_int as size_t;
-    (*gss).gstream = 0 as *mut HTS_GStream;
-    (*gss).gspeech = 0 as *mut libc::c_double;
+    (*gss).gstream = std::ptr::null_mut::<HTS_GStream>();
+    (*gss).gspeech = std::ptr::null_mut::<libc::c_double>();
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_create(
@@ -54,31 +54,31 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
         pitch_of_curr_point: 0.,
         pitch_counter: 0.,
         pitch_inc_per_point: 0.,
-        excite_ring_buff: 0 as *mut libc::c_double,
+        excite_ring_buff: std::ptr::null_mut::<libc::c_double>(),
         excite_buff_size: 0,
         excite_buff_index: 0,
         sw: 0,
         x: 0,
-        freqt_buff: 0 as *mut libc::c_double,
+        freqt_buff: std::ptr::null_mut::<libc::c_double>(),
         freqt_size: 0,
-        spectrum2en_buff: 0 as *mut libc::c_double,
+        spectrum2en_buff: std::ptr::null_mut::<libc::c_double>(),
         spectrum2en_size: 0,
         r1: 0.,
         r2: 0.,
         s: 0.,
-        postfilter_buff: 0 as *mut libc::c_double,
+        postfilter_buff: std::ptr::null_mut::<libc::c_double>(),
         postfilter_size: 0,
-        c: 0 as *mut libc::c_double,
-        cc: 0 as *mut libc::c_double,
-        cinc: 0 as *mut libc::c_double,
-        d1: 0 as *mut libc::c_double,
-        lsp2lpc_buff: 0 as *mut libc::c_double,
+        c: std::ptr::null_mut::<libc::c_double>(),
+        cc: std::ptr::null_mut::<libc::c_double>(),
+        cinc: std::ptr::null_mut::<libc::c_double>(),
+        d1: std::ptr::null_mut::<libc::c_double>(),
+        lsp2lpc_buff: std::ptr::null_mut::<libc::c_double>(),
         lsp2lpc_size: 0,
-        gc2gc_buff: 0 as *mut libc::c_double,
+        gc2gc_buff: std::ptr::null_mut::<libc::c_double>(),
         gc2gc_size: 0,
     };
     let mut nlpf: size_t = 0 as libc::c_int as size_t;
-    let mut lpf: *mut libc::c_double = 0 as *mut libc::c_double;
+    let mut lpf: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     if !((*gss).gstream).is_null() || !((*gss).gspeech).is_null() {
         HTS_error!(
             1 as libc::c_int,
@@ -98,14 +98,14 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     while i < (*gss).nstream {
         (*((*gss).gstream).offset(i as isize)).vector_length =
             HTS_PStreamSet_get_vector_length(pss, i);
-        let ref mut fresh0 = (*((*gss).gstream).offset(i as isize)).par;
+        let fresh0 = &mut (*((*gss).gstream).offset(i as isize)).par;
         *fresh0 = HTS_calloc(
             (*gss).total_frame,
             ::core::mem::size_of::<*mut libc::c_double>() as libc::c_ulong,
         ) as *mut *mut libc::c_double;
         j = 0 as libc::c_int as size_t;
         while j < (*gss).total_frame {
-            let ref mut fresh1 = *((*((*gss).gstream).offset(i as isize)).par).offset(j as isize);
+            let fresh1 = &mut (*((*((*gss).gstream).offset(i as isize)).par).offset(j as isize));
             *fresh1 = HTS_calloc(
                 (*((*gss).gstream).offset(i as isize)).vector_length,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
@@ -243,29 +243,29 @@ pub unsafe extern "C" fn HTS_GStreamSet_create(
     // if !audio.is_null() {
     //     HTS_Audio_flush(audio);
     // }
-    return 1 as libc::c_int as HTS_Boolean;
+    1 as libc::c_int as HTS_Boolean
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_get_total_nsamples(mut gss: *mut HTS_GStreamSet) -> size_t {
-    return (*gss).total_nsample;
+    (*gss).total_nsample
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_get_total_frame(mut gss: *mut HTS_GStreamSet) -> size_t {
-    return (*gss).total_frame;
+    (*gss).total_frame
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_get_vector_length(
     mut gss: *mut HTS_GStreamSet,
     mut stream_index: size_t,
 ) -> size_t {
-    return (*((*gss).gstream).offset(stream_index as isize)).vector_length;
+    (*((*gss).gstream).offset(stream_index as isize)).vector_length
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_get_speech(
     mut gss: *mut HTS_GStreamSet,
     mut sample_index: size_t,
 ) -> libc::c_double {
-    return *((*gss).gspeech).offset(sample_index as isize);
+    *((*gss).gspeech).offset(sample_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_get_parameter(
@@ -274,9 +274,9 @@ pub unsafe extern "C" fn HTS_GStreamSet_get_parameter(
     mut frame_index: size_t,
     mut vector_index: size_t,
 ) -> libc::c_double {
-    return *(*((*((*gss).gstream).offset(stream_index as isize)).par)
+    *(*((*((*gss).gstream).offset(stream_index as isize)).par)
         .offset(frame_index as isize))
-    .offset(vector_index as isize);
+    .offset(vector_index as isize)
 }
 #[no_mangle]
 pub unsafe extern "C" fn HTS_GStreamSet_clear(mut gss: *mut HTS_GStreamSet) {
