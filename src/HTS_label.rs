@@ -140,7 +140,7 @@ unsafe extern "C" fn HTS_Label_load(
             (*lstring).start = -1.0f64;
             (*lstring).end = -1.0f64;
         }
-        (*lstring).next = 0 as *mut _HTS_LabelString;
+        (*lstring).next = 0 as *mut HTS_LabelString;
         (*lstring).name = HTS_strdup(buff.as_mut_ptr());
     }
     HTS_Label_check_time(label);
@@ -237,7 +237,7 @@ pub unsafe extern "C" fn HTS_Label_load_from_strings(
             (*lstring).end = -1.0f64;
             (*lstring).name = HTS_strdup(*lines.offset(i as isize));
         }
-        (*lstring).next = 0 as *mut _HTS_LabelString;
+        (*lstring).next = 0 as *mut HTS_LabelString;
         i = i.wrapping_add(1);
         i;
     }
