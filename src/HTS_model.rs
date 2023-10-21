@@ -1006,22 +1006,24 @@ unsafe fn HTS_Model_get_index(
     };
 }
 
-pub unsafe fn HTS_ModelSet_initialize(mut ms: *mut HTS_ModelSet) {
-    (*ms).hts_voice_version = std::ptr::null_mut::<libc::c_char>();
-    (*ms).sampling_frequency = 0 as libc::c_int as size_t;
-    (*ms).frame_period = 0 as libc::c_int as size_t;
-    (*ms).num_voices = 0 as libc::c_int as size_t;
-    (*ms).num_states = 0 as libc::c_int as size_t;
-    (*ms).num_streams = 0 as libc::c_int as size_t;
-    (*ms).stream_type = std::ptr::null_mut::<libc::c_char>();
-    (*ms).fullcontext_format = std::ptr::null_mut::<libc::c_char>();
-    (*ms).fullcontext_version = std::ptr::null_mut::<libc::c_char>();
-    (*ms).gv_off_context = std::ptr::null_mut::<HTS_Question>();
-    (*ms).option = std::ptr::null_mut::<*mut libc::c_char>();
-    (*ms).duration = std::ptr::null_mut::<HTS_Model>();
-    (*ms).window = std::ptr::null_mut::<HTS_Window>();
-    (*ms).stream = std::ptr::null_mut::<*mut HTS_Model>();
-    (*ms).gv = std::ptr::null_mut::<*mut HTS_Model>();
+pub fn HTS_ModelSet_initialize() -> HTS_ModelSet {
+    HTS_ModelSet {
+        hts_voice_version: std::ptr::null_mut::<libc::c_char>(),
+        sampling_frequency: 0 as libc::c_int as size_t,
+        frame_period: 0 as libc::c_int as size_t,
+        num_voices: 0 as libc::c_int as size_t,
+        num_states: 0 as libc::c_int as size_t,
+        num_streams: 0 as libc::c_int as size_t,
+        stream_type: std::ptr::null_mut::<libc::c_char>(),
+        fullcontext_format: std::ptr::null_mut::<libc::c_char>(),
+        fullcontext_version: std::ptr::null_mut::<libc::c_char>(),
+        gv_off_context: std::ptr::null_mut::<HTS_Question>(),
+        option: std::ptr::null_mut::<*mut libc::c_char>(),
+        duration: std::ptr::null_mut::<HTS_Model>(),
+        window: std::ptr::null_mut::<HTS_Window>(),
+        stream: std::ptr::null_mut::<*mut HTS_Model>(),
+        gv: std::ptr::null_mut::<*mut HTS_Model>(),
+    }
 }
 
 pub unsafe fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
@@ -1095,7 +1097,6 @@ pub unsafe fn HTS_ModelSet_clear(mut ms: *mut HTS_ModelSet) {
         }
         free((*ms).gv as *mut libc::c_void);
     }
-    HTS_ModelSet_initialize(ms);
 }
 unsafe fn HTS_match_head_string(
     mut str: *const libc::c_char,
@@ -2746,7 +2747,7 @@ pub unsafe fn HTS_ModelSet_get_duration_index(
 pub unsafe fn HTS_ModelSet_get_duration(
     mut ms: *mut HTS_ModelSet,
     mut string: *const libc::c_char,
-    mut iw: *const libc::c_double,
+    mut iw: &Vec<f64>,
     mut mean: *mut libc::c_double,
     mut vari: *mut libc::c_double,
 ) {
@@ -2760,7 +2761,7 @@ pub unsafe fn HTS_ModelSet_get_duration(
     }
     i = 0 as libc::c_int as size_t;
     while i < (*ms).num_voices {
-        if *iw.offset(i as isize) != 0.0f64 {
+        if iw[i as usize] != 0.0f64 {
             HTS_Model_add_parameter(
                 &mut *((*ms).duration).offset(i as isize),
                 2 as libc::c_int as size_t,
@@ -2768,7 +2769,7 @@ pub unsafe fn HTS_ModelSet_get_duration(
                 mean,
                 vari,
                 std::ptr::null_mut::<libc::c_double>(),
-                *iw.offset(i as isize),
+                iw[i as usize],
             );
         }
         i = i.wrapping_add(1);
@@ -2798,7 +2799,7 @@ pub unsafe fn HTS_ModelSet_get_parameter(
     mut stream_index: size_t,
     mut state_index: size_t,
     mut string: *const libc::c_char,
-    mut iw: *const *const libc::c_double,
+    mut iw: &mut Vec<Vec<f64>>,
     mut mean: *mut libc::c_double,
     mut vari: *mut libc::c_double,
     mut msd: *mut libc::c_double,
@@ -2820,7 +2821,7 @@ pub unsafe fn HTS_ModelSet_get_parameter(
     }
     i = 0 as libc::c_int as size_t;
     while i < (*ms).num_voices {
-        if *(*iw.offset(i as isize)).offset(stream_index as isize) != 0.0f64 {
+        if iw[i as usize][stream_index as usize] != 0.0f64 {
             HTS_Model_add_parameter(
                 &mut *(*((*ms).stream).offset(i as isize)).offset(stream_index as isize),
                 state_index,
@@ -2828,7 +2829,7 @@ pub unsafe fn HTS_ModelSet_get_parameter(
                 mean,
                 vari,
                 msd,
-                *(*iw.offset(i as isize)).offset(stream_index as isize),
+                iw[i as usize][stream_index as usize],
             );
         }
         i = i.wrapping_add(1);
@@ -2856,7 +2857,7 @@ pub unsafe fn HTS_ModelSet_get_gv(
     mut ms: *mut HTS_ModelSet,
     mut stream_index: size_t,
     mut string: *const libc::c_char,
-    mut iw: *const *const libc::c_double,
+    mut iw: &Vec<Vec<f64>>,
     mut mean: *mut libc::c_double,
     mut vari: *mut libc::c_double,
 ) {
@@ -2872,7 +2873,7 @@ pub unsafe fn HTS_ModelSet_get_gv(
     }
     i = 0 as libc::c_int as size_t;
     while i < (*ms).num_voices {
-        if *(*iw.offset(i as isize)).offset(stream_index as isize) != 0.0f64 {
+        if iw[i as usize][stream_index as usize] != 0.0f64 {
             HTS_Model_add_parameter(
                 &mut *(*((*ms).gv).offset(i as isize)).offset(stream_index as isize),
                 2 as libc::c_int as size_t,
@@ -2880,7 +2881,7 @@ pub unsafe fn HTS_ModelSet_get_gv(
                 mean,
                 vari,
                 std::ptr::null_mut::<libc::c_double>(),
-                *(*iw.offset(i as isize)).offset(stream_index as isize),
+                iw[i as usize][stream_index as usize],
             );
         }
         i = i.wrapping_add(1);

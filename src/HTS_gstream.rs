@@ -1,4 +1,4 @@
-use crate::{util::*, HTS_error, HTS_PStreamSet, HTS_Vocoder};
+use crate::{util::*, HTS_PStreamSet, HTS_Vocoder, HTS_error};
 
 use crate::{
     HTS_PStreamSet_get_msd_flag, HTS_PStreamSet_get_nstream, HTS_PStreamSet_get_parameter,
@@ -21,26 +21,28 @@ pub struct HTS_GStreamSet {
     pub gspeech: *mut libc::c_double,
 }
 
-pub unsafe fn HTS_GStreamSet_initialize(gss: &mut HTS_GStreamSet) {
-    gss.nstream = 0 as libc::c_int as size_t;
-    gss.total_frame = 0 as libc::c_int as size_t;
-    gss.total_nsample = 0 as libc::c_int as size_t;
-    gss.gstream = std::ptr::null_mut::<HTS_GStream>();
-    gss.gspeech = std::ptr::null_mut::<libc::c_double>();
+pub fn HTS_GStreamSet_initialize() -> HTS_GStreamSet {
+    HTS_GStreamSet {
+        nstream: 0 as libc::c_int as size_t,
+        total_frame: 0 as libc::c_int as size_t,
+        total_nsample: 0 as libc::c_int as size_t,
+        gstream: std::ptr::null_mut::<HTS_GStream>(),
+        gspeech: std::ptr::null_mut::<libc::c_double>(),
+    }
 }
 
 pub unsafe fn HTS_GStreamSet_create(
     gss: &mut HTS_GStreamSet,
     pss: &mut HTS_PStreamSet,
     stage: size_t,
-    use_log_gain: HTS_Boolean,
+    use_log_gain: bool,
     sampling_rate: size_t,
     fperiod: size_t,
     alpha: libc::c_double,
     beta: libc::c_double,
-    stop: *mut HTS_Boolean,
+    stop: bool,
     volume: libc::c_double,
-) -> HTS_Boolean {
+) -> bool {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     let mut k: size_t = 0;
@@ -88,7 +90,7 @@ pub unsafe fn HTS_GStreamSet_create(
             b"HTS_GStreamSet_create: HTS_GStreamSet is not initialized.\n\0" as *const u8
                 as *const libc::c_char,
         );
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     gss.nstream = HTS_PStreamSet_get_nstream(pss);
     gss.total_frame = HTS_PStreamSet_get_total_frame(pss);
@@ -167,7 +169,7 @@ pub unsafe fn HTS_GStreamSet_create(
                 as *const libc::c_char,
         );
         HTS_GStreamSet_clear(gss);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     if HTS_PStreamSet_get_vector_length(pss, 1 as libc::c_int as size_t)
         != 1 as libc::c_int as size_t
@@ -178,7 +180,7 @@ pub unsafe fn HTS_GStreamSet_create(
                 as *const libc::c_char,
         );
         HTS_GStreamSet_clear(gss);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     if gss.nstream >= 3 as libc::c_int as size_t
         && (*(gss.gstream).offset(2 as libc::c_int as isize)).vector_length
@@ -191,14 +193,14 @@ pub unsafe fn HTS_GStreamSet_create(
                 as *const u8 as *const libc::c_char,
         );
         HTS_GStreamSet_clear(gss);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     HTS_Vocoder_initialize(
         &mut v,
         ((*(gss.gstream).offset(0 as libc::c_int as isize)).vector_length)
             .wrapping_sub(1 as libc::c_int as size_t),
         stage,
-        use_log_gain,
+        use_log_gain as i8,
         sampling_rate,
         fperiod,
     );
@@ -206,7 +208,7 @@ pub unsafe fn HTS_GStreamSet_create(
         nlpf = (*(gss.gstream).offset(2 as libc::c_int as isize)).vector_length;
     }
     i = 0 as libc::c_int as size_t;
-    while i < gss.total_frame && *stop as libc::c_int == 0 as libc::c_int {
+    while i < gss.total_frame && stop == false {
         j = i * fperiod;
         if gss.nstream >= 3 as libc::c_int as size_t {
             lpf = &mut *(*((*(gss.gstream).offset(2 as libc::c_int as isize)).par)
@@ -234,7 +236,7 @@ pub unsafe fn HTS_GStreamSet_create(
     // if !audio.is_null() {
     //     HTS_Audio_flush(audio);
     // }
-    1 as libc::c_int as HTS_Boolean
+    true
 }
 
 pub unsafe fn HTS_GStreamSet_get_total_nsamples(gss: &mut HTS_GStreamSet) -> size_t {
@@ -293,5 +295,4 @@ pub unsafe fn HTS_GStreamSet_clear(gss: &mut HTS_GStreamSet) {
     if !(gss.gspeech).is_null() {
         HTS_free(gss.gspeech as *mut libc::c_void);
     }
-    HTS_GStreamSet_initialize(gss);
 }

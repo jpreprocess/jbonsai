@@ -8,7 +8,7 @@
     unused_mut
 )]
 
-use crate::{util::*, HTS_error, HTS_ModelSet, HTS_Label};
+use crate::{util::*, HTS_Label, HTS_ModelSet, HTS_error};
 extern "C" {
     fn fabs(_: libc::c_double) -> libc::c_double;
 }
@@ -180,13 +180,15 @@ unsafe fn HTS_set_specified_duration(
     target_length as libc::c_double
 }
 
-pub unsafe fn HTS_SStreamSet_initialize(sss: &mut HTS_SStreamSet) {
-    sss.nstream = 0 as libc::c_int as size_t;
-    sss.nstate = 0 as libc::c_int as size_t;
-    sss.sstream = std::ptr::null_mut::<HTS_SStream>();
-    sss.duration = std::ptr::null_mut::<size_t>();
-    sss.total_state = 0 as libc::c_int as size_t;
-    sss.total_frame = 0 as libc::c_int as size_t;
+pub fn HTS_SStreamSet_initialize() -> HTS_SStreamSet {
+    HTS_SStreamSet {
+        nstream: 0 as libc::c_int as size_t,
+        nstate: 0 as libc::c_int as size_t,
+        sstream: std::ptr::null_mut::<HTS_SStream>(),
+        duration: std::ptr::null_mut::<size_t>(),
+        total_state: 0 as libc::c_int as size_t,
+        total_frame: 0 as libc::c_int as size_t,
+    }
 }
 
 pub unsafe fn HTS_SStreamSet_create(
@@ -195,9 +197,9 @@ pub unsafe fn HTS_SStreamSet_create(
     mut label: &mut HTS_Label,
     mut phoneme_alignment_flag: HTS_Boolean,
     mut speed: libc::c_double,
-    mut duration_iw: *mut libc::c_double,
-    mut parameter_iw: *mut *mut libc::c_double,
-    mut gv_iw: *mut *mut libc::c_double,
+    mut duration_iw: &mut Vec<f64>,
+    mut parameter_iw: &mut Vec<Vec<f64>>,
+    mut gv_iw: &mut Vec<Vec<f64>>,
 ) -> HTS_Boolean {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
@@ -214,7 +216,7 @@ pub unsafe fn HTS_SStreamSet_create(
     i = 0 as libc::c_int as size_t;
     temp = 0.0f64;
     while i < HTS_ModelSet_get_nvoices(ms) {
-        temp += *duration_iw.offset(i as isize);
+        temp += duration_iw[i as usize];
         i = i.wrapping_add(1);
     }
     if temp == 0.0f64 {
@@ -222,8 +224,8 @@ pub unsafe fn HTS_SStreamSet_create(
     } else if temp != 1.0f64 {
         i = 0 as libc::c_int as size_t;
         while i < HTS_ModelSet_get_nvoices(ms) {
-            if *duration_iw.offset(i as isize) != 0.0f64 {
-                *duration_iw.offset(i as isize) /= temp;
+            if duration_iw[i as usize] != 0.0f64 {
+                duration_iw[i as usize] /= temp;
             }
             i = i.wrapping_add(1);
         }
@@ -233,7 +235,7 @@ pub unsafe fn HTS_SStreamSet_create(
         j = 0 as libc::c_int as size_t;
         temp = 0.0f64;
         while j < HTS_ModelSet_get_nvoices(ms) {
-            temp += *(*parameter_iw.offset(j as isize)).offset(i as isize);
+            temp += parameter_iw[j as usize][i as usize];
             j = j.wrapping_add(1);
         }
         if temp == 0.0f64 {
@@ -241,8 +243,8 @@ pub unsafe fn HTS_SStreamSet_create(
         } else if temp != 1.0f64 {
             j = 0 as libc::c_int as size_t;
             while j < HTS_ModelSet_get_nvoices(ms) {
-                if *(*parameter_iw.offset(j as isize)).offset(i as isize) != 0.0f64 {
-                    *(*parameter_iw.offset(j as isize)).offset(i as isize) /= temp;
+                if parameter_iw[j as usize][i as usize] != 0.0f64 {
+                    parameter_iw[j as usize][i as usize] /= temp;
                 }
                 j = j.wrapping_add(1);
             }
@@ -251,7 +253,7 @@ pub unsafe fn HTS_SStreamSet_create(
             j = 0 as libc::c_int as size_t;
             temp = 0.0f64;
             while j < HTS_ModelSet_get_nvoices(ms) {
-                temp += *(*gv_iw.offset(j as isize)).offset(i as isize);
+                temp += gv_iw[j as usize][i as usize];
                 j = j.wrapping_add(1);
             }
             if temp == 0.0f64 {
@@ -259,8 +261,8 @@ pub unsafe fn HTS_SStreamSet_create(
             } else if temp != 1.0f64 {
                 j = 0 as libc::c_int as size_t;
                 while j < HTS_ModelSet_get_nvoices(ms) {
-                    if *(*gv_iw.offset(j as isize)).offset(i as isize) != 0.0f64 {
-                        *(*gv_iw.offset(j as isize)).offset(i as isize) /= temp;
+                    if gv_iw[j as usize][i as usize] != 0.0f64 {
+                        gv_iw[j as usize][i as usize] /= temp;
                     }
                     j = j.wrapping_add(1);
                 }
@@ -396,12 +398,7 @@ pub unsafe fn HTS_SStreamSet_create(
             frame_length,
         );
     } else {
-        HTS_set_default_duration(
-            sss.duration,
-            duration_mean,
-            duration_vari,
-            sss.total_state,
-        );
+        HTS_set_default_duration(sss.duration, duration_mean, duration_vari, sss.total_state);
     }
     HTS_free(duration_mean as *mut libc::c_void);
     HTS_free(duration_vari as *mut libc::c_void);
@@ -421,7 +418,7 @@ pub unsafe fn HTS_SStreamSet_create(
                         k,
                         j,
                         HTS_Label_get_string(label, i),
-                        parameter_iw as *const *const libc::c_double,
+                        &mut parameter_iw,
                         *((*sst).mean).offset(state as isize),
                         *((*sst).vari).offset(state as isize),
                         &mut *((*sst).msd).offset(state as isize),
@@ -432,7 +429,7 @@ pub unsafe fn HTS_SStreamSet_create(
                         k,
                         j,
                         HTS_Label_get_string(label, i),
-                        parameter_iw as *const *const libc::c_double,
+                        &mut parameter_iw,
                         *((*sst).mean).offset(state as isize),
                         *((*sst).vari).offset(state as isize),
                         std::ptr::null_mut::<libc::c_double>(),
@@ -511,7 +508,7 @@ pub unsafe fn HTS_SStreamSet_create(
                 ms,
                 i,
                 HTS_Label_get_string(label, 0 as libc::c_int as size_t),
-                gv_iw as *const *const libc::c_double,
+                &gv_iw,
                 (*sst).gv_mean,
                 (*sst).gv_vari,
             );
@@ -762,5 +759,4 @@ pub unsafe fn HTS_SStreamSet_clear(sss: &mut HTS_SStreamSet) {
     if !(sss.duration).is_null() {
         HTS_free(sss.duration as *mut libc::c_void);
     }
-    HTS_SStreamSet_initialize(sss);
 }

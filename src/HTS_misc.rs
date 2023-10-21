@@ -57,7 +57,7 @@ pub struct __mbstate_t {
     pub __count: libc::c_int,
     pub __value: C2RustUnnamed,
 }
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 #[repr(C)]
 pub union C2RustUnnamed {
     pub __wch: libc::c_uint,

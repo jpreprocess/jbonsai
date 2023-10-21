@@ -7,7 +7,7 @@
     unused_assignments,
     unused_mut
 )]
-use crate::{util::*, HTS_error, HTS_SStreamSet, HTS_SMatrices};
+use crate::{util::*, HTS_SMatrices, HTS_SStreamSet, HTS_error};
 extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
 }
@@ -22,7 +22,6 @@ use crate::{
     HTS_SStreamSet_get_window_size, HTS_SStreamSet_is_msd, HTS_SStreamSet_use_gv, HTS_alloc_matrix,
     HTS_calloc, HTS_free, HTS_free_matrix,
 };
-
 
 #[derive(Clone)]
 pub struct HTS_PStream {
@@ -48,7 +47,6 @@ pub struct HTS_PStreamSet {
     pub nstream: size_t,
     pub total_frame: size_t,
 }
-
 
 unsafe fn HTS_finv(x: libc::c_double) -> libc::c_double {
     if x >= 1.0e+19f64 {
@@ -157,9 +155,9 @@ unsafe fn HTS_PStream_forward_substitution(pst: &mut HTS_PStream) {
         *(pst.sm.g).offset(t as isize) = *(pst.sm.wum).offset(t as isize);
         i = 1 as libc::c_int as size_t;
         while i < pst.width && t >= i {
-            *(pst.sm.g).offset(t as isize) -=
-                *(*(pst.sm.wuw).offset(t.wrapping_sub(i) as isize)).offset(i as isize)
-                    * *(pst.sm.g).offset(t.wrapping_sub(i) as isize);
+            *(pst.sm.g).offset(t as isize) -= *(*(pst.sm.wuw).offset(t.wrapping_sub(i) as isize))
+                .offset(i as isize)
+                * *(pst.sm.g).offset(t.wrapping_sub(i) as isize);
             i = i.wrapping_add(1);
         }
         t = t.wrapping_add(1);
@@ -245,9 +243,7 @@ unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: size_t) -> l
         * vari
         * *(pst.gv_vari).offset(m as isize)
         * (vari - 2.0f64 * *(pst.gv_mean).offset(m as isize));
-    dv = -2.0f64
-        * *(pst.gv_vari).offset(m as isize)
-        * (vari - *(pst.gv_mean).offset(m as isize))
+    dv = -2.0f64 * *(pst.gv_vari).offset(m as isize) * (vari - *(pst.gv_mean).offset(m as isize))
         / pst.length as libc::c_double;
     t = 0 as libc::c_int as size_t;
     while t < pst.length {
@@ -294,9 +290,7 @@ unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: size_t) -> l
                 * (1.0f64
                     * w
                     * (-*(pst.sm.g).offset(t as isize) + *(pst.sm.wum).offset(t as isize))
-                    + 1.0f64
-                        * dv
-                        * (*(*(pst.par).offset(t as isize)).offset(m as isize) - mean));
+                    + 1.0f64 * dv * (*(*(pst.par).offset(t as isize)).offset(m as isize) - mean));
         } else {
             *(pst.sm.g).offset(t as isize) = 1.0f64 / h
                 * (1.0f64
@@ -359,10 +353,12 @@ unsafe fn HTS_PStream_mlpg(pst: &mut HTS_PStream) {
     }
 }
 
-pub unsafe fn HTS_PStreamSet_initialize(mut pss: &mut HTS_PStreamSet) {
-    pss.pstream = std::ptr::null_mut::<HTS_PStream>();
-    pss.nstream = 0 as libc::c_int as size_t;
-    pss.total_frame = 0 as libc::c_int as size_t;
+pub fn HTS_PStreamSet_initialize() -> HTS_PStreamSet {
+    HTS_PStreamSet {
+        pstream: std::ptr::null_mut::<HTS_PStream>(),
+        nstream: 0 as libc::c_int as size_t,
+        total_frame: 0 as libc::c_int as size_t,
+    }
 }
 
 pub unsafe fn HTS_PStreamSet_create(
@@ -370,7 +366,7 @@ pub unsafe fn HTS_PStreamSet_create(
     mut sss: &mut HTS_SStreamSet,
     mut msd_threshold: *mut libc::c_double,
     mut gv_weight: *mut libc::c_double,
-) -> HTS_Boolean {
+) -> bool {
     let mut i: size_t = 0;
     let mut j: size_t = 0;
     let mut k: size_t = 0;
@@ -387,7 +383,7 @@ pub unsafe fn HTS_PStreamSet_create(
             b"HTS_PstreamSet_create: HTS_PStreamSet should be clear.\n\0" as *const u8
                 as *const libc::c_char,
         );
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     pss.nstream = HTS_SStreamSet_get_nstream(sss);
     pss.pstream = HTS_calloc(
@@ -403,8 +399,7 @@ pub unsafe fn HTS_PStreamSet_create(
             state = 0 as libc::c_int as size_t;
             while state < HTS_SStreamSet_get_total_state(sss) {
                 if HTS_SStreamSet_get_msd(sss, i, state) > *msd_threshold.offset(i as isize) {
-                    pst.length =
-                        (pst.length).wrapping_add(HTS_SStreamSet_get_duration(sss, state));
+                    pst.length = (pst.length).wrapping_add(HTS_SStreamSet_get_duration(sss, state));
                 }
                 state = state.wrapping_add(1);
             }
@@ -441,10 +436,8 @@ pub unsafe fn HTS_PStreamSet_create(
             .wrapping_add(1 as libc::c_int as size_t);
         pst.win_size = HTS_SStreamSet_get_window_size(sss, i);
         if pst.length > 0 as libc::c_int as size_t {
-            pst.sm.mean =
-                HTS_alloc_matrix(pst.length, pst.vector_length * pst.win_size);
-            pst.sm.ivar =
-                HTS_alloc_matrix(pst.length, pst.vector_length * pst.win_size);
+            pst.sm.mean = HTS_alloc_matrix(pst.length, pst.vector_length * pst.win_size);
+            pst.sm.ivar = HTS_alloc_matrix(pst.length, pst.vector_length * pst.win_size);
             pst.sm.wum = HTS_calloc(
                 pst.length,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
@@ -470,8 +463,7 @@ pub unsafe fn HTS_PStreamSet_create(
         ) as *mut *mut libc::c_double;
         j = 0 as libc::c_int as size_t;
         while j < pst.win_size {
-            *(pst.win_l_width).offset(j as isize) =
-                HTS_SStreamSet_get_window_left_width(sss, i, j);
+            *(pst.win_l_width).offset(j as isize) = HTS_SStreamSet_get_window_left_width(sss, i, j);
             *(pst.win_r_width).offset(j as isize) =
                 HTS_SStreamSet_get_window_right_width(sss, i, j);
             if *(pst.win_l_width).offset(j as isize) + *(pst.win_r_width).offset(j as isize)
@@ -479,8 +471,8 @@ pub unsafe fn HTS_PStreamSet_create(
             {
                 let fresh0 = &mut (*(pst.win_coefficient).offset(j as isize));
                 *fresh0 = HTS_calloc(
-                    (-(2 as libc::c_int) * *(pst.win_l_width).offset(j as isize)
-                        + 1 as libc::c_int) as size_t,
+                    (-(2 as libc::c_int) * *(pst.win_l_width).offset(j as isize) + 1 as libc::c_int)
+                        as size_t,
                     ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
                 ) as *mut libc::c_double;
             } else {
@@ -597,8 +589,8 @@ pub unsafe fn HTS_PStreamSet_create(
                             l = 0 as libc::c_int as size_t;
                             while l < pst.vector_length {
                                 m = (pst.vector_length * k).wrapping_add(l);
-                                *(*(pst.sm.mean).offset(msd_frame as isize))
-                                    .offset(m as isize) = HTS_SStreamSet_get_mean(sss, i, state, m);
+                                *(*(pst.sm.mean).offset(msd_frame as isize)).offset(m as isize) =
+                                    HTS_SStreamSet_get_mean(sss, i, state, m);
                                 if not_bound as libc::c_int != 0 || k == 0 as libc::c_int as size_t
                                 {
                                     *(*(pst.sm.ivar).offset(msd_frame as isize))
@@ -664,7 +656,7 @@ pub unsafe fn HTS_PStreamSet_create(
         HTS_PStream_mlpg(pst);
         i = i.wrapping_add(1);
     }
-    1 as libc::c_int as HTS_Boolean
+    true
 }
 
 pub unsafe fn HTS_PStreamSet_get_nstream(mut pss: &mut HTS_PStreamSet) -> size_t {
@@ -780,5 +772,4 @@ pub unsafe fn HTS_PStreamSet_clear(mut pss: &mut HTS_PStreamSet) {
         }
         HTS_free(pss.pstream as *mut libc::c_void);
     }
-    HTS_PStreamSet_initialize(pss);
 }

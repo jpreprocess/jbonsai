@@ -29,10 +29,7 @@ mod tests {
 
     #[test]
     fn new() {
-        let mut htsengine = MaybeUninit::<HTS_Engine>::uninit();
-        unsafe {
-            HTS_Engine_initialize(&mut *htsengine.as_mut_ptr());
-        }
+        HTS_Engine_initialize();
     }
 
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
@@ -49,13 +46,7 @@ mod tests {
 
     #[test]
     fn load() {
-        let mut htsengine = {
-            let mut htsengine = MaybeUninit::<HTS_Engine>::uninit();
-            unsafe {
-                HTS_Engine_initialize(&mut *htsengine.as_mut_ptr());
-                htsengine.assume_init()
-            }
-        };
+        let mut htsengine = HTS_Engine_initialize();
 
         let model_str = CString::new("models/nitech_jp_atr503_m001.htsvoice").unwrap();
         let voices = &[model_str.as_ptr() as *mut i8];
@@ -67,7 +58,6 @@ mod tests {
         let mut lines: Vec<*mut i8> = proto_lines.iter().map(|l| l.as_ptr() as *mut i8).collect();
 
         unsafe {
-            HTS_Engine_initialize(&mut htsengine);
             HTS_Engine_load(&mut htsengine, voices.as_ptr() as *mut *mut i8, 1);
             HTS_Engine_synthesize_from_strings(
                 &mut htsengine,

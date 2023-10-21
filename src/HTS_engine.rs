@@ -1,14 +1,14 @@
 use libc::FILE;
 
-use crate::{util::*, HTS_GStreamSet, HTS_PStreamSet, HTS_SStreamSet, HTS_ModelSet, HTS_Label};
+use crate::{util::*, HTS_GStreamSet, HTS_Label, HTS_ModelSet, HTS_PStreamSet, HTS_SStreamSet};
 
 extern "C" {
-    fn atof(__nptr: *const libc::c_char) -> libc::c_double;
+    fn atof(__nptr: *const libc::c_char) -> f64;
     fn atoi(__nptr: *const libc::c_char) -> libc::c_int;
     fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    fn exp(_: libc::c_double) -> libc::c_double;
-    fn log(_: libc::c_double) -> libc::c_double;
+    fn exp(_: f64) -> f64;
+    fn log(_: f64) -> f64;
     fn fprintf(_: *mut FILE, _: *const libc::c_char, _: ...) -> libc::c_int;
     fn fwrite(
         _: *const libc::c_void,
@@ -38,23 +38,22 @@ use crate::{
 
 #[derive(Clone)]
 pub struct HTS_Condition {
-    pub sampling_frequency: size_t,
-    pub fperiod: size_t,
-    pub audio_buff_size: size_t,
-    pub stop: HTS_Boolean,
-    pub volume: libc::c_double,
-    pub msd_threshold: *mut libc::c_double,
-    pub gv_weight: *mut libc::c_double,
-    pub phoneme_alignment_flag: HTS_Boolean,
-    pub speed: libc::c_double,
-    pub stage: size_t,
-    pub use_log_gain: HTS_Boolean,
-    pub alpha: libc::c_double,
-    pub beta: libc::c_double,
-    pub additional_half_tone: libc::c_double,
-    pub duration_iw: *mut libc::c_double,
-    pub parameter_iw: *mut *mut libc::c_double,
-    pub gv_iw: *mut *mut libc::c_double,
+    pub sampling_frequency: usize,
+    pub fperiod: usize,
+    pub stop: bool,
+    pub volume: f64,
+    pub msd_threshold: Vec<f64>,
+    pub gv_weight: Vec<f64>,
+    pub phoneme_alignment_flag: bool,
+    pub speed: f64,
+    pub stage: usize,
+    pub use_log_gain: bool,
+    pub alpha: f64,
+    pub beta: f64,
+    pub additional_half_tone: f64,
+    pub duration_iw: Vec<f64>,
+    pub parameter_iw: Vec<Vec<f64>>,
+    pub gv_iw: Vec<Vec<f64>>,
 }
 
 #[derive(Clone)]
@@ -67,249 +66,187 @@ pub struct HTS_Engine {
     pub gss: HTS_GStreamSet,
 }
 
-pub unsafe fn HTS_Engine_initialize(engine: &mut HTS_Engine) {
-    engine.condition.sampling_frequency = 0 as libc::c_int as size_t;
-    engine.condition.fperiod = 0 as libc::c_int as size_t;
-    engine.condition.audio_buff_size = 0 as libc::c_int as size_t;
-    engine.condition.stop = 0 as libc::c_int as HTS_Boolean;
-    engine.condition.volume = 1.0f64;
-    engine.condition.msd_threshold = std::ptr::null_mut::<libc::c_double>();
-    engine.condition.gv_weight = std::ptr::null_mut::<libc::c_double>();
-    engine.condition.speed = 1.0f64;
-    engine.condition.phoneme_alignment_flag = 0 as libc::c_int as HTS_Boolean;
-    engine.condition.stage = 0 as libc::c_int as size_t;
-    engine.condition.use_log_gain = 0 as libc::c_int as HTS_Boolean;
-    engine.condition.alpha = 0.0f64;
-    engine.condition.beta = 0.0f64;
-    engine.condition.additional_half_tone = 0.0f64;
-    engine.condition.duration_iw = std::ptr::null_mut::<libc::c_double>();
-    engine.condition.parameter_iw = std::ptr::null_mut::<*mut libc::c_double>();
-    engine.condition.gv_iw = std::ptr::null_mut::<*mut libc::c_double>();
-    // HTS_Audio_initialize(&mut engine.audio);
-    HTS_ModelSet_initialize(&mut engine.ms);
-    HTS_Label_initialize(&mut engine.label);
-    HTS_SStreamSet_initialize(&mut engine.sss);
-    HTS_PStreamSet_initialize(&mut engine.pss);
-    HTS_GStreamSet_initialize(&mut engine.gss);
+pub fn HTS_Engine_initialize() -> HTS_Engine {
+    let condition = HTS_Condition {
+        sampling_frequency: 0,
+        fperiod: 0,
+        stop: false,
+        volume: 1.0f64,
+        msd_threshold: Vec::new(),
+        gv_weight: Vec::new(),
+        speed: 1.0f64,
+        phoneme_alignment_flag: false,
+        stage: 0,
+        use_log_gain: false,
+        alpha: 0.0f64,
+        beta: 0.0f64,
+        additional_half_tone: 0.0f64,
+        duration_iw: Vec::new(),
+        parameter_iw: Vec::new(),
+        gv_iw: Vec::new(),
+    };
+
+    HTS_Engine {
+        condition,
+        ms: HTS_ModelSet_initialize(),
+        label: HTS_Label_initialize(),
+        sss: HTS_SStreamSet_initialize(),
+        pss: HTS_PStreamSet_initialize(),
+        gss: HTS_GStreamSet_initialize(),
+    }
 }
 
 pub unsafe fn HTS_Engine_load(
     engine: &mut HTS_Engine,
     voices: *mut *mut libc::c_char,
-    num_voices: size_t,
-) -> HTS_Boolean {
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
-    let mut nstream: size_t = 0;
-    let mut average_weight: libc::c_double = 0.;
+    num_voices: usize,
+) -> bool {
+    let mut nstream: usize = 0;
+    let mut average_weight: f64 = 0.;
     let mut option: *const libc::c_char = std::ptr::null::<libc::c_char>();
     let mut find: *const libc::c_char = std::ptr::null::<libc::c_char>();
+
+    /* reset engine */
     HTS_Engine_clear(engine);
-    if HTS_ModelSet_load(&mut engine.ms, voices, num_voices) as libc::c_int != 1 as libc::c_int {
+
+    /* load voices */
+    if HTS_ModelSet_load(&mut engine.ms, voices, num_voices as u64) as libc::c_int
+        != 1 as libc::c_int
+    {
         HTS_Engine_clear(engine);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
-    nstream = HTS_ModelSet_get_nstream(&mut engine.ms);
-    average_weight = 1.0f64 / num_voices as libc::c_double;
-    engine.condition.sampling_frequency = HTS_ModelSet_get_sampling_frequency(&mut engine.ms);
-    engine.condition.fperiod = HTS_ModelSet_get_fperiod(&mut engine.ms);
-    engine.condition.msd_threshold = HTS_calloc(
-        nstream,
-        ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
-    ) as *mut libc::c_double;
-    i = 0 as libc::c_int as size_t;
-    while i < nstream {
-        *(engine.condition.msd_threshold).offset(i as isize) = 0.5f64;
-        i = i.wrapping_add(1);
-    }
-    engine.condition.gv_weight = HTS_calloc(
-        nstream,
-        ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
-    ) as *mut libc::c_double;
-    i = 0 as libc::c_int as size_t;
-    while i < nstream {
-        *(engine.condition.gv_weight).offset(i as isize) = 1.0f64;
-        i = i.wrapping_add(1);
-    }
-    option = HTS_ModelSet_get_option(&mut engine.ms, 0 as libc::c_int as size_t);
+    nstream = HTS_ModelSet_get_nstream(&mut engine.ms) as usize;
+    average_weight = 1.0f64 / num_voices as f64;
+
+    /* global */
+    engine.condition.sampling_frequency =
+        HTS_ModelSet_get_sampling_frequency(&mut engine.ms) as usize;
+    engine.condition.fperiod = HTS_ModelSet_get_fperiod(&mut engine.ms) as usize;
+    engine.condition.msd_threshold = (0..nstream).into_iter().map(|_| 0.5).collect();
+    engine.condition.gv_weight = (0..nstream).into_iter().map(|_| 1.0).collect();
+
+    /* spectrum */
+    option = HTS_ModelSet_get_option(&mut engine.ms, 0);
     find = strstr(option, b"GAMMA=\0" as *const u8 as *const libc::c_char);
     if !find.is_null() {
         engine.condition.stage =
             atoi(&*find.offset((strlen)(b"GAMMA=\0" as *const u8 as *const libc::c_char) as isize))
-                as size_t;
+                as usize;
     }
     find = strstr(option, b"LN_GAIN=\0" as *const u8 as *const libc::c_char);
     if !find.is_null() {
-        engine.condition.use_log_gain = (if atoi(
+        engine.condition.use_log_gain = if atoi(
             &*find.offset(strlen(b"LN_GAIN=\0" as *const u8 as *const libc::c_char) as isize),
         ) == 1 as libc::c_int
         {
-            1 as libc::c_int
+            true
         } else {
-            0 as libc::c_int
-        }) as HTS_Boolean;
+            false
+        };
     }
     find = strstr(option, b"ALPHA=\0" as *const u8 as *const libc::c_char);
     if !find.is_null() {
         engine.condition.alpha =
             atof(&*find.offset(strlen(b"ALPHA=\0" as *const u8 as *const libc::c_char) as isize));
     }
-    engine.condition.duration_iw = HTS_calloc(
-        num_voices,
-        ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
-    ) as *mut libc::c_double;
-    i = 0 as libc::c_int as size_t;
-    while i < num_voices {
-        *(engine.condition.duration_iw).offset(i as isize) = average_weight;
-        i = i.wrapping_add(1);
-    }
-    engine.condition.parameter_iw = HTS_calloc(
-        num_voices,
-        ::core::mem::size_of::<*mut libc::c_double>() as libc::c_ulong,
-    ) as *mut *mut libc::c_double;
-    i = 0 as libc::c_int as size_t;
-    while i < num_voices {
-        let fresh0 = &mut (*(engine.condition.parameter_iw).offset(i as isize));
-        *fresh0 = HTS_calloc(
-            nstream,
-            ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
-        ) as *mut libc::c_double;
-        j = 0 as libc::c_int as size_t;
-        while j < nstream {
-            *(*(engine.condition.parameter_iw).offset(i as isize)).offset(j as isize) =
-                average_weight;
-            j = j.wrapping_add(1);
-        }
-        i = i.wrapping_add(1);
-    }
-    engine.condition.gv_iw = HTS_calloc(
-        num_voices,
-        ::core::mem::size_of::<*mut libc::c_double>() as libc::c_ulong,
-    ) as *mut *mut libc::c_double;
-    i = 0 as libc::c_int as size_t;
-    while i < num_voices {
-        let fresh1 = &mut (*(engine.condition.gv_iw).offset(i as isize));
-        *fresh1 = HTS_calloc(
-            nstream,
-            ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
-        ) as *mut libc::c_double;
-        j = 0 as libc::c_int as size_t;
-        while j < nstream {
-            *(*(engine.condition.gv_iw).offset(i as isize)).offset(j as isize) = average_weight;
-            j = j.wrapping_add(1);
-        }
-        i = i.wrapping_add(1);
-    }
-    1 as libc::c_int as HTS_Boolean
+
+    /* interpolation weights */
+    engine.condition.duration_iw = (0..num_voices)
+        .into_iter()
+        .map(|_| average_weight)
+        .collect();
+    engine.condition.parameter_iw = (0..num_voices)
+        .into_iter()
+        .map(|_| (0..nstream).into_iter().map(|_| average_weight).collect())
+        .collect();
+    engine.condition.gv_iw = (0..num_voices)
+        .into_iter()
+        .map(|_| (0..nstream).into_iter().map(|_| average_weight).collect())
+        .collect();
+
+    true
 }
 
-pub unsafe fn HTS_Engine_set_sampling_frequency(engine: &mut HTS_Engine, mut i: size_t) {
-    if i < 1 as libc::c_int as size_t {
-        i = 1 as libc::c_int as size_t;
+pub fn HTS_Engine_set_sampling_frequency(engine: &mut HTS_Engine, mut i: usize) {
+    if i < 1 {
+        i = 1;
     }
     engine.condition.sampling_frequency = i;
-    // HTS_Audio_set_parameter(
-    //     &mut engine.audio,
-    //     engine.condition.sampling_frequency,
-    //     engine.condition.audio_buff_size,
-    // );
 }
 
-pub unsafe fn HTS_Engine_get_sampling_frequency(engine: &mut HTS_Engine) -> size_t {
+pub fn HTS_Engine_get_sampling_frequency(engine: &mut HTS_Engine) -> usize {
     engine.condition.sampling_frequency
 }
 
-pub unsafe fn HTS_Engine_set_fperiod(engine: &mut HTS_Engine, mut i: size_t) {
-    if i < 1 as libc::c_int as size_t {
-        i = 1 as libc::c_int as size_t;
+pub fn HTS_Engine_set_fperiod(engine: &mut HTS_Engine, mut i: usize) {
+    if i < 1 {
+        i = 1;
     }
     engine.condition.fperiod = i;
 }
 
-pub unsafe fn HTS_Engine_get_fperiod(engine: &mut HTS_Engine) -> size_t {
+pub fn HTS_Engine_get_fperiod(engine: &mut HTS_Engine) -> usize {
     engine.condition.fperiod
 }
 
-pub unsafe fn HTS_Engine_set_audio_buff_size(engine: &mut HTS_Engine, i: size_t) {
-    engine.condition.audio_buff_size = i;
-    // HTS_Audio_set_parameter(
-    //     &mut engine.audio,
-    //     engine.condition.sampling_frequency,
-    //     engine.condition.audio_buff_size,
-    // );
-}
-
-pub unsafe fn HTS_Engine_get_audio_buff_size(engine: &mut HTS_Engine) -> size_t {
-    engine.condition.audio_buff_size
-}
-
-pub unsafe fn HTS_Engine_set_stop_flag(engine: &mut HTS_Engine, b: HTS_Boolean) {
+pub fn HTS_Engine_set_stop_flag(engine: &mut HTS_Engine, b: bool) {
     engine.condition.stop = b;
 }
 
-pub unsafe fn HTS_Engine_get_stop_flag(engine: &mut HTS_Engine) -> HTS_Boolean {
+pub fn HTS_Engine_get_stop_flag(engine: &mut HTS_Engine) -> bool {
     engine.condition.stop
 }
 
-pub unsafe fn HTS_Engine_set_volume(engine: &mut HTS_Engine, f: libc::c_double) {
+pub unsafe fn HTS_Engine_set_volume(engine: &mut HTS_Engine, f: f64) {
     engine.condition.volume = exp(f * DB);
 }
 
-pub unsafe fn HTS_Engine_get_volume(engine: &mut HTS_Engine) -> libc::c_double {
+pub unsafe fn HTS_Engine_get_volume(engine: &mut HTS_Engine) -> f64 {
     log(engine.condition.volume) / DB
 }
 
-pub unsafe fn HTS_Engine_set_msd_threshold(
+pub fn HTS_Engine_set_msd_threshold(
     engine: &mut HTS_Engine,
-    stream_index: size_t,
-    mut f: libc::c_double,
+    stream_index: usize,
+    mut f: f64,
 ) {
-    if f < 0.0f64 {
-        f = 0.0f64;
+    if f < 0.0 {
+        f = 0.0;
     }
-    if f > 1.0f64 {
-        f = 1.0f64;
+    if f > 1.0 {
+        f = 1.0;
     }
-    *(engine.condition.msd_threshold).offset(stream_index as isize) = f;
+    engine.condition.msd_threshold[stream_index] = f;
 }
 
-pub unsafe fn HTS_Engine_get_msd_threshold(
-    engine: &mut HTS_Engine,
-    stream_index: size_t,
-) -> libc::c_double {
-    *(engine.condition.msd_threshold).offset(stream_index as isize)
+pub fn HTS_Engine_get_msd_threshold(engine: &mut HTS_Engine, stream_index: usize) -> f64 {
+    engine.condition.msd_threshold[stream_index]
 }
 
-pub unsafe fn HTS_Engine_set_gv_weight(
-    engine: &mut HTS_Engine,
-    stream_index: size_t,
-    mut f: libc::c_double,
-) {
-    if f < 0.0f64 {
-        f = 0.0f64;
+pub fn HTS_Engine_set_gv_weight(engine: &mut HTS_Engine, stream_index: usize, mut f: f64) {
+    if f < 0.0 {
+        f = 0.0;
     }
-    *(engine.condition.gv_weight).offset(stream_index as isize) = f;
+    engine.condition.gv_weight[stream_index] = f;
 }
 
-pub unsafe fn HTS_Engine_get_gv_weight(
-    engine: &mut HTS_Engine,
-    stream_index: size_t,
-) -> libc::c_double {
-    *(engine.condition.gv_weight).offset(stream_index as isize)
+pub fn HTS_Engine_get_gv_weight(engine: &mut HTS_Engine, stream_index: usize) -> f64 {
+    engine.condition.gv_weight[stream_index]
 }
 
-pub unsafe fn HTS_Engine_set_speed(engine: &mut HTS_Engine, mut f: libc::c_double) {
+pub fn HTS_Engine_set_speed(engine: &mut HTS_Engine, mut f: f64) {
     if f < 1.0E-06f64 {
         f = 1.0E-06f64;
     }
     engine.condition.speed = f;
 }
 
-pub unsafe fn HTS_Engine_set_phoneme_alignment_flag(engine: &mut HTS_Engine, b: HTS_Boolean) {
+pub fn HTS_Engine_set_phoneme_alignment_flag(engine: &mut HTS_Engine, b: bool) {
     engine.condition.phoneme_alignment_flag = b;
 }
 
-pub unsafe fn HTS_Engine_set_alpha(engine: &mut HTS_Engine, mut f: libc::c_double) {
+pub fn HTS_Engine_set_alpha(engine: &mut HTS_Engine, mut f: f64) {
     if f < 0.0f64 {
         f = 0.0f64;
     }
@@ -319,11 +256,11 @@ pub unsafe fn HTS_Engine_set_alpha(engine: &mut HTS_Engine, mut f: libc::c_doubl
     engine.condition.alpha = f;
 }
 
-pub unsafe fn HTS_Engine_get_alpha(engine: &mut HTS_Engine) -> libc::c_double {
+pub fn HTS_Engine_get_alpha(engine: &mut HTS_Engine) -> f64 {
     engine.condition.alpha
 }
 
-pub unsafe fn HTS_Engine_set_beta(engine: &mut HTS_Engine, mut f: libc::c_double) {
+pub fn HTS_Engine_set_beta(engine: &mut HTS_Engine, mut f: f64) {
     if f < 0.0f64 {
         f = 0.0f64;
     }
@@ -333,62 +270,61 @@ pub unsafe fn HTS_Engine_set_beta(engine: &mut HTS_Engine, mut f: libc::c_double
     engine.condition.beta = f;
 }
 
-pub unsafe fn HTS_Engine_get_beta(engine: &mut HTS_Engine) -> libc::c_double {
+pub fn HTS_Engine_get_beta(engine: &mut HTS_Engine) -> f64 {
     engine.condition.beta
 }
 
-pub unsafe fn HTS_Engine_add_half_tone(engine: &mut HTS_Engine, f: libc::c_double) {
+pub fn HTS_Engine_add_half_tone(engine: &mut HTS_Engine, f: f64) {
     engine.condition.additional_half_tone = f;
 }
 
-pub unsafe fn HTS_Engine_set_duration_interpolation_weight(
+pub fn HTS_Engine_set_duration_interpolation_weight(
     engine: &mut HTS_Engine,
-    voice_index: size_t,
-    f: libc::c_double,
+    voice_index: usize,
+    f: f64,
 ) {
-    *(engine.condition.duration_iw).offset(voice_index as isize) = f;
+    engine.condition.duration_iw[voice_index] = f;
 }
 
-pub unsafe fn HTS_Engine_get_duration_interpolation_weight(
+pub fn HTS_Engine_get_duration_interpolation_weight(
     engine: &mut HTS_Engine,
-    voice_index: size_t,
-) -> libc::c_double {
-    *(engine.condition.duration_iw).offset(voice_index as isize)
+    voice_index: usize,
+) -> f64 {
+    engine.condition.duration_iw[voice_index]
 }
 
-pub unsafe fn HTS_Engine_set_parameter_interpolation_weight(
+pub fn HTS_Engine_set_parameter_interpolation_weight(
     engine: &mut HTS_Engine,
-    voice_index: size_t,
-    stream_index: size_t,
-    f: libc::c_double,
+    voice_index: usize,
+    stream_index: usize,
+    f: f64,
 ) {
-    *(*(engine.condition.parameter_iw).offset(voice_index as isize))
-        .offset(stream_index as isize) = f;
+    engine.condition.parameter_iw[voice_index][stream_index] = f;
 }
 
-pub unsafe fn HTS_Engine_get_parameter_interpolation_weight(
+pub fn HTS_Engine_get_parameter_interpolation_weight(
     engine: &mut HTS_Engine,
-    voice_index: size_t,
-    stream_index: size_t,
-) -> libc::c_double {
-    *(*(engine.condition.parameter_iw).offset(voice_index as isize)).offset(stream_index as isize)
+    voice_index: usize,
+    stream_index: usize,
+) -> f64 {
+    engine.condition.parameter_iw[voice_index][stream_index]
 }
 
-pub unsafe fn HTS_Engine_set_gv_interpolation_weight(
+pub fn HTS_Engine_set_gv_interpolation_weight(
     engine: &mut HTS_Engine,
-    voice_index: size_t,
-    stream_index: size_t,
-    f: libc::c_double,
+    voice_index: usize,
+    stream_index: usize,
+    f: f64,
 ) {
-    *(*(engine.condition.gv_iw).offset(voice_index as isize)).offset(stream_index as isize) = f;
+    engine.condition.gv_iw[voice_index][stream_index] = f;
 }
 
-pub unsafe fn HTS_Engine_get_gv_interpolation_weight(
+pub fn HTS_Engine_get_gv_interpolation_weight(
     engine: &mut HTS_Engine,
-    voice_index: size_t,
-    stream_index: size_t,
-) -> libc::c_double {
-    *(*(engine.condition.gv_iw).offset(voice_index as isize)).offset(stream_index as isize)
+    voice_index: usize,
+    stream_index: usize,
+) -> f64 {
+    engine.condition.gv_iw[voice_index][stream_index]
 }
 
 pub unsafe fn HTS_Engine_get_total_state(engine: &mut HTS_Engine) -> size_t {
@@ -400,7 +336,7 @@ pub unsafe fn HTS_Engine_set_state_mean(
     stream_index: size_t,
     state_index: size_t,
     vector_index: size_t,
-    f: libc::c_double,
+    f: f64,
 ) {
     HTS_SStreamSet_set_mean(&mut engine.sss, stream_index, state_index, vector_index, f);
 }
@@ -410,7 +346,7 @@ pub unsafe fn HTS_Engine_get_state_mean(
     stream_index: size_t,
     state_index: size_t,
     vector_index: size_t,
-) -> libc::c_double {
+) -> f64 {
     HTS_SStreamSet_get_mean(&mut engine.sss, stream_index, state_index, vector_index)
 }
 
@@ -458,35 +394,32 @@ pub unsafe fn HTS_Engine_get_generated_parameter(
     stream_index: size_t,
     frame_index: size_t,
     vector_index: size_t,
-) -> libc::c_double {
+) -> f64 {
     HTS_GStreamSet_get_parameter(&mut engine.gss, stream_index, frame_index, vector_index)
 }
 
-pub unsafe fn HTS_Engine_get_generated_speech(
-    engine: &mut HTS_Engine,
-    index: size_t,
-) -> libc::c_double {
+pub unsafe fn HTS_Engine_get_generated_speech(engine: &mut HTS_Engine, index: size_t) -> f64 {
     HTS_GStreamSet_get_speech(&mut engine.gss, index)
 }
-unsafe fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> HTS_Boolean {
+unsafe fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> bool {
     let mut i: size_t = 0;
     let mut state_index: size_t = 0;
     let mut model_index: size_t = 0;
-    let mut f: libc::c_double = 0.;
+    let mut f: f64 = 0.;
     if HTS_SStreamSet_create(
         &mut engine.sss,
         &mut engine.ms,
         &mut engine.label,
-        engine.condition.phoneme_alignment_flag,
+        engine.condition.phoneme_alignment_flag as i8,
         engine.condition.speed,
-        engine.condition.duration_iw,
-        engine.condition.parameter_iw,
-        engine.condition.gv_iw,
+        &mut engine.condition.duration_iw,
+        &mut engine.condition.parameter_iw,
+        &mut engine.condition.gv_iw,
     ) as libc::c_int
         != 1 as libc::c_int
     {
         HTS_Engine_refresh(engine);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     if engine.condition.additional_half_tone != 0.0f64 {
         state_index = 0 as libc::c_int as size_t;
@@ -520,18 +453,18 @@ unsafe fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> HTS_Boo
             i = i.wrapping_add(1);
         }
     }
-    1 as libc::c_int as HTS_Boolean
+    true
 }
 
 pub unsafe fn HTS_Engine_generate_state_sequence_from_fn(
     engine: &mut HTS_Engine,
     fn_0: *const libc::c_char,
-) -> HTS_Boolean {
+) -> bool {
     HTS_Engine_refresh(engine);
     HTS_Label_load_from_fn(
         &mut engine.label,
-        engine.condition.sampling_frequency,
-        engine.condition.fperiod,
+        engine.condition.sampling_frequency as u64,
+        engine.condition.fperiod as u64,
         fn_0,
     );
     HTS_Engine_generate_state_sequence(engine)
@@ -541,66 +474,66 @@ pub unsafe fn HTS_Engine_generate_state_sequence_from_strings(
     engine: &mut HTS_Engine,
     lines: *mut *mut libc::c_char,
     num_lines: size_t,
-) -> HTS_Boolean {
+) -> bool {
     HTS_Engine_refresh(engine);
     HTS_Label_load_from_strings(
         &mut engine.label,
-        engine.condition.sampling_frequency,
-        engine.condition.fperiod,
+        engine.condition.sampling_frequency as u64,
+        engine.condition.fperiod as u64,
         lines,
         num_lines,
     );
     HTS_Engine_generate_state_sequence(engine)
 }
 
-pub unsafe fn HTS_Engine_generate_parameter_sequence(engine: &mut HTS_Engine) -> HTS_Boolean {
+pub unsafe fn HTS_Engine_generate_parameter_sequence(engine: &mut HTS_Engine) -> bool {
     HTS_PStreamSet_create(
         &mut engine.pss,
         &mut engine.sss,
-        engine.condition.msd_threshold,
-        engine.condition.gv_weight,
+        engine.condition.msd_threshold.as_mut_ptr(),
+        engine.condition.gv_weight.as_mut_ptr(),
     )
 }
 
-pub unsafe fn HTS_Engine_generate_sample_sequence(engine: &mut HTS_Engine) -> HTS_Boolean {
+pub unsafe fn HTS_Engine_generate_sample_sequence(engine: &mut HTS_Engine) -> bool {
     HTS_GStreamSet_create(
         &mut engine.gss,
         &mut engine.pss,
-        engine.condition.stage,
+        engine.condition.stage as u64,
         engine.condition.use_log_gain,
-        engine.condition.sampling_frequency,
-        engine.condition.fperiod,
+        engine.condition.sampling_frequency as u64,
+        engine.condition.fperiod as u64,
         engine.condition.alpha,
         engine.condition.beta,
-        &mut engine.condition.stop,
+        engine.condition.stop,
         engine.condition.volume,
     )
 }
-unsafe fn HTS_Engine_synthesize(engine: &mut HTS_Engine) -> HTS_Boolean {
+unsafe fn HTS_Engine_synthesize(engine: &mut HTS_Engine) -> bool {
     if HTS_Engine_generate_state_sequence(engine) as libc::c_int != 1 as libc::c_int {
         HTS_Engine_refresh(engine);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     if HTS_Engine_generate_parameter_sequence(engine) as libc::c_int != 1 as libc::c_int {
         HTS_Engine_refresh(engine);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
     if HTS_Engine_generate_sample_sequence(engine) as libc::c_int != 1 as libc::c_int {
         HTS_Engine_refresh(engine);
-        return 0 as libc::c_int as HTS_Boolean;
+        return false;
     }
-    1 as libc::c_int as HTS_Boolean
+    true
 }
 
 pub unsafe fn HTS_Engine_synthesize_from_fn(
     engine: &mut HTS_Engine,
     fn_0: *const libc::c_char,
-) -> HTS_Boolean {
+) -> bool {
     HTS_Engine_refresh(engine);
     HTS_Label_load_from_fn(
         &mut engine.label,
-        engine.condition.sampling_frequency,
-        engine.condition.fperiod,
+        engine.condition.sampling_frequency as u64,
+        engine.condition.fperiod as u64,
         fn_0,
     );
     HTS_Engine_synthesize(engine)
@@ -610,12 +543,12 @@ pub unsafe fn HTS_Engine_synthesize_from_strings(
     engine: &mut HTS_Engine,
     lines: *mut *mut libc::c_char,
     num_lines: size_t,
-) -> HTS_Boolean {
+) -> bool {
     HTS_Engine_refresh(engine);
     HTS_Label_load_from_strings(
         &mut engine.label,
-        engine.condition.sampling_frequency,
-        engine.condition.fperiod,
+        engine.condition.sampling_frequency as u64,
+        engine.condition.fperiod as u64,
         lines,
         num_lines,
     );
@@ -623,384 +556,383 @@ pub unsafe fn HTS_Engine_synthesize_from_strings(
 }
 
 pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE) {
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
-    let mut k: size_t = 0;
-    let mut l: size_t = 0;
-    let mut m: size_t = 0;
-    let mut n: size_t = 0;
-    let mut temp: libc::c_double = 0.;
-    let condition: &mut HTS_Condition = &mut engine.condition;
-    let ms: &mut HTS_ModelSet = &mut engine.ms;
-    let label: &mut HTS_Label = &mut engine.label;
-    let sss = &mut engine.sss;
-    let pss = &mut engine.pss;
-    fprintf(
-        fp,
-        b"[Global parameter]\n\0" as *const u8 as *const libc::c_char,
-    );
-    fprintf(
-        fp,
-        b"Sampring frequency                     -> %8lu(Hz)\n\0" as *const u8
-            as *const libc::c_char,
-        condition.sampling_frequency,
-    );
-    fprintf(
-        fp,
-        b"Frame period                           -> %8lu(point)\n\0" as *const u8
-            as *const libc::c_char,
-        condition.fperiod,
-    );
-    fprintf(
-        fp,
-        b"                                          %8.5f(msec)\n\0" as *const u8
-            as *const libc::c_char,
-        1e+3f64 * condition.fperiod as libc::c_double
-            / condition.sampling_frequency as libc::c_double,
-    );
-    fprintf(
-        fp,
-        b"All-pass constant                      -> %8.5f\n\0" as *const u8 as *const libc::c_char,
-        condition.alpha as libc::c_float as libc::c_double,
-    );
-    fprintf(
-        fp,
-        b"Gamma                                  -> %8.5f\n\0" as *const u8 as *const libc::c_char,
-        (if condition.stage == 0 as libc::c_int as size_t {
-            0.0f64
-        } else {
-            -1.0f64 / condition.stage as libc::c_double
-        }) as libc::c_float as libc::c_double,
-    );
-    if condition.stage != 0 as libc::c_int as size_t {
-        if condition.use_log_gain as libc::c_int == 1 as libc::c_int {
-            fprintf(
-                fp,
-                b"Log gain flag                          ->     TRUE\n\0" as *const u8
-                    as *const libc::c_char,
-            );
-        } else {
-            fprintf(
-                fp,
-                b"Log gain flag                          ->    FALSE\n\0" as *const u8
-                    as *const libc::c_char,
-            );
-        }
-    }
-    fprintf(
-        fp,
-        b"Postfiltering coefficient              -> %8.5f\n\0" as *const u8 as *const libc::c_char,
-        condition.beta as libc::c_float as libc::c_double,
-    );
-    fprintf(
-        fp,
-        b"Audio buffer size                      -> %8lu(sample)\n\0" as *const u8
-            as *const libc::c_char,
-        condition.audio_buff_size,
-    );
-    fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
-    fprintf(
-        fp,
-        b"[Duration parameter]\n\0" as *const u8 as *const libc::c_char,
-    );
-    fprintf(
-        fp,
-        b"Number of states                       -> %8lu\n\0" as *const u8 as *const libc::c_char,
-        HTS_ModelSet_get_nstate(ms),
-    );
-    fprintf(
-        fp,
-        b"         Interpolation size            -> %8lu\n\0" as *const u8 as *const libc::c_char,
-        HTS_ModelSet_get_nvoices(ms),
-    );
-    i = 0 as libc::c_int as size_t;
-    temp = 0.0f64;
-    while i < HTS_ModelSet_get_nvoices(ms) {
-        temp += *(condition.duration_iw).offset(i as isize);
-        i = i.wrapping_add(1);
-    }
-    i = 0 as libc::c_int as size_t;
-    while i < HTS_ModelSet_get_nvoices(ms) {
-        if *(condition.duration_iw).offset(i as isize) != 0.0f64 {
-            *(condition.duration_iw).offset(i as isize) /= temp;
-        }
-        i = i.wrapping_add(1);
-    }
-    i = 0 as libc::c_int as size_t;
-    while i < HTS_ModelSet_get_nvoices(ms) {
-        fprintf(
-            fp,
-            b"         Interpolation weight[%2lu]      -> %8.0f(%%)\n\0" as *const u8
-                as *const libc::c_char,
-            i,
-            (100 as libc::c_int as libc::c_double * *(condition.duration_iw).offset(i as isize))
-                as libc::c_float as libc::c_double,
-        );
-        i = i.wrapping_add(1);
-    }
-    fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
-    fprintf(
-        fp,
-        b"[Stream parameter]\n\0" as *const u8 as *const libc::c_char,
-    );
-    i = 0 as libc::c_int as size_t;
-    while i < HTS_ModelSet_get_nstream(ms) {
-        fprintf(
-            fp,
-            b"Stream[%2lu] vector length               -> %8lu\n\0" as *const u8
-                as *const libc::c_char,
-            i,
-            HTS_ModelSet_get_vector_length(ms, i),
-        );
-        fprintf(
-            fp,
-            b"           Dynamic window size         -> %8lu\n\0" as *const u8
-                as *const libc::c_char,
-            HTS_ModelSet_get_window_size(ms, i),
-        );
-        fprintf(
-            fp,
-            b"           Interpolation size          -> %8lu\n\0" as *const u8
-                as *const libc::c_char,
-            HTS_ModelSet_get_nvoices(ms),
-        );
-        j = 0 as libc::c_int as size_t;
-        temp = 0.0f64;
-        while j < HTS_ModelSet_get_nvoices(ms) {
-            temp += *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize);
-            j = j.wrapping_add(1);
-        }
-        j = 0 as libc::c_int as size_t;
-        while j < HTS_ModelSet_get_nvoices(ms) {
-            if *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
-                *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize) /= temp;
-            }
-            j = j.wrapping_add(1);
-        }
-        j = 0 as libc::c_int as size_t;
-        while j < HTS_ModelSet_get_nvoices(ms) {
-            fprintf(
-                fp,
-                b"           Interpolation weight[%2lu]    -> %8.0f(%%)\n\0" as *const u8
-                    as *const libc::c_char,
-                j,
-                (100 as libc::c_int as libc::c_double
-                    * *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize))
-                    as libc::c_float as libc::c_double,
-            );
-            j = j.wrapping_add(1);
-        }
-        if HTS_ModelSet_is_msd(ms, i) != 0 {
-            fprintf(
-                fp,
-                b"           MSD flag                    ->     TRUE\n\0" as *const u8
-                    as *const libc::c_char,
-            );
-            fprintf(
-                fp,
-                b"           MSD threshold               -> %8.5f\n\0" as *const u8
-                    as *const libc::c_char,
-                *(condition.msd_threshold).offset(i as isize),
-            );
-        } else {
-            fprintf(
-                fp,
-                b"           MSD flag                    ->    FALSE\n\0" as *const u8
-                    as *const libc::c_char,
-            );
-        }
-        if HTS_ModelSet_use_gv(ms, i) != 0 {
-            fprintf(
-                fp,
-                b"           GV flag                     ->     TRUE\n\0" as *const u8
-                    as *const libc::c_char,
-            );
-            fprintf(
-                fp,
-                b"           GV weight                   -> %8.0f(%%)\n\0" as *const u8
-                    as *const libc::c_char,
-                (100 as libc::c_int as libc::c_double
-                    * *(condition.gv_weight).offset(i as isize)) as libc::c_float
-                    as libc::c_double,
-            );
-            fprintf(
-                fp,
-                b"           GV interpolation size       -> %8lu\n\0" as *const u8
-                    as *const libc::c_char,
-                HTS_ModelSet_get_nvoices(ms),
-            );
-            j = 0 as libc::c_int as size_t;
-            temp = 0.0f64;
-            while j < HTS_ModelSet_get_nvoices(ms) {
-                temp += *(*(condition.gv_iw).offset(j as isize)).offset(i as isize);
-                j = j.wrapping_add(1);
-            }
-            j = 0 as libc::c_int as size_t;
-            while j < HTS_ModelSet_get_nvoices(ms) {
-                if *(*(condition.gv_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
-                    *(*(condition.gv_iw).offset(j as isize)).offset(i as isize) /= temp;
-                }
-                j = j.wrapping_add(1);
-            }
-            j = 0 as libc::c_int as size_t;
-            while j < HTS_ModelSet_get_nvoices(ms) {
-                fprintf(
-                    fp,
-                    b"           GV interpolation weight[%2lu] -> %8.0f(%%)\n\0" as *const u8
-                        as *const libc::c_char,
-                    j,
-                    (100 as libc::c_int as libc::c_double
-                        * *(*(condition.gv_iw).offset(j as isize)).offset(i as isize))
-                        as libc::c_float as libc::c_double,
-                );
-                j = j.wrapping_add(1);
-            }
-        } else {
-            fprintf(
-                fp,
-                b"           GV flag                     ->    FALSE\n\0" as *const u8
-                    as *const libc::c_char,
-            );
-        }
-        i = i.wrapping_add(1);
-    }
-    fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
-    fprintf(
-        fp,
-        b"[Generated sequence]\n\0" as *const u8 as *const libc::c_char,
-    );
-    fprintf(
-        fp,
-        b"Number of HMMs                         -> %8lu\n\0" as *const u8 as *const libc::c_char,
-        HTS_Label_get_size(label),
-    );
-    fprintf(
-        fp,
-        b"Number of stats                        -> %8lu\n\0" as *const u8 as *const libc::c_char,
-        (HTS_Label_get_size(label)).wrapping_mul(HTS_ModelSet_get_nstate(ms)),
-    );
-    fprintf(
-        fp,
-        b"Length of this speech                  -> %8.3f(sec)\n\0" as *const u8
-            as *const libc::c_char,
-        (HTS_PStreamSet_get_total_frame(pss) as libc::c_double
-            * condition.fperiod as libc::c_double
-            / condition.sampling_frequency as libc::c_double) as libc::c_float
-            as libc::c_double,
-    );
-    fprintf(
-        fp,
-        b"                                       -> %8lu(frames)\n\0" as *const u8
-            as *const libc::c_char,
-        (HTS_PStreamSet_get_total_frame(pss)).wrapping_mul(condition.fperiod),
-    );
-    i = 0 as libc::c_int as size_t;
-    while i < HTS_Label_get_size(label) {
-        fprintf(fp, b"HMM[%2lu]\n\0" as *const u8 as *const libc::c_char, i);
-        fprintf(
-            fp,
-            b"  Name                                 -> %s\n\0" as *const u8 as *const libc::c_char,
-            HTS_Label_get_string(label, i),
-        );
-        fprintf(fp, b"  Duration\n\0" as *const u8 as *const libc::c_char);
-        j = 0 as libc::c_int as size_t;
-        while j < HTS_ModelSet_get_nvoices(ms) {
-            fprintf(
-                fp,
-                b"    Interpolation[%2lu]\n\0" as *const u8 as *const libc::c_char,
-                j,
-            );
-            HTS_ModelSet_get_duration_index(ms, j, HTS_Label_get_string(label, i), &mut k, &mut l);
-            fprintf(
-                fp,
-                b"      Tree index                       -> %8lu\n\0" as *const u8
-                    as *const libc::c_char,
-                k,
-            );
-            fprintf(
-                fp,
-                b"      PDF index                        -> %8lu\n\0" as *const u8
-                    as *const libc::c_char,
-                l,
-            );
-            j = j.wrapping_add(1);
-        }
-        j = 0 as libc::c_int as size_t;
-        while j < HTS_ModelSet_get_nstate(ms) {
-            fprintf(
-                fp,
-                b"  State[%2lu]\n\0" as *const u8 as *const libc::c_char,
-                j.wrapping_add(2 as libc::c_int as libc::c_ulong),
-            );
-            fprintf(
-                fp,
-                b"    Length                             -> %8lu(frames)\n\0" as *const u8
-                    as *const libc::c_char,
-                HTS_SStreamSet_get_duration(sss, (i * HTS_ModelSet_get_nstate(ms)).wrapping_add(j)),
-            );
-            k = 0 as libc::c_int as size_t;
-            while k < HTS_ModelSet_get_nstream(ms) {
-                fprintf(
-                    fp,
-                    b"    Stream[%2lu]\n\0" as *const u8 as *const libc::c_char,
-                    k,
-                );
-                if HTS_ModelSet_is_msd(ms, k) != 0 {
-                    if HTS_SStreamSet_get_msd(
-                        sss,
-                        k,
-                        (i * HTS_ModelSet_get_nstate(ms)).wrapping_add(j),
-                    ) > *(condition.msd_threshold).offset(k as isize)
-                    {
-                        fprintf(
-                            fp,
-                            b"      MSD flag                         ->     TRUE\n\0" as *const u8
-                                as *const libc::c_char,
-                        );
-                    } else {
-                        fprintf(
-                            fp,
-                            b"      MSD flag                         ->    FALSE\n\0" as *const u8
-                                as *const libc::c_char,
-                        );
-                    }
-                }
-                l = 0 as libc::c_int as size_t;
-                while l < HTS_ModelSet_get_nvoices(ms) {
-                    fprintf(
-                        fp,
-                        b"      Interpolation[%2lu]\n\0" as *const u8 as *const libc::c_char,
-                        l,
-                    );
-                    HTS_ModelSet_get_parameter_index(
-                        ms,
-                        l,
-                        k,
-                        j.wrapping_add(2 as libc::c_int as size_t),
-                        HTS_Label_get_string(label, i),
-                        &mut m,
-                        &mut n,
-                    );
-                    fprintf(
-                        fp,
-                        b"        Tree index                     -> %8lu\n\0" as *const u8
-                            as *const libc::c_char,
-                        m,
-                    );
-                    fprintf(
-                        fp,
-                        b"        PDF index                      -> %8lu\n\0" as *const u8
-                            as *const libc::c_char,
-                        n,
-                    );
-                    l = l.wrapping_add(1);
-                }
-                k = k.wrapping_add(1);
-            }
-            j = j.wrapping_add(1);
-        }
-        i = i.wrapping_add(1);
-    }
+    // let mut i: size_t = 0;
+    // let mut j: size_t = 0;
+    // let mut k: size_t = 0;
+    // let mut l: size_t = 0;
+    // let mut m: size_t = 0;
+    // let mut n: size_t = 0;
+    // let mut temp: f64 = 0.;
+    // let condition: &mut HTS_Condition = &mut engine.condition;
+    // let ms: &mut HTS_ModelSet = &mut engine.ms;
+    // let label: &mut HTS_Label = &mut engine.label;
+    // let sss = &mut engine.sss;
+    // let pss = &mut engine.pss;
+    // fprintf(
+    //     fp,
+    //     b"[Global parameter]\n\0" as *const u8 as *const libc::c_char,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Sampring frequency                     -> %8lu(Hz)\n\0" as *const u8
+    //         as *const libc::c_char,
+    //     condition.sampling_frequency,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Frame period                           -> %8lu(point)\n\0" as *const u8
+    //         as *const libc::c_char,
+    //     condition.fperiod,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"                                          %8.5f(msec)\n\0" as *const u8
+    //         as *const libc::c_char,
+    //     1e+3f64 * condition.fperiod as f64
+    //         / condition.sampling_frequency as f64,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"All-pass constant                      -> %8.5f\n\0" as *const u8 as *const libc::c_char,
+    //     condition.alpha as libc::c_float as f64,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Gamma                                  -> %8.5f\n\0" as *const u8 as *const libc::c_char,
+    //     (if condition.stage == 0 as libc::c_int as size_t {
+    //         0.0f64
+    //     } else {
+    //         -1.0f64 / condition.stage as f64
+    //     }) as libc::c_float as f64,
+    // );
+    // if condition.stage != 0 as libc::c_int as size_t {
+    //     if condition.use_log_gain as libc::c_int == 1 as libc::c_int {
+    //         fprintf(
+    //             fp,
+    //             b"Log gain flag                          ->     TRUE\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //         );
+    //     } else {
+    //         fprintf(
+    //             fp,
+    //             b"Log gain flag                          ->    FALSE\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //         );
+    //     }
+    // }
+    // fprintf(
+    //     fp,
+    //     b"Postfiltering coefficient              -> %8.5f\n\0" as *const u8 as *const libc::c_char,
+    //     condition.beta as libc::c_float as f64,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Audio buffer size                      -> %8lu(sample)\n\0" as *const u8
+    //         as *const libc::c_char,
+    //     condition.audio_buff_size,
+    // );
+    // fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
+    // fprintf(
+    //     fp,
+    //     b"[Duration parameter]\n\0" as *const u8 as *const libc::c_char,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Number of states                       -> %8lu\n\0" as *const u8 as *const libc::c_char,
+    //     HTS_ModelSet_get_nstate(ms),
+    // );
+    // fprintf(
+    //     fp,
+    //     b"         Interpolation size            -> %8lu\n\0" as *const u8 as *const libc::c_char,
+    //     HTS_ModelSet_get_nvoices(ms),
+    // );
+    // i = 0 as libc::c_int as size_t;
+    // temp = 0.0f64;
+    // while i < HTS_ModelSet_get_nvoices(ms) {
+    //     temp += *(condition.duration_iw).offset(i as isize);
+    //     i = i.wrapping_add(1);
+    // }
+    // i = 0 as libc::c_int as size_t;
+    // while i < HTS_ModelSet_get_nvoices(ms) {
+    //     if *(condition.duration_iw).offset(i as isize) != 0.0f64 {
+    //         *(condition.duration_iw).offset(i as isize) /= temp;
+    //     }
+    //     i = i.wrapping_add(1);
+    // }
+    // i = 0 as libc::c_int as size_t;
+    // while i < HTS_ModelSet_get_nvoices(ms) {
+    //     fprintf(
+    //         fp,
+    //         b"         Interpolation weight[%2lu]      -> %8.0f(%%)\n\0" as *const u8
+    //             as *const libc::c_char,
+    //         i,
+    //         (100 as libc::c_int as f64 * *(condition.duration_iw).offset(i as isize))
+    //             as libc::c_float as f64,
+    //     );
+    //     i = i.wrapping_add(1);
+    // }
+    // fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
+    // fprintf(
+    //     fp,
+    //     b"[Stream parameter]\n\0" as *const u8 as *const libc::c_char,
+    // );
+    // i = 0 as libc::c_int as size_t;
+    // while i < HTS_ModelSet_get_nstream(ms) {
+    //     fprintf(
+    //         fp,
+    //         b"Stream[%2lu] vector length               -> %8lu\n\0" as *const u8
+    //             as *const libc::c_char,
+    //         i,
+    //         HTS_ModelSet_get_vector_length(ms, i),
+    //     );
+    //     fprintf(
+    //         fp,
+    //         b"           Dynamic window size         -> %8lu\n\0" as *const u8
+    //             as *const libc::c_char,
+    //         HTS_ModelSet_get_window_size(ms, i),
+    //     );
+    //     fprintf(
+    //         fp,
+    //         b"           Interpolation size          -> %8lu\n\0" as *const u8
+    //             as *const libc::c_char,
+    //         HTS_ModelSet_get_nvoices(ms),
+    //     );
+    //     j = 0 as libc::c_int as size_t;
+    //     temp = 0.0f64;
+    //     while j < HTS_ModelSet_get_nvoices(ms) {
+    //         temp += *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize);
+    //         j = j.wrapping_add(1);
+    //     }
+    //     j = 0 as libc::c_int as size_t;
+    //     while j < HTS_ModelSet_get_nvoices(ms) {
+    //         if *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
+    //             *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize) /= temp;
+    //         }
+    //         j = j.wrapping_add(1);
+    //     }
+    //     j = 0 as libc::c_int as size_t;
+    //     while j < HTS_ModelSet_get_nvoices(ms) {
+    //         fprintf(
+    //             fp,
+    //             b"           Interpolation weight[%2lu]    -> %8.0f(%%)\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //             j,
+    //             (100 as libc::c_int as f64
+    //                 * *(*(condition.parameter_iw).offset(j as isize)).offset(i as isize))
+    //                 as libc::c_float as f64,
+    //         );
+    //         j = j.wrapping_add(1);
+    //     }
+    //     if HTS_ModelSet_is_msd(ms, i) != 0 {
+    //         fprintf(
+    //             fp,
+    //             b"           MSD flag                    ->     TRUE\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //         );
+    //         fprintf(
+    //             fp,
+    //             b"           MSD threshold               -> %8.5f\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //             *(condition.msd_threshold).offset(i as isize),
+    //         );
+    //     } else {
+    //         fprintf(
+    //             fp,
+    //             b"           MSD flag                    ->    FALSE\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //         );
+    //     }
+    //     if HTS_ModelSet_use_gv(ms, i) != 0 {
+    //         fprintf(
+    //             fp,
+    //             b"           GV flag                     ->     TRUE\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //         );
+    //         fprintf(
+    //             fp,
+    //             b"           GV weight                   -> %8.0f(%%)\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //             (100 as libc::c_int as f64 * *(condition.gv_weight).offset(i as isize))
+    //                 as libc::c_float as f64,
+    //         );
+    //         fprintf(
+    //             fp,
+    //             b"           GV interpolation size       -> %8lu\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //             HTS_ModelSet_get_nvoices(ms),
+    //         );
+    //         j = 0 as libc::c_int as size_t;
+    //         temp = 0.0f64;
+    //         while j < HTS_ModelSet_get_nvoices(ms) {
+    //             temp += *(*(condition.gv_iw).offset(j as isize)).offset(i as isize);
+    //             j = j.wrapping_add(1);
+    //         }
+    //         j = 0 as libc::c_int as size_t;
+    //         while j < HTS_ModelSet_get_nvoices(ms) {
+    //             if *(*(condition.gv_iw).offset(j as isize)).offset(i as isize) != 0.0f64 {
+    //                 *(*(condition.gv_iw).offset(j as isize)).offset(i as isize) /= temp;
+    //             }
+    //             j = j.wrapping_add(1);
+    //         }
+    //         j = 0 as libc::c_int as size_t;
+    //         while j < HTS_ModelSet_get_nvoices(ms) {
+    //             fprintf(
+    //                 fp,
+    //                 b"           GV interpolation weight[%2lu] -> %8.0f(%%)\n\0" as *const u8
+    //                     as *const libc::c_char,
+    //                 j,
+    //                 (100 as libc::c_int as f64
+    //                     * *(*(condition.gv_iw).offset(j as isize)).offset(i as isize))
+    //                     as libc::c_float as f64,
+    //             );
+    //             j = j.wrapping_add(1);
+    //         }
+    //     } else {
+    //         fprintf(
+    //             fp,
+    //             b"           GV flag                     ->    FALSE\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //         );
+    //     }
+    //     i = i.wrapping_add(1);
+    // }
+    // fprintf(fp, b"\n\0" as *const u8 as *const libc::c_char);
+    // fprintf(
+    //     fp,
+    //     b"[Generated sequence]\n\0" as *const u8 as *const libc::c_char,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Number of HMMs                         -> %8lu\n\0" as *const u8 as *const libc::c_char,
+    //     HTS_Label_get_size(label),
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Number of stats                        -> %8lu\n\0" as *const u8 as *const libc::c_char,
+    //     (HTS_Label_get_size(label)).wrapping_mul(HTS_ModelSet_get_nstate(ms)),
+    // );
+    // fprintf(
+    //     fp,
+    //     b"Length of this speech                  -> %8.3f(sec)\n\0" as *const u8
+    //         as *const libc::c_char,
+    //     (HTS_PStreamSet_get_total_frame(pss) as f64
+    //         * condition.fperiod as f64
+    //         / condition.sampling_frequency as f64) as libc::c_float
+    //         as f64,
+    // );
+    // fprintf(
+    //     fp,
+    //     b"                                       -> %8lu(frames)\n\0" as *const u8
+    //         as *const libc::c_char,
+    //     (HTS_PStreamSet_get_total_frame(pss)).wrapping_mul(condition.fperiod),
+    // );
+    // i = 0 as libc::c_int as size_t;
+    // while i < HTS_Label_get_size(label) {
+    //     fprintf(fp, b"HMM[%2lu]\n\0" as *const u8 as *const libc::c_char, i);
+    //     fprintf(
+    //         fp,
+    //         b"  Name                                 -> %s\n\0" as *const u8 as *const libc::c_char,
+    //         HTS_Label_get_string(label, i),
+    //     );
+    //     fprintf(fp, b"  Duration\n\0" as *const u8 as *const libc::c_char);
+    //     j = 0 as libc::c_int as size_t;
+    //     while j < HTS_ModelSet_get_nvoices(ms) {
+    //         fprintf(
+    //             fp,
+    //             b"    Interpolation[%2lu]\n\0" as *const u8 as *const libc::c_char,
+    //             j,
+    //         );
+    //         HTS_ModelSet_get_duration_index(ms, j, HTS_Label_get_string(label, i), &mut k, &mut l);
+    //         fprintf(
+    //             fp,
+    //             b"      Tree index                       -> %8lu\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //             k,
+    //         );
+    //         fprintf(
+    //             fp,
+    //             b"      PDF index                        -> %8lu\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //             l,
+    //         );
+    //         j = j.wrapping_add(1);
+    //     }
+    //     j = 0 as libc::c_int as size_t;
+    //     while j < HTS_ModelSet_get_nstate(ms) {
+    //         fprintf(
+    //             fp,
+    //             b"  State[%2lu]\n\0" as *const u8 as *const libc::c_char,
+    //             j.wrapping_add(2 as libc::c_int as libc::c_ulong),
+    //         );
+    //         fprintf(
+    //             fp,
+    //             b"    Length                             -> %8lu(frames)\n\0" as *const u8
+    //                 as *const libc::c_char,
+    //             HTS_SStreamSet_get_duration(sss, (i * HTS_ModelSet_get_nstate(ms)).wrapping_add(j)),
+    //         );
+    //         k = 0 as libc::c_int as size_t;
+    //         while k < HTS_ModelSet_get_nstream(ms) {
+    //             fprintf(
+    //                 fp,
+    //                 b"    Stream[%2lu]\n\0" as *const u8 as *const libc::c_char,
+    //                 k,
+    //             );
+    //             if HTS_ModelSet_is_msd(ms, k) != 0 {
+    //                 if HTS_SStreamSet_get_msd(
+    //                     sss,
+    //                     k,
+    //                     (i * HTS_ModelSet_get_nstate(ms)).wrapping_add(j),
+    //                 ) > *(condition.msd_threshold).offset(k as isize)
+    //                 {
+    //                     fprintf(
+    //                         fp,
+    //                         b"      MSD flag                         ->     TRUE\n\0" as *const u8
+    //                             as *const libc::c_char,
+    //                     );
+    //                 } else {
+    //                     fprintf(
+    //                         fp,
+    //                         b"      MSD flag                         ->    FALSE\n\0" as *const u8
+    //                             as *const libc::c_char,
+    //                     );
+    //                 }
+    //             }
+    //             l = 0 as libc::c_int as size_t;
+    //             while l < HTS_ModelSet_get_nvoices(ms) {
+    //                 fprintf(
+    //                     fp,
+    //                     b"      Interpolation[%2lu]\n\0" as *const u8 as *const libc::c_char,
+    //                     l,
+    //                 );
+    //                 HTS_ModelSet_get_parameter_index(
+    //                     ms,
+    //                     l,
+    //                     k,
+    //                     j.wrapping_add(2 as libc::c_int as size_t),
+    //                     HTS_Label_get_string(label, i),
+    //                     &mut m,
+    //                     &mut n,
+    //                 );
+    //                 fprintf(
+    //                     fp,
+    //                     b"        Tree index                     -> %8lu\n\0" as *const u8
+    //                         as *const libc::c_char,
+    //                     m,
+    //                 );
+    //                 fprintf(
+    //                     fp,
+    //                     b"        PDF index                      -> %8lu\n\0" as *const u8
+    //                         as *const libc::c_char,
+    //                     n,
+    //                 );
+    //                 l = l.wrapping_add(1);
+    //             }
+    //             k = k.wrapping_add(1);
+    //         }
+    //         j = j.wrapping_add(1);
+    //     }
+    //     i = i.wrapping_add(1);
+    // }
 }
 
 pub unsafe fn HTS_Engine_save_label(engine: &mut HTS_Engine, fp: *mut FILE) {
@@ -1012,8 +944,8 @@ pub unsafe fn HTS_Engine_save_label(engine: &mut HTS_Engine, fp: *mut FILE) {
     let label: &mut HTS_Label = &mut engine.label;
     let sss: &mut HTS_SStreamSet = &mut engine.sss;
     let nstate: size_t = HTS_ModelSet_get_nstate(&mut engine.ms);
-    let rate: libc::c_double = engine.condition.fperiod as libc::c_double * 1.0e+07f64
-        / engine.condition.sampling_frequency as libc::c_double;
+    let rate: f64 =
+        engine.condition.fperiod as f64 * 1.0e+07f64 / engine.condition.sampling_frequency as f64;
     i = 0 as libc::c_int as size_t;
     state = 0 as libc::c_int as size_t;
     frame = 0 as libc::c_int as size_t;
@@ -1029,8 +961,8 @@ pub unsafe fn HTS_Engine_save_label(engine: &mut HTS_Engine, fp: *mut FILE) {
         fprintf(
             fp,
             b"%lu %lu %s\n\0" as *const u8 as *const libc::c_char,
-            (frame as libc::c_double * rate) as libc::c_ulong,
-            (frame.wrapping_add(duration) as libc::c_double * rate) as libc::c_ulong,
+            (frame as f64 * rate) as libc::c_ulong,
+            (frame.wrapping_add(duration) as f64 * rate) as libc::c_ulong,
             HTS_Label_get_string(label, i),
         );
         frame = frame.wrapping_add(duration);
@@ -1066,7 +998,7 @@ pub unsafe fn HTS_Engine_save_generated_parameter(
 
 pub unsafe fn HTS_Engine_save_generated_speech(engine: &mut HTS_Engine, fp: *mut FILE) {
     let mut i: size_t = 0;
-    let mut x: libc::c_double = 0.;
+    let mut x: f64 = 0.;
     let mut temp: libc::c_short = 0;
     let gss: &mut HTS_GStreamSet = &mut engine.gss;
     i = 0 as libc::c_int as size_t;
@@ -1091,7 +1023,7 @@ pub unsafe fn HTS_Engine_save_generated_speech(engine: &mut HTS_Engine, fp: *mut
 
 pub unsafe fn HTS_Engine_save_riff(engine: &mut HTS_Engine, fp: *mut FILE) {
     let mut i: size_t = 0;
-    let mut x: libc::c_double = 0.;
+    let mut x: f64 = 0.;
     let mut temp: libc::c_short = 0;
     let gss: &mut HTS_GStreamSet = &mut engine.gss;
     let mut data_01_04: [libc::c_char; 4] = [
@@ -1120,7 +1052,7 @@ pub unsafe fn HTS_Engine_save_riff(engine: &mut HTS_Engine, fp: *mut FILE) {
     let mut data_21_22: libc::c_short = 1 as libc::c_int as libc::c_short;
     let mut data_23_24: libc::c_short = 1 as libc::c_int as libc::c_short;
     let mut data_25_28: libc::c_int = engine.condition.sampling_frequency as libc::c_int;
-    let mut data_29_32: libc::c_int = (engine.condition.sampling_frequency)
+    let mut data_29_32: libc::c_int = (engine.condition.sampling_frequency as u64)
         .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
         as libc::c_int;
     let mut data_33_34: libc::c_short =
@@ -1240,37 +1172,9 @@ pub unsafe fn HTS_Engine_refresh(engine: &mut HTS_Engine) {
     HTS_PStreamSet_clear(&mut engine.pss);
     HTS_SStreamSet_clear(&mut engine.sss);
     HTS_Label_clear(&mut engine.label);
-    engine.condition.stop = 0 as libc::c_int as HTS_Boolean;
+    engine.condition.stop = false;
 }
 
 pub unsafe fn HTS_Engine_clear(engine: &mut HTS_Engine) {
-    let mut i: size_t = 0;
-    if !(engine.condition.msd_threshold).is_null() {
-        HTS_free(engine.condition.msd_threshold as *mut libc::c_void);
-    }
-    if !(engine.condition.duration_iw).is_null() {
-        HTS_free(engine.condition.duration_iw as *mut libc::c_void);
-    }
-    if !(engine.condition.gv_weight).is_null() {
-        HTS_free(engine.condition.gv_weight as *mut libc::c_void);
-    }
-    if !(engine.condition.parameter_iw).is_null() {
-        i = 0 as libc::c_int as size_t;
-        while i < HTS_ModelSet_get_nvoices(&mut engine.ms) {
-            HTS_free(*(engine.condition.parameter_iw).offset(i as isize) as *mut libc::c_void);
-            i = i.wrapping_add(1);
-        }
-        HTS_free(engine.condition.parameter_iw as *mut libc::c_void);
-    }
-    if !(engine.condition.gv_iw).is_null() {
-        i = 0 as libc::c_int as size_t;
-        while i < HTS_ModelSet_get_nvoices(&mut engine.ms) {
-            HTS_free(*(engine.condition.gv_iw).offset(i as isize) as *mut libc::c_void);
-            i = i.wrapping_add(1);
-        }
-        HTS_free(engine.condition.gv_iw as *mut libc::c_void);
-    }
     HTS_ModelSet_clear(&mut engine.ms);
-    // HTS_Audio_clear(&mut engine.audio);
-    HTS_Engine_initialize(engine);
 }

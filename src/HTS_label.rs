@@ -21,7 +21,6 @@ use crate::{
     HTS_get_token_from_string, HTS_strdup,
 };
 
-
 #[derive(Clone)]
 pub struct HTS_LabelString {
     pub next: *mut HTS_LabelString,
@@ -64,9 +63,11 @@ unsafe fn isdigit_string(mut str: *mut libc::c_char) -> HTS_Boolean {
     }
 }
 
-pub unsafe fn HTS_Label_initialize(label: &mut HTS_Label) {
-    label.head = std::ptr::null_mut::<HTS_LabelString>();
-    label.size = 0 as libc::c_int as size_t;
+pub fn HTS_Label_initialize() -> HTS_Label {
+    HTS_Label {
+        head: std::ptr::null_mut::<HTS_LabelString>(),
+        size: 0 as libc::c_int as size_t,
+    }
 }
 unsafe fn HTS_Label_check_time(label: &mut HTS_Label) {
     let mut lstring: *mut HTS_LabelString = label.head;
@@ -283,10 +284,7 @@ pub unsafe fn HTS_Label_get_start_frame(
     (*lstring).start
 }
 
-pub unsafe fn HTS_Label_get_end_frame(
-    label: &mut HTS_Label,
-    mut index: size_t,
-) -> libc::c_double {
+pub unsafe fn HTS_Label_get_end_frame(label: &mut HTS_Label, mut index: size_t) -> libc::c_double {
     let mut i: size_t = 0;
     let mut lstring: *mut HTS_LabelString = label.head;
     i = 0 as libc::c_int as size_t;
@@ -310,5 +308,4 @@ pub unsafe fn HTS_Label_clear(label: &mut HTS_Label) {
         HTS_free(lstring as *mut libc::c_void);
         lstring = next_lstring;
     }
-    HTS_Label_initialize(label);
 }
