@@ -1,57 +1,35 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::HashMap,
+    marker::PhantomData,
+    ops::{Range, RangeFrom, RangeTo},
+    str::FromStr,
+};
 
 use nom::{
-    branch::alt,
-    bytes::complete::{tag, take_till, take_till1, take_until, take_while, take_while1},
-    character::{complete::line_ending, is_alphabetic},
-    error::{ErrorKind, ParseError},
+    bytes::complete::{tag, take_while, take_while1},
+    character::complete::line_ending,
+    combinator::{cut, opt},
+    error::{context, ContextError, ErrorKind, ParseError},
     multi::{fold_many0, many0, many1},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
 
-// fn parse_utf8<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, String, E> {
-//     match String::from_utf8(i.to_vec()) {
-//         Ok(str) => Ok((&[], str)),
-//         Err(_) => Err(nom::Err::Failure(E::from_error_kind(i, ErrorKind::Fail))),
-//     }
-// }
-
-fn parse_identifier<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
-    // verify(parse_utf8, |s: &str| {
-    //     s.chars().all(|c| matches!(c, 'a'..='z' | '_'))
-    // })(i)
-    take_while1(|c: char| c.is_alphanumeric() || c == '_')(i)
-}
-
-fn parse_ascii<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
-    // verify(parse_utf8, |s: &str| s.is_ascii())(i)
-    take_while(|c: char| c.is_ascii() && c != '\n')(i)
-}
-
-fn parse_entry<'a, E: ParseError<&'a str>>(
-    i: &'a str,
-) -> IResult<&'a str, ((&'a str, &'a str), &'a str), E> {
-    use nom::character::complete::char;
-    separated_pair(
-        pair(
-            parse_identifier,
-            alt((delimited(char('['), parse_identifier, char(']')), tag(""))),
-        ),
-        char(':'),
-        parse_ascii,
-    )(i)
+#[derive(Debug)]
+enum ParseApplyError {
+    MainKey,
+    SubKey,
+    Value,
 }
 
 trait ApplyParsed {
-    fn apply<'a, E: ParseError<&'a str>>(
+    fn apply<'a>(
         &mut self,
-        k: (&'a str, &'a str),
+        k: (&'a str, Option<&'a str>),
         v: &'a str,
-    ) -> Result<(), nom::Err<E>>;
-    fn parse<'a, T: FromStr, E: ParseError<&'a str>>(v: &'a str) -> Result<T, nom::Err<E>> {
-        v.parse()
-            .map_err(|_| nom::Err::Failure(E::from_error_kind(v, ErrorKind::Digit)))
+    ) -> Result<(), ParseApplyError>;
+    fn parse_value<'a, T: FromStr>(v: &'a str) -> Result<T, ParseApplyError> {
+        v.parse().map_err(|_| ParseApplyError::Value)
     }
 }
 
@@ -70,27 +48,27 @@ pub struct Global {
 }
 
 impl ApplyParsed for Global {
-    fn apply<'a, E: ParseError<&'a str>>(
+    fn apply<'a>(
         &mut self,
-        k: (&'a str, &'a str),
+        k: (&'a str, Option<&'a str>),
         v: &'a str,
-    ) -> Result<(), nom::Err<E>> {
-        if !k.1.is_empty() {
-            return Err(nom::Err::Failure(E::from_error_kind(k.1, ErrorKind::Count)));
+    ) -> Result<(), ParseApplyError> {
+        if k.1.is_some() {
+            return Err(ParseApplyError::SubKey);
         }
         match k.0 {
             "HTS_VOICE_VERSION" => self.hts_voice_version = v.to_string(),
-            "SAMPLING_FREQUENCY" => self.sampling_frequency = Self::parse(v)?,
-            "FRAME_PERIOD" => self.frame_period = Self::parse(v)?,
-            "NUM_VOICES" => self.num_voices = Self::parse(v)?,
-            "NUM_STATES" => self.num_states = Self::parse(v)?,
-            "NUM_STREAMS" => self.num_streams = Self::parse(v)?,
+            "SAMPLING_FREQUENCY" => self.sampling_frequency = Self::parse_value(v)?,
+            "FRAME_PERIOD" => self.frame_period = Self::parse_value(v)?,
+            "NUM_VOICES" => self.num_voices = Self::parse_value(v)?,
+            "NUM_STATES" => self.num_states = Self::parse_value(v)?,
+            "NUM_STREAMS" => self.num_streams = Self::parse_value(v)?,
             "STREAM_TYPE" => self.stream_type = v.split(',').map(|s| s.to_string()).collect(),
             "FULLCONTEXT_FORMAT" => self.fullcontext_format = v.to_string(),
             "FULLCONTEXT_VERSION" => self.fullcontext_version = v.to_string(),
             "GV_OFF_CONTEXT" => self.gv_off_context = v.split(',').map(|s| s.to_string()).collect(),
             "COMMENT" => (),
-            _ => Err(nom::Err::Failure(E::from_error_kind(k.0, ErrorKind::Tag)))?,
+            _ => Err(ParseApplyError::MainKey)?,
         }
         Ok(())
     }
@@ -111,19 +89,22 @@ pub struct StreamData {
 }
 
 impl ApplyParsed for Stream {
-    fn apply<'a, E: ParseError<&'a str>>(
+    fn apply<'a>(
         &mut self,
-        k: (&'a str, &'a str),
+        k: (&'a str, Option<&'a str>),
         v: &'a str,
-    ) -> Result<(), nom::Err<E>> {
-        let entry = self.stream.entry(k.1.to_string()).or_default();
+    ) -> Result<(), ParseApplyError> {
+        let Some(subkey) = k.1 else {
+            return Err(ParseApplyError::SubKey);
+        };
+        let entry = self.stream.entry(subkey.to_string()).or_default();
         match k.0 {
-            "VECTOR_LENGTH" => entry.vector_length = Self::parse(v)?,
-            "NUM_WINDOWS" => entry.num_windows = Self::parse(v)?,
+            "VECTOR_LENGTH" => entry.vector_length = Self::parse_value(v)?,
+            "NUM_WINDOWS" => entry.num_windows = Self::parse_value(v)?,
             "IS_MSD" => entry.is_msd = v == "1",
             "USE_GV" => entry.use_gv = v == "1",
             "OPTION" => entry.option = v.split(',').map(|s| s.to_string()).collect(),
-            _ => Err(nom::Err::Failure(E::from_error_kind(k.0, ErrorKind::Tag)))?,
+            _ => Err(ParseApplyError::MainKey)?,
         }
         Ok(())
     }
@@ -146,27 +127,19 @@ pub struct PositionData {
 }
 
 impl ApplyParsed for Position {
-    fn apply<'a, E: ParseError<&'a str>>(
+    fn apply<'a>(
         &mut self,
-        k: (&'a str, &'a str),
+        k: (&'a str, Option<&'a str>),
         v: &'a str,
-    ) -> Result<(), nom::Err<E>> {
-        fn parse_duration<'a, E: ParseError<&'a str>>(
-            v: &'a str,
-        ) -> Result<(usize, usize), nom::Err<E>> {
+    ) -> Result<(), ParseApplyError> {
+        fn parse_duration<'a>(v: &'a str) -> Result<(usize, usize), ParseApplyError> {
             match v.split_once('-') {
-                Some((s, e)) => Ok((Position::parse(s)?, Position::parse(e)?)),
-                _ => Err(nom::Err::Failure(E::from_error_kind(v, ErrorKind::Digit))),
+                Some((s, e)) => Ok((Position::parse_value(s)?, Position::parse_value(e)?)),
+                _ => Err(ParseApplyError::Value),
             }
         }
-        if k.1.is_empty() {
-            match k.0 {
-                "DURATION_PDF" => self.duration_pdf = parse_duration(v)?,
-                "DURATION_TREE" => self.duration_tree = parse_duration(v)?,
-                _ => Err(nom::Err::Failure(E::from_error_kind(k.0, ErrorKind::Tag)))?,
-            }
-        } else {
-            let entry = self.position.entry(k.1.to_string()).or_default();
+        if let Some(subkey) = k.1 {
+            let entry = self.position.entry(subkey.to_string()).or_default();
             match k.0 {
                 "STREAM_WIN" => {
                     entry.stream_win = v
@@ -178,93 +151,208 @@ impl ApplyParsed for Position {
                 "STREAM_TREE" => entry.stream_tree = parse_duration(v)?,
                 "GV_PDF" => entry.gv_pdf = parse_duration(v)?,
                 "GV_TREE" => entry.gv_tree = parse_duration(v)?,
-                _ => Err(nom::Err::Failure(E::from_error_kind(k.0, ErrorKind::Tag)))?,
+                _ => Err(ParseApplyError::MainKey)?,
+            }
+        } else {
+            match k.0 {
+                "DURATION_PDF" => self.duration_pdf = parse_duration(v)?,
+                "DURATION_TREE" => self.duration_tree = parse_duration(v)?,
+                _ => Err(ParseApplyError::MainKey)?,
             }
         }
         Ok(())
     }
 }
 
-fn parse_general<'a, E: ParseError<&'a str>, T: Default + ApplyParsed>(
-    i: &'a str,
-) -> IResult<&'a str, T, E> {
-    fold_many0(
-        terminated(parse_entry, many1(line_ending)),
-        || Ok(T::default()),
-        |acc, (k, v)| {
-            let Ok(mut acc) = acc else {
-                return acc;
-            };
-            match acc.apply(k, v) {
-                Ok(()) => Ok(acc),
-                Err(err) => Err(err),
+pub trait ParseTarget
+where
+    Self: Sized
+        + Clone
+        + nom::Slice<Range<usize>>
+        + nom::Slice<RangeFrom<usize>>
+        + nom::Slice<RangeTo<usize>>
+        + nom::InputIter
+        + nom::InputLength
+        + nom::InputTake
+        + nom::Compare<&'static str>,
+{
+    fn parse_identifier<E: ParseError<Self>>(self) -> IResult<Self, Self, E>;
+    fn parse_ascii<E: ParseError<Self>>(self) -> IResult<Self, Self, E>;
+    fn parse_ascii_to_string<E: ParseError<Self>>(&self) -> IResult<Self, String, E>;
+}
+
+impl ParseTarget for &str {
+    fn parse_identifier<E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
+        take_while1(|c: char| c.is_alphanumeric() || c == '_')(self)
+    }
+
+    fn parse_ascii<E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
+        take_while(|c: char| c.is_ascii() && c != '\n')(self)
+    }
+
+    fn parse_ascii_to_string<E: ParseError<Self>>(&self) -> IResult<Self, String, E> {
+        Self::parse_ascii(self).map(|(rest, result)| (rest, result.to_string()))
+    }
+}
+
+impl ParseTarget for &[u8] {
+    fn parse_identifier<E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
+        take_while1(|c: u8| (c as char).is_alphanumeric() || c == b'_')(self)
+    }
+
+    fn parse_ascii<E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
+        take_while(|c: u8| (c as char).is_ascii() && c != b'\n')(self)
+    }
+
+    fn parse_ascii_to_string<E: ParseError<Self>>(&self) -> IResult<Self, String, E> {
+        Self::parse_ascii(self).and_then(|(rest, result)| {
+            match String::from_utf8(result.to_vec()) {
+                Ok(s) => Ok((rest, s)),
+                Err(_) => Err(nom::Err::Failure(E::from_error_kind(
+                    result,
+                    ErrorKind::Char,
+                ))),
             }
-        },
-    )(i)
-    .and_then(|r| match r {
-        (rest, Ok(result)) => Ok((rest, result)),
-        (_, Err(err)) => Err(err),
-    })
+        })
+    }
 }
 
-fn parse_global<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Global, E> {
-    preceded(
-        preceded(many0(line_ending), tag("[GLOBAL]\n")),
-        parse_general,
-    )(i)
-}
+pub struct HeaderParser<T>(PhantomData<T>);
 
-fn parse_stream<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Stream, E> {
-    preceded(
-        preceded(many0(line_ending), tag("[STREAM]\n")),
-        parse_general,
-    )(i)
-}
+impl<S: ParseTarget> HeaderParser<S>
+where
+    <S as nom::InputIter>::Item: nom::AsChar,
+{
+    fn parse_entry<'a, E: ParseError<S> + ContextError<S>>(
+        i: S,
+    ) -> IResult<S, ((S, Option<S>), S), E> {
+        use nom::character::complete::char;
+        context(
+            "entry",
+            separated_pair(
+                pair(
+                    S::parse_identifier,
+                    opt(delimited(char('['), S::parse_identifier, char(']'))),
+                ),
+                char(':'),
+                S::parse_ascii,
+            ),
+        )(i)
+    }
 
-fn parse_position<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, Position, E> {
-    preceded(
-        preceded(many0(line_ending), tag("[POSITION]\n")),
-        parse_general,
-    )(i)
+    fn parse_general<'a, E: ParseError<S> + ContextError<S>, T: Default + ApplyParsed>(
+        i: S,
+    ) -> IResult<S, T, E> {
+        fold_many0(
+            terminated(Self::parse_entry, many1(line_ending)),
+            || Ok(T::default()),
+            |acc, r| {
+                let Ok(mut acc) = acc else {
+                    return acc;
+                };
+
+                let ((key_main, key_sub), value) = {
+                    let (_, k0) = r.0 .0.parse_ascii_to_string()?;
+                    let k1 =
+                        r.0 .1
+                            .as_ref()
+                            .map(|s| s.parse_ascii_to_string().map(|s| s.1))
+                            .transpose()?;
+                    let (_, v) = r.1.parse_ascii_to_string()?;
+                    ((k0, k1), v)
+                };
+
+                match acc.apply((&key_main, key_sub.as_ref().map(|x| x.as_str())), &value) {
+                    Ok(()) => Ok(acc),
+                    Err(ParseApplyError::MainKey) => Err(nom::Err::Failure(E::from_error_kind(
+                        r.0 .0,
+                        ErrorKind::Tag,
+                    ))),
+                    Err(ParseApplyError::SubKey) => Err(nom::Err::Failure(E::from_error_kind(
+                        r.0 .1.unwrap_or(r.0 .0),
+                        ErrorKind::NonEmpty,
+                    ))),
+                    Err(ParseApplyError::Value) => Err(nom::Err::Failure(E::from_error_kind(
+                        r.1,
+                        ErrorKind::Verify,
+                    ))),
+                }
+            },
+        )(i)
+        .and_then(|r| match r {
+            (rest, Ok(result)) => Ok((rest, result)),
+            (_, Err(err)) => Err(err),
+        })
+    }
+
+    pub fn parse_global<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Global, E> {
+        context(
+            "global",
+            preceded(
+                preceded(many0(line_ending), tag("[GLOBAL]\n")),
+                cut(Self::parse_general),
+            ),
+        )(i)
+    }
+
+    pub fn parse_stream<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Stream, E> {
+        context(
+            "stream",
+            preceded(
+                preceded(many0(line_ending), tag("[STREAM]\n")),
+                cut(Self::parse_general),
+            ),
+        )(i)
+    }
+
+    pub fn parse_position<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Position, E> {
+        context(
+            "position",
+            preceded(
+                preceded(many0(line_ending), tag("[POSITION]\n")),
+                cut(Self::parse_general),
+            ),
+        )(i)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::nom::{parse_entry, parse_position, parse_stream, PositionData, StreamData};
-
-    use super::{parse_ascii, parse_global};
+    use crate::model::nom::{HeaderParser, ParseTarget, PositionData, StreamData};
 
     #[test]
     fn ascii() {
         assert_eq!(
-            parse_ascii::<VerboseError<&str>>("hogehoge\"\nfugafuga"),
+            "hogehoge\"\nfugafuga".parse_ascii::<VerboseError<&str>>(),
             Ok(("\nfugafuga", "hogehoge\""))
         );
     }
     #[test]
     fn entry() {
         assert_eq!(
-            parse_entry::<VerboseError<&str>>(
+            HeaderParser::parse_entry::<VerboseError<&str>>(
                 "GV_PDF[MCP]:1167198-1167761\nGV_PDF[LF0]:1167762-1167789"
             ),
             Ok((
                 "\nGV_PDF[LF0]:1167762-1167789",
-                (("GV_PDF", "MCP"), "1167198-1167761")
+                (("GV_PDF", Some("MCP")), "1167198-1167761")
             ))
         );
         assert_eq!(
-            parse_entry::<VerboseError<&str>>("GV_PDF[LF0]:1167762-1167789"),
-            Ok(("", (("GV_PDF", "LF0"), "1167762-1167789")))
+            HeaderParser::parse_entry::<VerboseError<&str>>("GV_PDF[LF!0]:1167762-1167789"),
+            Ok(("", (("GV_PDF", Some("LF0")), "1167762-1167789")))
         );
         assert_eq!(
-            parse_entry::<VerboseError<&str>>("GV_OFF_CONTEXT:\"*-sil+*\",\"*-pau+*\""),
-            Ok(("", (("GV_OFF_CONTEXT", ""), "\"*-sil+*\",\"*-pau+*\"")))
+            HeaderParser::parse_entry::<VerboseError<&str>>(
+                "GV_OFF_CONTEXT:\"*-sil+*\",\"*-pau+*\""
+            ),
+            Ok(("", (("GV_OFF_CONTEXT", None), "\"*-sil+*\",\"*-pau+*\"")))
         );
         assert_eq!(
-            parse_entry::<VerboseError<&str>>("COMMENT:"),
-            Ok(("", (("COMMENT", ""), "")))
+            HeaderParser::parse_entry::<VerboseError<&str>>("COMMENT:"),
+            Ok(("", (("COMMENT", None), "")))
         );
     }
     const CONTENT: &str = "
@@ -314,14 +402,15 @@ GV_TREE[LF0]:1167968-1168282
 ";
     #[test]
     fn global() {
-        let (rest, global) = parse_global::<VerboseError<&str>>(CONTENT).unwrap();
+        let (rest, global) = HeaderParser::parse_global::<VerboseError<&str>>(CONTENT).unwrap();
         assert_eq!(rest.len(), 751);
         assert_eq!(global.hts_voice_version, "1.0");
         assert_eq!(global.gv_off_context, vec!["\"*-sil+*\"", "\"*-pau+*\"",]);
     }
     #[test]
     fn stream() {
-        let (rest, stream) = parse_stream::<VerboseError<&str>>(&CONTENT[224..]).unwrap();
+        let (rest, stream) =
+            HeaderParser::parse_stream::<VerboseError<&str>>(&CONTENT[224..]).unwrap();
         assert_eq!(rest.len(), 487);
         assert_eq!(
             stream.stream.get("MCP"),
@@ -336,7 +425,8 @@ GV_TREE[LF0]:1167968-1168282
     }
     #[test]
     fn position() {
-        let (rest, position) = parse_position::<VerboseError<&str>>(&CONTENT[488..]).unwrap();
+        let (rest, position) =
+            HeaderParser::parse_position::<VerboseError<&str>>(&CONTENT[488..]).unwrap();
         assert_eq!(rest.len(), 0);
         assert_eq!(position.duration_pdf, (0, 9803));
         assert_eq!(
@@ -349,5 +439,14 @@ GV_TREE[LF0]:1167968-1168282
                 gv_tree: (1167790, 1167967),
             })
         );
+    }
+
+    #[test]
+    fn global_bin() {
+        let (rest, global) =
+            HeaderParser::parse_global::<VerboseError<&[u8]>>(CONTENT.as_bytes()).unwrap();
+        assert_eq!(rest.len(), 751);
+        assert_eq!(global.hts_voice_version, "1.0");
+        assert_eq!(global.gv_off_context, vec!["\"*-sil+*\"", "\"*-pau+*\"",]);
     }
 }
