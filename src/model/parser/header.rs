@@ -320,7 +320,7 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::nom::{HeaderParser, ParseTarget, PositionData, StreamData};
+    use super::{HeaderParser, ParseTarget, PositionData, StreamData};
 
     #[test]
     fn ascii() {

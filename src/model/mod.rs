@@ -1,9 +1,9 @@
 use self::text_section::TextSection;
 
 mod model;
-mod tree;
+mod parser;
 mod text_section;
-mod nom;
+mod tree;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ModelErrorKind {
