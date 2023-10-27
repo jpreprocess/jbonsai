@@ -3,6 +3,7 @@ use self::text_section::TextSection;
 mod model;
 mod tree;
 mod text_section;
+mod nom;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ModelErrorKind {

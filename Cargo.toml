@@ -10,3 +10,5 @@ libc="*"
 anyhow = "1.0.75"
 byteorder = "1.5.0"
 thiserror = "1.0"
+
+nom = "7.1.3"
