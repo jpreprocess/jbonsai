@@ -166,6 +166,7 @@ pub struct HeaderParser<T>(PhantomData<T>);
 impl<S: ParseTarget> HeaderParser<S>
 where
     <S as nom::InputIter>::Item: nom::AsChar,
+    <S as nom::InputTakeAtPosition>::Item: nom::AsChar,
 {
     fn parse_entry<'a, E: ParseError<S> + ContextError<S>>(
         i: S,
@@ -278,7 +279,7 @@ mod tests {
             ))
         );
         assert_eq!(
-            HeaderParser::parse_entry::<VerboseError<&str>>("GV_PDF[LF!0]:1167762-1167789"),
+            HeaderParser::parse_entry::<VerboseError<&str>>("GV_PDF[LF0]:1167762-1167789"),
             Ok(("", (("GV_PDF", Some("LF0")), "1167762-1167789")))
         );
         assert_eq!(
