@@ -22,8 +22,12 @@ where
         + nom::InputTake
         + nom::InputTakeAtPosition
         + nom::Offset
+        + nom::AsBytes
         + nom::ParseTo<isize>
-        + nom::Compare<&'static str>,
+        + nom::ParseTo<usize>
+        + nom::ParseTo<f32>
+        + nom::Compare<&'static str>
+        + for<'a> nom::Compare<&'a [u8]>,
 {
     fn parse_template<'a, F, E>(self, cond: F) -> IResult<Self, Self, E>
     where
