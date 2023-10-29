@@ -34,7 +34,7 @@ pub enum TreeIndex {
     Pdf(isize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Question {
     name: String,
     patterns: Vec<String>,
@@ -64,28 +64,44 @@ where
     pub fn parse_question_ident<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
         i.parse_template1(|c| c.is_ascii() && !" \n".contains(c))
     }
-    pub fn parse_question<'a, E: ParseError<S> + ContextError<S>>(
+    pub fn parse_pattern_list<'a, E: ParseError<S> + ContextError<S>>(
         i: S,
-    ) -> IResult<S, (S, Vec<S>), E> {
+    ) -> IResult<S, Vec<String>, E> {
         use nom::character::complete::char;
+        let parse_elem = move |s| {
+            let (rest, s) = S::parse_pattern(s)?;
+            let (_, sstr) = S::parse_ascii_to_string(&s)?;
+            Ok((rest, sstr))
+        };
+        context(
+            "pattern",
+            cut(delimited(
+                pair(char('{'), S::sp),
+                separated_list0(
+                    pair(char(','), S::sp),
+                    cut(alt((
+                        delimited(char('\"'), parse_elem, char('\"')),
+                        parse_elem,
+                    ))),
+                ),
+                pair(S::sp, char('}')),
+            )),
+        )(i)
+    }
+    pub fn parse_question<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Question, E> {
         preceded(
             terminated(tag("QS"), S::sp1),
-            separated_pair(
-                Self::parse_question_ident,
-                S::sp1,
-                context(
-                    "pattern",
-                    delimited(
-                        pair(char('{'), S::sp),
-                        separated_list0(
-                            pair(char(','), S::sp),
-                            cut(delimited(char('\"'), S::parse_pattern, char('\"'))),
-                        ),
-                        pair(S::sp, char('}')),
-                    ),
-                ),
-            ),
+            separated_pair(Self::parse_question_ident, S::sp1, Self::parse_pattern_list),
         )(i)
+        .and_then(|(rest, (name, patterns))| {
+            Ok((
+                rest,
+                Question {
+                    name: name.parse_ascii_to_string()?.1,
+                    patterns,
+                },
+            ))
+        })
     }
     pub fn parse_node<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Node, E> {
         let pdf_index = move |i| {
@@ -145,18 +161,7 @@ where
         context(
             "tree",
             cut(tuple((
-                preceded(
-                    S::sp,
-                    cut(delimited(
-                        char('{'),
-                        separated_list0(char(','), |s| {
-                            let (rest, s) = S::parse_pattern(s)?;
-                            let (_, sstr) = S::parse_ascii_to_string(&s)?;
-                            Ok((rest, sstr))
-                        }),
-                        char('}'),
-                    )),
-                ),
+                preceded(S::sp, Self::parse_pattern_list),
                 preceded(
                     S::sp,
                     cut(delimited(char('['), Self::parse_signed_digits, char(']'))),
@@ -188,7 +193,7 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use super::{Node, Tree, TreeIndex, TreeParser};
+    use super::{Node, Question, Tree, TreeIndex, TreeParser};
 
     #[test]
     fn parse_question() {
@@ -198,10 +203,14 @@ mod tests {
             ),
             Ok((
                 "",
-                (
-                    "C-Mora_diff_Acc-Type<=0",
-                    vec!["*/A:-??+*", "*/A:-?+*", "*/A:0+*"]
-                )
+                Question {
+                    name: "C-Mora_diff_Acc-Type<=0".to_string(),
+                    patterns: vec![
+                        "*/A:-??+*".to_string(),
+                        "*/A:-?+*".to_string(),
+                        "*/A:0+*".to_string()
+                    ]
+                }
             ))
         );
     }
