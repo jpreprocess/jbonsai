@@ -119,12 +119,15 @@ where
             )))(i)
         };
 
-        tuple((
-            preceded(S::sp, Self::parse_signed_digits),
-            preceded(S::sp1, Self::parse_question_ident),
-            preceded(S::sp1, branch),
-            preceded(S::sp1, branch),
-        ))(i)
+        context(
+            "node",
+            tuple((
+                preceded(S::sp, Self::parse_signed_digits),
+                preceded(S::sp1, Self::parse_question_ident),
+                preceded(S::sp1, branch),
+                preceded(S::sp1, branch),
+            )),
+        )(i)
         .and_then(|(rest, (id, question_name, yes, no))| {
             Ok((
                 rest,
@@ -138,33 +141,36 @@ where
         })
     }
     pub fn parse_tree<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Tree, E> {
-        use nom::character::complete::char;
-        tuple((
-            preceded(
-                S::sp,
-                delimited(
-                    char('{'),
-                    separated_list0(char(','), |s| {
-                        let (rest, s) = S::parse_pattern(s)?;
-                        let (_, sstr) = S::parse_ascii_to_string(&s)?;
-                        Ok((rest, sstr))
-                    }),
-                    char('}'),
+        use nom::character::complete::{char, space0};
+        context(
+            "tree",
+            cut(tuple((
+                preceded(
+                    S::sp,
+                    cut(delimited(
+                        char('{'),
+                        separated_list0(char(','), |s| {
+                            let (rest, s) = S::parse_pattern(s)?;
+                            let (_, sstr) = S::parse_ascii_to_string(&s)?;
+                            Ok((rest, sstr))
+                        }),
+                        char('}'),
+                    )),
                 ),
-            ),
-            preceded(
-                S::sp,
-                delimited(char('['), Self::parse_signed_digits, char(']')),
-            ),
-            preceded(
-                S::sp,
-                delimited(
-                    pair(char('{'), S::sp),
-                    separated_list0(S::sp1, Self::parse_node),
-                    pair(S::sp, char('}')),
+                preceded(
+                    S::sp,
+                    cut(delimited(char('['), Self::parse_signed_digits, char(']'))),
                 ),
-            ),
-        ))(i)
+                preceded(
+                    S::sp,
+                    cut(delimited(
+                        pair(char('{'), S::sp),
+                        separated_list0(delimited(space0, char('\n'), space0), Self::parse_node),
+                        pair(S::sp, char('}')),
+                    )),
+                ),
+            ))),
+        )(i)
         .and_then(|(rest, (pattern, state, nodes))| {
             Ok((
                 rest,
