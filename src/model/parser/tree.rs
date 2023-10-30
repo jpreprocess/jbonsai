@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::digit1,
-    combinator::{cut, map, opt, recognize},
+    combinator::{cut, map, opt, peek, recognize},
     error::{context, ContextError, ErrorKind, ParseError},
     multi::separated_list0,
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
@@ -44,12 +44,11 @@ pub struct TreeParser<T>(PhantomData<T>);
 
 impl<S: ParseTarget> TreeParser<S>
 where
-    <S as nom::InputIter>::Item: nom::AsChar + Clone,
+    <S as nom::InputIter>::Item: nom::AsChar + Clone + Copy,
     <S as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
+    for<'a> &'a str: nom::FindToken<<S as nom::InputIter>::Item>,
 {
-    pub fn parse_signed_digits<'a, E: ParseError<S> + ContextError<S>>(
-        i: S,
-    ) -> IResult<S, isize, E> {
+    fn parse_signed_digits<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, isize, E> {
         use nom::character::complete::char;
         recognize(pair(opt(char('-')), digit1))(i).and_then(|(rest, number)| {
             match number.parse_to() {
@@ -61,10 +60,10 @@ where
             }
         })
     }
-    pub fn parse_question_ident<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
+    fn parse_question_ident<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
         i.parse_template1(|c| c.is_ascii() && !" \n".contains(c))
     }
-    pub fn parse_pattern_list<'a, E: ParseError<S> + ContextError<S>>(
+    fn parse_pattern_list<'a, E: ParseError<S> + ContextError<S>>(
         i: S,
     ) -> IResult<S, Vec<String>, E> {
         use nom::character::complete::char;
@@ -88,10 +87,13 @@ where
             )),
         )(i)
     }
-    pub fn parse_question<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Question, E> {
-        preceded(
-            terminated(tag("QS"), S::sp1),
-            separated_pair(Self::parse_question_ident, S::sp1, Self::parse_pattern_list),
+    fn parse_question<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Question, E> {
+        context(
+            "question",
+            preceded(
+                terminated(tag("QS"), S::sp1),
+                separated_pair(Self::parse_question_ident, S::sp1, Self::parse_pattern_list),
+            ),
         )(i)
         .and_then(|(rest, (name, patterns))| {
             Ok((
@@ -103,7 +105,19 @@ where
             ))
         })
     }
-    pub fn parse_node<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Node, E> {
+    pub fn parse_questions<'a, E: ParseError<S> + ContextError<S>>(
+        i: S,
+    ) -> IResult<S, Vec<Question>, E> {
+        use nom::character::complete::{char, space0};
+        context(
+            "questions",
+            cut(separated_list0(
+                delimited(space0, char('\n'), S::sp),
+                TreeParser::parse_question,
+            )),
+        )(i)
+    }
+    fn parse_node<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Node, E> {
         let pdf_index = move |i| {
             S::parse_identifier(i).and_then(|(rest, input)| {
                 let mut id_str = String::new();
@@ -156,7 +170,7 @@ where
             ))
         })
     }
-    pub fn parse_tree<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Tree, E> {
+    fn parse_tree<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Tree, E> {
         use nom::character::complete::{char, space0};
         context(
             "tree",
@@ -186,6 +200,16 @@ where
                 },
             ))
         })
+    }
+    pub fn parse_trees<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Vec<Tree>, E> {
+        use nom::character::complete::{char, none_of, space0};
+        context(
+            "trees",
+            cut(separated_list0(
+                delimited(space0, char('\n'), pair(S::sp, peek(none_of(" \n")))),
+                Self::parse_tree,
+            )),
+        )(i)
     }
 }
 
@@ -266,5 +290,18 @@ mod tests {
                 }
             ))
         );
+    }
+
+    #[test]
+    fn parse_trees() {
+        let tree = r#"
+{*}[2]
+{
+0 Utt_Len_Mora<=28                                    "gv_lf0_1"          -1      
+-1 Utt_Len_Mora=18                                     "gv_lf0_3"       "gv_lf0_2" 
+}"#;
+        // TreeParser::parse_trees::<VerboseError<&str>>(tree).unwrap();
+        TreeParser::parse_trees::<VerboseError<&str>>(&format!("{}  \n", tree)).unwrap();
+        // TreeParser::parse_trees::<VerboseError<&str>>(&format!("{}  \n{}", tree, tree)).unwrap();
     }
 }
