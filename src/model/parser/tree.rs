@@ -6,7 +6,7 @@ use nom::{
     character::complete::digit1,
     combinator::{cut, map, opt, peek, recognize},
     error::{context, ContextError, ErrorKind, ParseError},
-    multi::separated_list0,
+    multi::{many_m_n, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
     AsChar, IResult,
 };
@@ -117,7 +117,7 @@ where
             )),
         )(i)
     }
-    fn parse_node<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Node, E> {
+    fn parse_tree_index<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, TreeIndex, E> {
         let pdf_index = move |i| {
             S::parse_identifier(i).and_then(|(rest, input)| {
                 let mut id_str = String::new();
@@ -141,21 +141,20 @@ where
                 pdf_index,
             ))(i)
         };
-        let branch = move |i| {
-            use nom::character::complete::char;
-            cut(alt((
-                tree_index,
-                delimited(char('\"'), tree_index, char('\"')),
-            )))(i)
-        };
-
+        use nom::character::complete::char;
+        context(
+            "tree_index",
+            alt((tree_index, delimited(char('\"'), tree_index, char('\"')))),
+        )(i)
+    }
+    fn parse_node<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Node, E> {
         context(
             "node",
             tuple((
                 preceded(S::sp, Self::parse_signed_digits),
                 preceded(S::sp1, Self::parse_question_ident),
-                preceded(S::sp1, branch),
-                preceded(S::sp1, branch),
+                preceded(S::sp1, Self::parse_tree_index),
+                preceded(S::sp1, Self::parse_tree_index),
             )),
         )(i)
         .and_then(|(rest, (id, question_name, yes, no))| {
@@ -182,11 +181,26 @@ where
                 ),
                 preceded(
                     S::sp,
-                    cut(delimited(
-                        pair(char('{'), S::sp),
-                        separated_list0(delimited(space0, char('\n'), space0), Self::parse_node),
-                        pair(S::sp, char('}')),
-                    )),
+                    cut(alt((
+                        many_m_n(
+                            1,
+                            1,
+                            map(Self::parse_tree_index, |index| Node {
+                                id: 0,
+                                question_name: "".to_string(),
+                                yes: index.clone(),
+                                no: index.clone(),
+                            }),
+                        ),
+                        delimited(
+                            pair(char('{'), S::sp),
+                            separated_list0(
+                                delimited(space0, char('\n'), space0),
+                                Self::parse_node,
+                            ),
+                            pair(S::sp, char('}')),
+                        ),
+                    ))),
                 ),
             ))),
         )(i)
@@ -290,6 +304,22 @@ mod tests {
                 }
             ))
         );
+        assert_eq!(
+            TreeParser::parse_tree::<VerboseError<&str>>(r#"{*}[2] "gv_lf0_3""#),
+            Ok((
+                "",
+                Tree {
+                    pattern: vec!["*".to_string()],
+                    state: 2,
+                    nodes: vec![Node {
+                        id: 0,
+                        question_name: "".to_string(),
+                        yes: TreeIndex::Pdf(3),
+                        no: TreeIndex::Pdf(3)
+                    },]
+                }
+            ))
+        );
     }
 
     #[test]
@@ -300,8 +330,8 @@ mod tests {
 0 Utt_Len_Mora<=28                                    "gv_lf0_1"          -1      
 -1 Utt_Len_Mora=18                                     "gv_lf0_3"       "gv_lf0_2" 
 }"#;
-        // TreeParser::parse_trees::<VerboseError<&str>>(tree).unwrap();
+        TreeParser::parse_trees::<VerboseError<&str>>(tree).unwrap();
         TreeParser::parse_trees::<VerboseError<&str>>(&format!("{}  \n", tree)).unwrap();
-        // TreeParser::parse_trees::<VerboseError<&str>>(&format!("{}  \n{}", tree, tree)).unwrap();
+        TreeParser::parse_trees::<VerboseError<&str>>(&format!("{}  \n{}", tree, tree)).unwrap();
     }
 }

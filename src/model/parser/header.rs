@@ -32,16 +32,16 @@ trait ApplyParsed {
 
 #[derive(Debug, Clone, Default)]
 pub struct Global {
-    hts_voice_version: String,
-    sampling_frequency: usize,
-    frame_period: usize,
-    num_voices: usize,
-    num_states: usize,
-    num_streams: usize,
-    stream_type: Vec<String>,
-    fullcontext_format: String,
-    fullcontext_version: String,
-    gv_off_context: Vec<String>,
+    pub hts_voice_version: String,
+    pub sampling_frequency: usize,
+    pub frame_period: usize,
+    pub num_voices: usize,
+    pub num_states: usize,
+    pub num_streams: usize,
+    pub stream_type: Vec<String>,
+    pub fullcontext_format: String,
+    pub fullcontext_version: String,
+    pub gv_off_context: Vec<String>,
 }
 
 impl ApplyParsed for Global {
@@ -73,16 +73,16 @@ impl ApplyParsed for Global {
 
 #[derive(Debug, Clone, Default)]
 pub struct Stream {
-    stream: HashMap<String, StreamData>,
+    pub stream: HashMap<String, StreamData>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StreamData {
-    vector_length: usize,
-    num_windows: usize,
-    is_msd: bool,
-    use_gv: bool,
-    option: Vec<String>,
+    pub vector_length: usize,
+    pub num_windows: usize,
+    pub is_msd: bool,
+    pub use_gv: bool,
+    pub option: Vec<String>,
 }
 
 impl ApplyParsed for Stream {
@@ -109,18 +109,18 @@ impl ApplyParsed for Stream {
 
 #[derive(Debug, Clone, Default)]
 pub struct Position {
-    duration_pdf: (usize, usize),
-    duration_tree: (usize, usize),
-    position: HashMap<String, PositionData>,
+    pub duration_pdf: (usize, usize),
+    pub duration_tree: (usize, usize),
+    pub position: HashMap<String, PositionData>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PositionData {
-    stream_win: Vec<(usize, usize)>,
-    stream_pdf: (usize, usize),
-    stream_tree: (usize, usize),
-    gv_pdf: (usize, usize),
-    gv_tree: (usize, usize),
+    pub stream_win: Vec<(usize, usize)>,
+    pub stream_pdf: (usize, usize),
+    pub stream_tree: (usize, usize),
+    pub gv_pdf: (usize, usize),
+    pub gv_tree: (usize, usize),
 }
 
 impl ApplyParsed for Position {

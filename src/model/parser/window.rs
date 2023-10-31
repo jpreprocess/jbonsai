@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
 use nom::{
-    character::complete::{digit1, space0, space1},
+    character::complete::{digit1, space1},
     error::{ContextError, ErrorKind, ParseError},
-    multi::{many_m_n, separated_list0},
+    multi::many_m_n,
     number::complete::float,
-    sequence::{delimited, pair, preceded},
+    sequence::preceded,
     IResult,
 };
 
