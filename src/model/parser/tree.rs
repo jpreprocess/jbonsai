@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use nom::{
     branch::alt,
@@ -15,17 +15,17 @@ use super::base::ParseTarget;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tree {
-    pattern: Vec<String>,
-    state: usize,
-    nodes: Vec<Node>,
+    pub pattern: Vec<String>,
+    pub state: usize,
+    pub nodes: Vec<Node>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Node {
-    id: isize,
-    question_name: String,
-    yes: TreeIndex,
-    no: TreeIndex,
+    pub id: isize,
+    pub question_name: String,
+    pub yes: TreeIndex,
+    pub no: TreeIndex,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,8 +36,8 @@ pub enum TreeIndex {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Question {
-    name: String,
-    patterns: Vec<String>,
+    pub name: String,
+    pub patterns: Vec<String>,
 }
 
 pub struct TreeParser<T>(PhantomData<T>);

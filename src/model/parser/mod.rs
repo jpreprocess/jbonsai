@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
+
 use nom::{
     bytes::complete::tag,
-    combinator::all_consuming,
+    combinator::{all_consuming, map},
     error::{ContextError, ParseError},
     multi::many_m_n,
     number::complete::{le_f32, le_u32},
@@ -11,9 +13,15 @@ use nom::{
 use crate::model::parser::base::ParseTarget;
 
 use self::{
+    convert::convert_tree,
     header::{Global, HeaderParser, Position, Stream, StreamData},
-    tree::{Question, Tree, TreeParser},
+    tree::{Question, TreeParser},
     window::WindowParser,
+};
+
+use super::{
+    model::{Model, StreamModels},
+    ModelSet,
 };
 
 mod base;
@@ -21,20 +29,27 @@ mod header;
 mod tree;
 mod window;
 
+mod convert;
+
 pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
-) -> IResult<&'a [u8], (), E> {
+) -> IResult<&'a [u8], ModelSet, E> {
     let (input, global) = HeaderParser::parse_global(input)?;
     let (input, stream) = HeaderParser::parse_stream(input)?;
     let (input, position) = HeaderParser::parse_position(input)?;
 
     // TODO: verify
 
-    let (input, _) = preceded(tag("[DATA]\n"), |i| {
+    let (input, (duration_model, stream_models)) = preceded(tag("[DATA]\n"), |i| {
         parse_data_section(i, &global, &stream, &position)
     })(input)?;
 
-    Ok((input, ()))
+    let modelset = ModelSet {
+        duration_model,
+        stream_models,
+    };
+
+    Ok((input, modelset))
 }
 
 fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
@@ -42,8 +57,8 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     global: &Global,
     stream: &Stream,
     position: &Position,
-) -> IResult<&'a [u8], (), E> {
-    let (_, duration_model) = Model::parse(
+) -> IResult<&'a [u8], (Model, Vec<StreamModels>), E> {
+    let (_, duration_model) = parse_model(
         input,
         position.duration_tree,
         position.duration_pdf,
@@ -55,7 +70,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
             option: vec![],
         },
     )?;
-    let stream_models: Vec<(Model, Option<Model>, Vec<Vec<f32>>)> = global
+    let stream_models: Vec<StreamModels> = global
         .stream_type
         .iter()
         .map(|key| {
@@ -63,10 +78,10 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
             let stream_data = stream.stream.get(key).unwrap();
 
             let (_, stream_model) =
-                Model::parse(input, pos.stream_tree, pos.stream_pdf, stream_data)?;
+                parse_model(input, pos.stream_tree, pos.stream_pdf, stream_data)?;
 
             let gv_model = if stream_data.use_gv {
-                let (_, gv_model) = Model::parse(
+                let (_, gv_model) = parse_model(
                     input,
                     pos.gv_tree,
                     pos.gv_pdf,
@@ -94,65 +109,66 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                         .1)
                     })
                     .collect::<Result<_, _>>()?;
-            dbg!(&windows);
 
-            Ok((stream_model, gv_model, windows))
+            Ok(StreamModels::new(stream_model, gv_model, windows))
         })
         .collect::<Result<_, _>>()?;
 
-    Ok((b"", ()))
+    Ok((b"", (duration_model, stream_models)))
 }
 
-#[derive(Debug, Clone)]
-pub struct Model {
-    questions: Vec<Question>,
-    trees: Vec<Tree>,
-    pdf: Vec<Vec<Vec<f32>>>,
-}
+pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
+    input: &'a [u8],
+    tree_range: (usize, usize),
+    pdf_range: (usize, usize),
+    stream_data: &StreamData,
+) -> IResult<&'a [u8], Model, E> {
+    let pdf_len =
+        stream_data.vector_length * stream_data.num_windows * 2 + (stream_data.is_msd as usize);
 
-impl Model {
-    pub fn parse<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
-        input: &'a [u8],
-        tree_range: (usize, usize),
-        pdf_range: (usize, usize),
-        stream_data: &StreamData,
-    ) -> IResult<&'a [u8], Self, E> {
-        let pdf_len =
-            stream_data.vector_length * stream_data.num_windows * 2 + (stream_data.is_msd as usize);
+    let (_, (questions, trees)) = parse_all(
+        terminated(
+            pair(TreeParser::parse_questions, TreeParser::parse_trees),
+            ParseTarget::sp,
+        ),
+        tree_range,
+    )(input)?;
 
-        let (_, (questions, trees)) = parse_all(
-            terminated(
-                pair(TreeParser::parse_questions, TreeParser::parse_trees),
-                ParseTarget::sp,
-            ),
-            tree_range,
-        )(input)?;
+    let question_lut: BTreeMap<&String, &Vec<String>> = BTreeMap::from_iter(
+        questions
+            .iter()
+            .map(|Question { name, patterns }| (name, patterns)),
+    );
 
-        let (_, pdf) = parse_all(
-            |i| {
-                let ntree = trees.len();
-                let (mut i, npdf) = many_m_n(ntree, ntree, le_u32)(i)?;
-                let mut pdf = Vec::with_capacity(ntree);
-                for n in npdf {
-                    let n = n as usize;
-                    let (ni, r) = many_m_n(n, n, many_m_n(pdf_len, pdf_len, le_f32))(i)?;
-                    pdf.push(r);
-                    i = ni;
-                }
-                Ok((i, pdf))
-            },
-            pdf_range,
-        )(input)?;
+    let (_, pdf) = parse_all(
+        |i| {
+            let ntree = trees.len();
+            let (mut i, npdf) = many_m_n(ntree, ntree, le_u32)(i)?;
+            let mut pdf = Vec::with_capacity(ntree);
+            for n in npdf {
+                let n = n as usize;
+                let (ni, r) = many_m_n(
+                    n,
+                    n,
+                    map(
+                        many_m_n(pdf_len, pdf_len, le_f32),
+                        crate::model::model::ModelParameter::from_linear,
+                    ),
+                )(i)?;
+                pdf.push(r);
+                i = ni;
+            }
+            Ok((i, pdf))
+        },
+        pdf_range,
+    )(input)?;
 
-        Ok((
-            b"",
-            Self {
-                questions,
-                trees,
-                pdf,
-            },
-        ))
-    }
+    let new_trees: Vec<_> = trees
+        .into_iter()
+        .map(|t| convert_tree(t, &question_lut))
+        .collect();
+
+    Ok((b"", Model::new(new_trees, pdf)))
 }
 
 fn parse_all<'a, T, F, E>(
