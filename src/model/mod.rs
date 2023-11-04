@@ -29,7 +29,7 @@ pub struct ModelError {
 }
 
 pub struct ModelSet {
-    manifest: GlobalModelManifest,
+    metadata: GlobalModelMetadata,
     voices: Vec<Voice>,
 }
 
@@ -45,7 +45,7 @@ pub struct ModelSet {
     // gv_off_context: Vec<String>,
 
 #[derive(Debug, Clone, Default)]
-pub struct GlobalModelManifest {
+pub struct GlobalModelMetadata {
     pub hts_voice_version: String,
     pub sampling_frequency: usize,
     pub frame_period: usize,
@@ -109,21 +109,3 @@ pub struct Voice {
 
 // /// HTS_ModelSet_use_gv: get GV flag
 // HTS_Boolean HTS_ModelSet_use_gv(HTS_ModelSet * ms, size_t stream_index)
-
-// /// HTS_ModelSet_get_duration_index: get duration PDF & tree index
-// void HTS_ModelSet_get_duration_index(HTS_ModelSet * ms, size_t voice_index, const char *string, size_t * tree_index, size_t * pdf_index)
-
-// /// HTS_ModelSet_get_duration: get duration using interpolation weight
-// void HTS_ModelSet_get_duration(HTS_ModelSet * ms, const char *string, const double *iw, double *mean, double *vari)
-
-// /// HTS_ModelSet_get_parameter_index: get paramter PDF & tree index
-// void HTS_ModelSet_get_parameter_index(HTS_ModelSet * ms, size_t voice_index, size_t stream_index, size_t state_index, const char *string, size_t * tree_index, size_t * pdf_index)
-
-// /// HTS_ModelSet_get_parameter: get parameter using interpolation weight
-// void HTS_ModelSet_get_parameter(HTS_ModelSet * ms, size_t stream_index, size_t state_index, const char *string, const double *const *iw, double *mean, double *vari, double *msd)
-
-// /// HTS_ModelSet_get_gv_index: get gv PDF & tree index
-// void HTS_ModelSet_get_gv_index(HTS_ModelSet * ms, size_t voice_index, size_t stream_index, const char *string, size_t * tree_index, size_t * pdf_index)
-
-// /// HTS_ModelSet_get_gv: get GV using interpolation weight
-// void HTS_ModelSet_get_gv(HTS_ModelSet * ms, size_t stream_index, const char *string, const double *const *iw, double *mean, double *vari)

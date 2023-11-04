@@ -10,7 +10,7 @@ use nom::{
     IResult,
 };
 
-use crate::model::{model::StreamModelMetadata, GlobalModelManifest};
+use crate::model::{model::StreamModelMetadata, GlobalModelMetadata};
 
 use super::base::ParseTarget;
 
@@ -32,7 +32,7 @@ trait ApplyParsed {
     }
 }
 
-impl ApplyParsed for GlobalModelManifest {
+impl ApplyParsed for GlobalModelMetadata {
     fn apply<'a>(
         &mut self,
         k: (&'a str, Option<&'a str>),
@@ -215,7 +215,7 @@ where
 
     pub fn parse_global<'a, E: ParseError<S> + ContextError<S>>(
         i: S,
-    ) -> IResult<S, GlobalModelManifest, E> {
+    ) -> IResult<S, GlobalModelMetadata, E> {
         context(
             "global",
             preceded(

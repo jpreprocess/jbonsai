@@ -21,7 +21,7 @@ use self::{
 
 use super::{
     model::{Model, Pattern, StreamModelMetadata, StreamModels},
-    GlobalModelManifest, Voice,
+    GlobalModelMetadata, Voice,
 };
 
 mod base;
@@ -33,7 +33,7 @@ mod convert;
 
 pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
-) -> IResult<&'a [u8], (GlobalModelManifest, Voice), E> {
+) -> IResult<&'a [u8], (GlobalModelMetadata, Voice), E> {
     let (input, global) = HeaderParser::parse_global(input)?;
     let (input, stream) = HeaderParser::parse_stream(input)?;
     let (input, position) = HeaderParser::parse_position(input)?;
@@ -54,7 +54,7 @@ pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
 
 fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
-    global: &GlobalModelManifest,
+    global: &GlobalModelMetadata,
     stream: &Stream,
     position: &Position,
 ) -> IResult<&'a [u8], (Model, Vec<StreamModels>), E> {
