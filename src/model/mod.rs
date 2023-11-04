@@ -1,12 +1,17 @@
+use std::path::Path;
+
 use self::model::{Model, ModelParameter, Pattern, StreamModels};
 
 mod model;
+
+#[cfg(feature = "htsvoice")]
 mod parser;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ModelErrorKind {
-    TreeNode,
-    TreeIndex,
+    Io,
+    NomError,
+    MetadataError,
 }
 
 impl ModelErrorKind {
@@ -34,6 +39,35 @@ pub struct ModelSet {
 }
 
 impl ModelSet {
+    #[cfg(feature = "htsvoice")]
+    pub fn load_htsvoice_files<P: AsRef<Path>>(paths: &[P]) -> Result<Self, ModelError> {
+        let mut metadata = None;
+        let mut voices = Vec::with_capacity(paths.len());
+        for p in paths.as_ref() {
+            let f = std::fs::read(p).map_err(|err| ModelErrorKind::Io.with_error(err))?;
+
+            let (_, (new_metadata, voice)) =
+                parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f).map_err(|err| {
+                    ModelErrorKind::NomError
+                        .with_error(anyhow::anyhow!("Parser returned error:\n{}", err))
+                })?;
+
+            if let Some(ref metadata) = metadata {
+                if *metadata != new_metadata {
+                    return Err(ModelErrorKind::MetadataError
+                        .with_error(anyhow::anyhow!("The global metadata does not match.")));
+                }
+            } else {
+                metadata = Some(new_metadata);
+            }
+            voices.push(voice);
+        }
+        Ok(Self {
+            metadata: metadata.unwrap(),
+            voices,
+        })
+    }
+
     /// Get sampling frequency of HTS voices
     pub fn get_sampling_frequency(&self) -> usize {
         self.metadata.sampling_frequency
@@ -245,7 +279,7 @@ impl ModelSet {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct GlobalModelMetadata {
     pub hts_voice_version: String,
     pub sampling_frequency: usize,

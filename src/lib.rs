@@ -18,7 +18,7 @@ pub use HTS_pstream::*;
 pub use HTS_sstream::*;
 pub use HTS_vocoder::*;
 
-mod model;
+pub mod model;
 
 #[cfg(test)]
 mod tests {
