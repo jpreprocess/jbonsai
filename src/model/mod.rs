@@ -33,16 +33,217 @@ pub struct ModelSet {
     voices: Vec<Voice>,
 }
 
-    // hts_voice_version: String,
-    // sampling_frequency: usize,
-    // frame_period: usize,
-    // num_voices: usize,
-    // num_states: usize,
-    // num_streams: usize,
-    // stream_type: Vec<String>,
-    // fullcontext_format: String,
-    // fullcontext_version: String,
-    // gv_off_context: Vec<String>,
+impl ModelSet {
+    /// Get sampling frequency of HTS voices
+    pub fn get_sampling_frequency(&self) -> usize {
+        self.metadata.sampling_frequency
+    }
+    /// Get frame period of HTS voices
+    pub fn get_sampling_fperiod(&self) -> usize {
+        self.metadata.sampling_frequency
+    }
+    /// Get stream option
+    pub fn get_option(&self, stream_index: usize) -> &[String] {
+        // TODO: option
+        &self.voices[0].stream_models[stream_index].metadata.option
+    }
+    /// Get GV flag
+    pub fn get_gv_flag(&self, string: &str) -> bool {
+        if self.metadata.gv_off_context.is_empty() {
+            true
+        } else if self
+            .metadata
+            .gv_off_context
+            .iter()
+            .any(|p| p.is_match(string))
+        {
+            false
+        } else {
+            true
+        }
+    }
+    /// Get number of state
+    pub fn get_nstate(&self) -> usize {
+        self.metadata.num_states
+    }
+    /// Get full-context label format
+    pub fn get_fullcontext_label_format(&self) -> &str {
+        &self.metadata.fullcontext_format
+    }
+    /// Get full-context label version
+    pub fn get_fullcontext_label_version(&self) -> &str {
+        &self.metadata.fullcontext_version
+    }
+    /// Get number of stream
+    pub fn get_nstream(&self) -> usize {
+        self.metadata.num_streams
+    }
+    /// Get number of voices
+    pub fn get_nvoices(&self) -> usize {
+        self.metadata.num_voices
+    }
+
+    /// Get vector length
+    pub fn get_vector_length(&self, stream_index: usize) -> usize {
+        self.voices[0].stream_models[stream_index]
+            .metadata
+            .vector_length
+    }
+    /// Get MSD flag
+    pub fn is_msd(&self, stream_index: usize) -> bool {
+        self.voices[0].stream_models[stream_index].metadata.is_msd
+    }
+
+    /// Get dynamic window size
+    pub fn get_window_size(&self, stream_index: usize) -> usize {
+        // TODO: check implementation
+        self.voices.last().unwrap().stream_models[stream_index]
+            .windows
+            .len()
+    }
+    /// Get left width of dynamic window
+    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> i32 {
+        // TODO: check implementation
+        let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
+            .len() as i32;
+        -fsize / 2
+    }
+    /// Get right width of dynamic window
+    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> i32 {
+        // TODO: check implementation
+        let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
+            .len() as i32;
+        if fsize % 2 == 0 {
+            fsize / 2 - 1
+        } else {
+            fsize / 2
+        }
+    }
+    /// Get coefficient of dynamic window
+    pub fn get_window_coefficient(
+        &self,
+        stream_index: usize,
+        window_index: usize,
+        coefficient_index: usize,
+    ) -> f32 {
+        // TODO: check implementation
+        let row = &self.voices.last().unwrap().stream_models[stream_index].windows[window_index];
+        row[row.len() / 2 + coefficient_index]
+    }
+    /// Get max width of dynamic window
+    pub fn get_window_max_width(&self, stream_index: usize) -> usize {
+        // TODO: check implementation; important
+        let max_width = self.voices.last().unwrap().stream_models[stream_index]
+            .windows
+            .iter()
+            .map(Vec::len)
+            .max()
+            .unwrap();
+        max_width / 2
+    }
+
+    /// Get GV flag
+    pub fn use_gv(&self, stream_index: usize) -> bool {
+        // TODO: check implementation
+        self.voices[0].stream_models[stream_index]
+            .gv_model
+            .is_some()
+    }
+
+    /// Get duration PDF & tree index
+    pub fn get_duration_index(
+        &self,
+        voice_index: usize,
+        string: &str,
+    ) -> (Option<usize>, Option<usize>) {
+        self.voices[voice_index].duration_model.get_index(2, string)
+    }
+    /// Get duration using interpolation weight
+    pub fn get_duration(&self, string: &str, iw: &[f32]) -> ModelParameter {
+        self.voices
+            .iter()
+            .enumerate()
+            .fold(None::<ModelParameter>, |mut acc, (i, curr)| {
+                let params = curr.duration_model.get_parameter(2, string);
+                if let Some(ref mut acc) = acc {
+                    acc.add_assign(iw[i], params);
+                } else {
+                    acc = Some(params.clone());
+                }
+                acc
+            })
+            .unwrap()
+    }
+    /// Get paramter PDF & tree index
+    pub fn get_parameter_index(
+        &self,
+        voice_index: usize,
+        stream_index: usize,
+        state_index: usize,
+        string: &str,
+    ) -> (Option<usize>, Option<usize>) {
+        self.voices[voice_index].stream_models[stream_index]
+            .stream_model
+            .get_index(state_index, string)
+    }
+    /// Get parameter using interpolation weight
+    pub fn get_parameter(
+        &self,
+        stream_index: usize,
+        state_index: usize,
+        string: &str,
+        iw: &[f32],
+    ) -> ModelParameter {
+        self.voices
+            .iter()
+            .enumerate()
+            .fold(None::<ModelParameter>, |mut acc, (i, curr)| {
+                let params = curr.stream_models[stream_index]
+                    .stream_model
+                    .get_parameter(state_index, string);
+                if let Some(ref mut acc) = acc {
+                    acc.add_assign(iw[i], params);
+                } else {
+                    acc = Some(params.clone());
+                }
+                acc
+            })
+            .unwrap()
+    }
+    /// Get gv PDF & tree index
+    pub fn get_gv_index(
+        &self,
+        voice_index: usize,
+        stream_index: usize,
+        string: &str,
+    ) -> (Option<usize>, Option<usize>) {
+        self.voices[voice_index].stream_models[stream_index]
+            .gv_model
+            .as_ref()
+            .unwrap()
+            .get_index(2, string)
+    }
+    /// Get GV using interpolation weight
+    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &[f32]) -> ModelParameter {
+        self.voices
+            .iter()
+            .enumerate()
+            .fold(None::<ModelParameter>, |mut acc, (i, curr)| {
+                let params = curr.stream_models[stream_index]
+                    .gv_model
+                    .as_ref()
+                    .unwrap()
+                    .get_parameter(2, string);
+                if let Some(ref mut acc) = acc {
+                    acc.add_assign(iw[i], params);
+                } else {
+                    acc = Some(params.clone());
+                }
+                acc
+            })
+            .unwrap()
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct GlobalModelMetadata {
@@ -62,50 +263,3 @@ pub struct Voice {
     pub duration_model: Model,
     pub stream_models: Vec<StreamModels>,
 }
-
-// /// HTS_ModelSet_get_sampling_frequency: get sampling frequency of HTS voices
-// size_t HTS_ModelSet_get_sampling_frequency(HTS_ModelSet * ms)
-
-// /// HTS_ModelSet_get_fperiod: get frame period of HTS voices
-// size_t HTS_ModelSet_get_fperiod(HTS_ModelSet * ms)
-
-// /// HTS_ModelSet_get_fperiod: get stream option
-// const char *HTS_ModelSet_get_option(HTS_ModelSet * ms, size_t stream_index)
-
-// /// HTS_ModelSet_get_gv_flag: get GV flag
-// HTS_Boolean HTS_ModelSet_get_gv_flag(HTS_ModelSet * ms, const char *string)
-
-// /// HTS_ModelSet_get_nstate: get number of state
-// size_t HTS_ModelSet_get_nstate(HTS_ModelSet * ms)
-
-// const char *HTS_ModelSet_get_fullcontext_label_format(HTS_ModelSet * ms)
-// const char *HTS_ModelSet_get_fullcontext_label_version(HTS_ModelSet * ms)
-// /// HTS_ModelSet_get_nstream: get number of stream
-// size_t HTS_ModelSet_get_nstream(HTS_ModelSet * ms)
-
-// /// HTS_ModelSet_get_nvoices: get number of stream
-// size_t HTS_ModelSet_get_nvoices(HTS_ModelSet * ms)
-
-// /// HTS_ModelSet_get_vector_length: get vector length
-// size_t HTS_ModelSet_get_vector_length(HTS_ModelSet * ms, size_t stream_index)
-
-// /// HTS_ModelSet_is_msd: get MSD flag
-// HTS_Boolean HTS_ModelSet_is_msd(HTS_ModelSet * ms, size_t stream_index)
-
-// /// HTS_ModelSet_get_window_size: get dynamic window size
-// size_t HTS_ModelSet_get_window_size(HTS_ModelSet * ms, size_t stream_index)
-
-// /// HTS_ModelSet_get_window_left_width: get left width of dynamic window
-// int HTS_ModelSet_get_window_left_width(HTS_ModelSet * ms, size_t stream_index, size_t window_index)
-
-// /// HTS_ModelSet_get_window_right_width: get right width of dynamic window
-// int HTS_ModelSet_get_window_right_width(HTS_ModelSet * ms, size_t stream_index, size_t window_index)
-
-// /// HTS_ModelSet_get_window_coefficient: get coefficient of dynamic window
-// double HTS_ModelSet_get_window_coefficient(HTS_ModelSet * ms, size_t stream_index, size_t window_index, size_t coefficient_index)
-
-// /// HTS_ModelSet_get_window_max_width: get max width of dynamic window
-// size_t HTS_ModelSet_get_window_max_width(HTS_ModelSet * ms, size_t stream_index)
-
-// /// HTS_ModelSet_use_gv: get GV flag
-// HTS_Boolean HTS_ModelSet_use_gv(HTS_ModelSet * ms, size_t stream_index)
