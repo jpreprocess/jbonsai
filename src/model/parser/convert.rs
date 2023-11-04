@@ -1,24 +1,26 @@
 use std::collections::BTreeMap;
 
+use crate::model::model::Pattern;
+
 use super::tree::{Tree, TreeIndex};
 
 fn parse_patterns(patterns: &[String]) -> Result<Vec<crate::model::model::Pattern>, regex::Error> {
     patterns
         .iter()
-        .map(crate::model::model::Pattern::from_pattern_strings)
+        .map(crate::model::model::Pattern::from_pattern_string)
         .collect()
 }
 
 pub fn convert_tree(
     mut orig_tree: Tree,
-    question_lut: &BTreeMap<&String, &Vec<String>>,
+    question_lut: &BTreeMap<&String, &Vec<Pattern>>,
 ) -> crate::model::model::Tree {
     if orig_tree.nodes.len() == 1 && orig_tree.nodes[0].yes == orig_tree.nodes[0].no {
         let TreeIndex::Pdf(i) = orig_tree.nodes[0].yes else {
             todo!("Malformed model file. Should not reach here.");
         };
         return crate::model::model::Tree {
-            patterns: parse_patterns(&orig_tree.pattern).unwrap(),
+            patterns: orig_tree.pattern,
             nodes: vec![crate::model::model::TreeNode::Leaf {
                 pdf_index: i as usize,
             }],
@@ -55,7 +57,7 @@ pub fn convert_tree(
         .unwrap();
 
         nodes.push(crate::model::model::TreeNode::Node {
-            patterns: parse_patterns(question_lut.get(&node.question_name).unwrap()).unwrap(),
+            patterns: question_lut.get(&node.question_name).unwrap().to_vec(),
             yes: yes_id,
             no: no_id,
         });
@@ -68,7 +70,7 @@ pub fn convert_tree(
     );
 
     crate::model::model::Tree {
-        patterns: parse_patterns(&orig_tree.pattern).unwrap(),
+        patterns: orig_tree.pattern,
         nodes,
         state: orig_tree.state,
     }

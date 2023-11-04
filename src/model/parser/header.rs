@@ -10,6 +10,8 @@ use nom::{
     IResult,
 };
 
+use crate::model::{model::StreamModelMetadata, GlobalModelManifest};
+
 use super::base::ParseTarget;
 
 #[derive(Debug)]
@@ -30,21 +32,7 @@ trait ApplyParsed {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct Global {
-    pub hts_voice_version: String,
-    pub sampling_frequency: usize,
-    pub frame_period: usize,
-    pub num_voices: usize,
-    pub num_states: usize,
-    pub num_streams: usize,
-    pub stream_type: Vec<String>,
-    pub fullcontext_format: String,
-    pub fullcontext_version: String,
-    pub gv_off_context: Vec<String>,
-}
-
-impl ApplyParsed for Global {
+impl ApplyParsed for GlobalModelManifest {
     fn apply<'a>(
         &mut self,
         k: (&'a str, Option<&'a str>),
@@ -63,7 +51,11 @@ impl ApplyParsed for Global {
             "STREAM_TYPE" => self.stream_type = v.split(',').map(|s| s.to_string()).collect(),
             "FULLCONTEXT_FORMAT" => self.fullcontext_format = v.to_string(),
             "FULLCONTEXT_VERSION" => self.fullcontext_version = v.to_string(),
-            "GV_OFF_CONTEXT" => self.gv_off_context = v.split(',').map(|s| s.to_string()).collect(),
+            "GV_OFF_CONTEXT" => {
+                self.gv_off_context = ParseTarget::parse_pattern_list::<()>(v)
+                    .or(Err(ParseApplyError::Value))?
+                    .1
+            }
             "COMMENT" => (),
             _ => Err(ParseApplyError::MainKey)?,
         }
@@ -73,16 +65,7 @@ impl ApplyParsed for Global {
 
 #[derive(Debug, Clone, Default)]
 pub struct Stream {
-    pub stream: HashMap<String, StreamData>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct StreamData {
-    pub vector_length: usize,
-    pub num_windows: usize,
-    pub is_msd: bool,
-    pub use_gv: bool,
-    pub option: Vec<String>,
+    pub stream: HashMap<String, StreamModelMetadata>,
 }
 
 impl ApplyParsed for Stream {
@@ -230,7 +213,9 @@ where
         })
     }
 
-    pub fn parse_global<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Global, E> {
+    pub fn parse_global<'a, E: ParseError<S> + ContextError<S>>(
+        i: S,
+    ) -> IResult<S, GlobalModelManifest, E> {
         context(
             "global",
             preceded(
@@ -265,7 +250,9 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use super::{HeaderParser, PositionData, StreamData};
+    use crate::model::model::Pattern;
+
+    use super::{HeaderParser, PositionData, StreamModelMetadata};
 
     #[test]
     fn entry() {
@@ -343,7 +330,13 @@ GV_TREE[LF0]:1167968-1168282
         let (rest, global) = HeaderParser::parse_global::<VerboseError<&str>>(CONTENT).unwrap();
         assert_eq!(rest.len(), 751);
         assert_eq!(global.hts_voice_version, "1.0");
-        assert_eq!(global.gv_off_context, vec!["\"*-sil+*\"", "\"*-pau+*\"",]);
+        assert_eq!(
+            global.gv_off_context,
+            vec![
+                Pattern::from_pattern_string("*-sil+*").unwrap(),
+                Pattern::from_pattern_string("*-pau+*").unwrap(),
+            ]
+        );
     }
     #[test]
     fn stream() {
@@ -352,7 +345,7 @@ GV_TREE[LF0]:1167968-1168282
         assert_eq!(rest.len(), 487);
         assert_eq!(
             stream.stream.get("MCP"),
-            Some(&StreamData {
+            Some(&StreamModelMetadata {
                 vector_length: 35,
                 num_windows: 3,
                 is_msd: false,
@@ -385,6 +378,12 @@ GV_TREE[LF0]:1167968-1168282
             HeaderParser::parse_global::<VerboseError<&[u8]>>(CONTENT.as_bytes()).unwrap();
         assert_eq!(rest.len(), 751);
         assert_eq!(global.hts_voice_version, "1.0");
-        assert_eq!(global.gv_off_context, vec!["\"*-sil+*\"", "\"*-pau+*\"",]);
+        assert_eq!(
+            global.gv_off_context,
+            vec![
+                Pattern::from_pattern_string("*-sil+*").unwrap(),
+                Pattern::from_pattern_string("*-pau+*").unwrap(),
+            ]
+        );
     }
 }

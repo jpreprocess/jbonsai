@@ -1,4 +1,4 @@
-use self::model::{Model, StreamModels};
+use self::model::{Model, ModelParameter, Pattern, StreamModels};
 
 mod model;
 mod parser;
@@ -29,6 +29,10 @@ pub struct ModelError {
 }
 
 pub struct ModelSet {
+    manifest: GlobalModelManifest,
+    voices: Vec<Voice>,
+}
+
     // hts_voice_version: String,
     // sampling_frequency: usize,
     // frame_period: usize,
@@ -39,6 +43,22 @@ pub struct ModelSet {
     // fullcontext_format: String,
     // fullcontext_version: String,
     // gv_off_context: Vec<String>,
+
+#[derive(Debug, Clone, Default)]
+pub struct GlobalModelManifest {
+    pub hts_voice_version: String,
+    pub sampling_frequency: usize,
+    pub frame_period: usize,
+    pub num_voices: usize,
+    pub num_states: usize,
+    pub num_streams: usize,
+    pub stream_type: Vec<String>,
+    pub fullcontext_format: String,
+    pub fullcontext_version: String,
+    pub gv_off_context: Vec<Pattern>,
+}
+
+pub struct Voice {
     pub duration_model: Model,
     pub stream_models: Vec<StreamModels>,
 }

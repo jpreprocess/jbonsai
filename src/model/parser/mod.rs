@@ -14,14 +14,14 @@ use crate::model::parser::base::ParseTarget;
 
 use self::{
     convert::convert_tree,
-    header::{Global, HeaderParser, Position, Stream, StreamData},
+    header::{HeaderParser, Position, Stream},
     tree::{Question, TreeParser},
     window::WindowParser,
 };
 
 use super::{
-    model::{Model, StreamModels},
-    ModelSet,
+    model::{Model, Pattern, StreamModelMetadata, StreamModels},
+    GlobalModelManifest, Voice,
 };
 
 mod base;
@@ -33,7 +33,7 @@ mod convert;
 
 pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
-) -> IResult<&'a [u8], ModelSet, E> {
+) -> IResult<&'a [u8], (GlobalModelManifest, Voice), E> {
     let (input, global) = HeaderParser::parse_global(input)?;
     let (input, stream) = HeaderParser::parse_stream(input)?;
     let (input, position) = HeaderParser::parse_position(input)?;
@@ -44,17 +44,17 @@ pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         parse_data_section(i, &global, &stream, &position)
     })(input)?;
 
-    let modelset = ModelSet {
+    let voice = Voice {
         duration_model,
         stream_models,
     };
 
-    Ok((input, modelset))
+    Ok((input, (global, voice)))
 }
 
 fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
-    global: &Global,
+    global: &GlobalModelManifest,
     stream: &Stream,
     position: &Position,
 ) -> IResult<&'a [u8], (Model, Vec<StreamModels>), E> {
@@ -62,7 +62,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         input,
         position.duration_tree,
         position.duration_pdf,
-        &StreamData {
+        &StreamModelMetadata {
             vector_length: global.num_states,
             num_windows: 1,
             is_msd: false,
@@ -85,7 +85,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                     input,
                     pos.gv_tree,
                     pos.gv_pdf,
-                    &StreamData {
+                    &StreamModelMetadata {
                         vector_length: stream_data.vector_length,
                         num_windows: 1,
                         is_msd: false,
@@ -110,7 +110,12 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                     })
                     .collect::<Result<_, _>>()?;
 
-            Ok(StreamModels::new(stream_model, gv_model, windows))
+            Ok(StreamModels::new(
+                stream_data.clone(),
+                stream_model,
+                gv_model,
+                windows,
+            ))
         })
         .collect::<Result<_, _>>()?;
 
@@ -121,7 +126,7 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
     tree_range: (usize, usize),
     pdf_range: (usize, usize),
-    stream_data: &StreamData,
+    stream_data: &StreamModelMetadata,
 ) -> IResult<&'a [u8], Model, E> {
     let pdf_len =
         stream_data.vector_length * stream_data.num_windows * 2 + (stream_data.is_msd as usize);
@@ -134,7 +139,7 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         tree_range,
     )(input)?;
 
-    let question_lut: BTreeMap<&String, &Vec<String>> = BTreeMap::from_iter(
+    let question_lut: BTreeMap<&String, &Vec<Pattern>> = BTreeMap::from_iter(
         questions
             .iter()
             .map(|Question { name, patterns }| (name, patterns)),

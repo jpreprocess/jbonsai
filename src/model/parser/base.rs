@@ -1,10 +1,16 @@
 use std::ops::{Range, RangeFrom, RangeTo};
 
 use nom::{
+    branch::alt,
     bytes::complete::{take_while, take_while1},
+    combinator::{cut, map},
     error::{ErrorKind, ParseError},
+    multi::separated_list0,
+    sequence::{delimited, pair},
     IResult,
 };
+
+use crate::model::model::Pattern;
 
 const SEPARATOR_CHARS: &str = " \n";
 const PATTERN_WILDCARD: &str = "*?";
@@ -28,6 +34,7 @@ where
         + nom::ParseTo<f32>
         + nom::Compare<&'static str>
         + for<'a> nom::Compare<&'a [u8]>,
+    <Self as nom::InputIter>::Item: nom::AsChar,
 {
     fn parse_template<'a, F, E>(self, cond: F) -> IResult<Self, Self, E>
     where
@@ -37,6 +44,7 @@ where
     where
         F: Fn(char) -> bool,
         E: ParseError<Self>;
+    fn parse_ascii_to_string<E: ParseError<Self>>(&self) -> IResult<Self, String, E>;
 
     #[inline(always)]
     fn sp<'a, E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
@@ -65,7 +73,22 @@ where
     fn parse_ascii<E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
         Self::parse_template(self, |c: char| c.is_ascii() && c != '\n')
     }
-    fn parse_ascii_to_string<E: ParseError<Self>>(&self) -> IResult<Self, String, E>;
+
+    fn parse_pattern_list<'a, E: ParseError<Self>>(self) -> IResult<Self, Vec<Pattern>, E> {
+        use nom::character::complete::char;
+        let parse_elem = move |s| {
+            let (rest, s) = Self::parse_pattern(s)?;
+            let (_, sstr) = Self::parse_ascii_to_string(&s)?;
+            Ok((rest, sstr))
+        };
+        cut(separated_list0(
+            pair(char(','), Self::sp),
+            cut(map(
+                alt((delimited(char('\"'), parse_elem, char('\"')), parse_elem)),
+                |p| Pattern::from_pattern_string(p).unwrap(),
+            )),
+        ))(self)
+    }
 }
 
 impl ParseTarget for &str {
@@ -126,6 +149,8 @@ impl ParseTarget for &[u8] {
 mod tests {
     use nom::error::VerboseError;
 
+    use crate::model::model::Pattern;
+
     use super::ParseTarget;
 
     #[test]
@@ -145,6 +170,20 @@ mod tests {
         assert_eq!(
             "*^i-*".parse_pattern::<VerboseError<&str>>(),
             Ok(("", "*^i-*"))
+        );
+    }
+
+    #[test]
+    fn pattern_list() {
+        assert_eq!(
+            "\"*-sil+*\",\"*-pau+*\"".parse_pattern_list::<VerboseError<&str>>(),
+            Ok((
+                "",
+                vec![
+                    Pattern::from_pattern_string("*-sil+*").unwrap(),
+                    Pattern::from_pattern_string("*-pau+*").unwrap(),
+                ]
+            ))
         );
     }
 }

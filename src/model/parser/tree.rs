@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, marker::PhantomData};
+use std::marker::PhantomData;
 
 use nom::{
     branch::alt,
@@ -11,11 +11,13 @@ use nom::{
     AsChar, IResult,
 };
 
+use crate::model::model::Pattern;
+
 use super::base::ParseTarget;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tree {
-    pub pattern: Vec<String>,
+    pub pattern: Vec<Pattern>,
     pub state: usize,
     pub nodes: Vec<Node>,
 }
@@ -34,10 +36,10 @@ pub enum TreeIndex {
     Pdf(isize),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Question {
     pub name: String,
-    pub patterns: Vec<String>,
+    pub patterns: Vec<Pattern>,
 }
 
 pub struct TreeParser<T>(PhantomData<T>);
@@ -63,26 +65,15 @@ where
     fn parse_question_ident<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
         i.parse_template1(|c| c.is_ascii() && !" \n".contains(c))
     }
-    fn parse_pattern_list<'a, E: ParseError<S> + ContextError<S>>(
+    fn parse_pattern_list_section<'a, E: ParseError<S> + ContextError<S>>(
         i: S,
-    ) -> IResult<S, Vec<String>, E> {
+    ) -> IResult<S, Vec<Pattern>, E> {
         use nom::character::complete::char;
-        let parse_elem = move |s| {
-            let (rest, s) = S::parse_pattern(s)?;
-            let (_, sstr) = S::parse_ascii_to_string(&s)?;
-            Ok((rest, sstr))
-        };
         context(
             "pattern",
             cut(delimited(
                 pair(char('{'), S::sp),
-                separated_list0(
-                    pair(char(','), S::sp),
-                    cut(alt((
-                        delimited(char('\"'), parse_elem, char('\"')),
-                        parse_elem,
-                    ))),
-                ),
+                S::parse_pattern_list,
                 pair(S::sp, char('}')),
             )),
         )(i)
@@ -92,7 +83,11 @@ where
             "question",
             preceded(
                 terminated(tag("QS"), S::sp1),
-                separated_pair(Self::parse_question_ident, S::sp1, Self::parse_pattern_list),
+                separated_pair(
+                    Self::parse_question_ident,
+                    S::sp1,
+                    Self::parse_pattern_list_section,
+                ),
             ),
         )(i)
         .and_then(|(rest, (name, patterns))| {
@@ -174,7 +169,7 @@ where
         context(
             "tree",
             cut(tuple((
-                preceded(S::sp, Self::parse_pattern_list),
+                preceded(S::sp, Self::parse_pattern_list_section),
                 preceded(
                     S::sp,
                     cut(delimited(char('['), Self::parse_signed_digits, char(']'))),
@@ -231,6 +226,8 @@ where
 mod tests {
     use nom::error::VerboseError;
 
+    use crate::model::model::Pattern;
+
     use super::{Node, Question, Tree, TreeIndex, TreeParser};
 
     #[test]
@@ -244,9 +241,9 @@ mod tests {
                 Question {
                     name: "C-Mora_diff_Acc-Type<=0".to_string(),
                     patterns: vec![
-                        "*/A:-??+*".to_string(),
-                        "*/A:-?+*".to_string(),
-                        "*/A:0+*".to_string()
+                        Pattern::from_pattern_string("*/A:-??+*").unwrap(),
+                        Pattern::from_pattern_string("*/A:-?+*").unwrap(),
+                        Pattern::from_pattern_string("*/A:0+*").unwrap()
                     ]
                 }
             ))
@@ -285,7 +282,7 @@ mod tests {
             Ok((
                 "",
                 Tree {
-                    pattern: vec!["*".to_string()],
+                    pattern: vec![Pattern::from_pattern_string("*").unwrap()],
                     state: 2,
                     nodes: vec![
                         Node {
@@ -309,7 +306,7 @@ mod tests {
             Ok((
                 "",
                 Tree {
-                    pattern: vec!["*".to_string()],
+                    pattern: vec![Pattern::from_pattern_string("*").unwrap()],
                     state: 2,
                     nodes: vec![Node {
                         id: 0,
