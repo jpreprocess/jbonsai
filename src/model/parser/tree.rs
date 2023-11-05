@@ -152,7 +152,7 @@ where
                 preceded(S::sp1, Self::parse_tree_index),
             )),
         )(i)
-        .and_then(|(rest, (id, question_name, yes, no))| {
+        .and_then(|(rest, (id, question_name, no, yes))| {
             Ok((
                 rest,
                 Node {
@@ -262,8 +262,8 @@ mod tests {
                 Node {
                     id: -235,
                     question_name: "R-Phone_Boin_E".to_string(),
-                    yes: TreeIndex::Node(-236),
-                    no: TreeIndex::Pdf(230)
+                    yes: TreeIndex::Pdf(230),
+                    no: TreeIndex::Node(-236),
                 }
             ))
         );
@@ -288,14 +288,14 @@ mod tests {
                         Node {
                             id: 0,
                             question_name: "Utt_Len_Mora<=28".to_string(),
-                            yes: TreeIndex::Pdf(1),
-                            no: TreeIndex::Node(-1)
+                            yes: TreeIndex::Node(-1),
+                            no: TreeIndex::Pdf(1),
                         },
                         Node {
                             id: -1,
                             question_name: "Utt_Len_Mora=18".to_string(),
-                            yes: TreeIndex::Pdf(3),
-                            no: TreeIndex::Pdf(2)
+                            yes: TreeIndex::Pdf(2),
+                            no: TreeIndex::Pdf(3),
                         }
                     ]
                 }
@@ -312,7 +312,7 @@ mod tests {
                         id: 0,
                         question_name: "".to_string(),
                         yes: TreeIndex::Pdf(3),
-                        no: TreeIndex::Pdf(3)
+                        no: TreeIndex::Pdf(3),
                     },]
                 }
             ))
