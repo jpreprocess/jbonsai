@@ -79,7 +79,7 @@ impl Model {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ModelParameter {
     // (mean, vari)
     pub parameters: Vec<(f32, f32)>,

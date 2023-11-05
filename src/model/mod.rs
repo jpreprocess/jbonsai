@@ -2,7 +2,7 @@ use std::path::Path;
 
 use self::model::{Model, ModelParameter, Pattern, StreamModels};
 
-mod model;
+pub mod model;
 
 #[cfg(feature = "htsvoice")]
 mod parser;
@@ -296,4 +296,102 @@ pub struct GlobalModelMetadata {
 pub struct Voice {
     pub duration_model: Model,
     pub stream_models: Vec<StreamModels>,
+}
+
+#[cfg(all(test, feature = "htsvoice"))]
+mod tests {
+    use crate::{
+        model::{model::ModelParameter, ModelSet},
+        tests::SAMPLE_SENTENCE,
+    };
+
+    fn load_models() -> ModelSet {
+        ModelSet::load_htsvoice_files(&["models/nitech_jp_atr503_m001.htsvoice"]).unwrap()
+    }
+
+    #[test]
+    fn get_metadata() {
+        let jsyn = load_models();
+        assert_eq!(jsyn.get_sampling_frequency(), 48000);
+        assert_eq!(jsyn.get_fperiod(), 240);
+        assert_eq!(jsyn.get_nstate(), 5);
+    }
+
+    #[test]
+    fn get_duration() {
+        let jsyn = load_models();
+
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_duration_index(0, SAMPLE_SENTENCE[2]);
+        assert_eq!(jsyn_tree_index.unwrap(), 2);
+        assert_eq!(jsyn_pdf_index.unwrap(), 144);
+
+        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE[2], &vec![1.]);
+        assert_eq!(
+            jsyn_param,
+            ModelParameter {
+                parameters: vec![
+                    (2.1477857, 2.4373505),
+                    (3.2821403, 4.1925416),
+                    (2.679042, 3.923786),
+                    (3.3788593, 3.8662434),
+                    (2.726448, 3.7256472),
+                ],
+                msd: None
+            }
+        );
+    }
+
+    #[test]
+    fn get_parameter() {
+        let jsyn = load_models();
+
+        let (jsyn_tree_index, jsyn_pdf_index) =
+            jsyn.get_parameter_index(0, 1, 2, SAMPLE_SENTENCE[2]);
+        assert_eq!(jsyn_tree_index, Some(2));
+        assert_eq!(jsyn_pdf_index, Some(234));
+
+        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE[2], &vec![vec![1., 1.]]);
+        assert_eq!(
+            jsyn_param,
+            ModelParameter {
+                parameters: vec![
+                    (4.8069205, 0.005436265),
+                    (0.0056907176, 8.8307745e-5),
+                    (-0.00019663638, 0.00024312522),
+                ],
+                msd: Some(0.95,),
+            }
+        );
+    }
+
+    #[test]
+    fn get_gv() {
+        let jsyn = load_models();
+
+        assert!(jsyn.use_gv(1));
+
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_gv_index(0, 1, SAMPLE_SENTENCE[2]);
+        assert_eq!(jsyn_tree_index, Some(2));
+        assert_eq!(jsyn_pdf_index, Some(3));
+
+        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE[2], &vec![vec![1., 1.]]);
+        assert_eq!(
+            jsyn_param,
+            ModelParameter {
+                parameters: vec![(0.03621548, 0.0001093489)],
+                msd: None,
+            }
+        );
+    }
+
+    #[test]
+    fn window() {
+        let jsyn = load_models();
+        assert_eq!(jsyn.get_window_size(0), 3);
+        assert_eq!(jsyn.get_window_left_width(0, 1), -1);
+        assert_eq!(jsyn.get_window_right_width(0, 1), 1);
+        assert_eq!(jsyn.get_window_coefficient(0, 1, 0), 0.0);
+        assert_eq!(jsyn.get_window_coefficient(0, 1, 1), 0.5);
+        assert_eq!(jsyn.get_window_max_width(0), 1);
+    }
 }
