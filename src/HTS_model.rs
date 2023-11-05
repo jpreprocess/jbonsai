@@ -2887,3 +2887,40 @@ pub unsafe fn HTS_ModelSet_get_gv(
         i = i.wrapping_add(1);
     }
 }
+
+#[cfg(all(test, feature = "htsvoice"))]
+mod tests {
+    use std::ffi::CString;
+
+    use super::*;
+    use crate::{model::ModelSet, HTS_ModelSet};
+
+    fn load_models() -> (HTS_ModelSet, ModelSet) {
+        let model_str = CString::new("models/nitech_jp_atr503_m001.htsvoice").unwrap();
+        let voices = &[model_str.as_ptr() as *mut i8];
+
+        let mut hts = HTS_ModelSet_initialize();
+        unsafe { HTS_ModelSet_load(&mut hts, voices.as_ptr() as *mut *mut i8, 1) };
+
+        let jsyn =
+            ModelSet::load_htsvoice_files(&["models/nitech_jp_atr503_m001.htsvoice"]).unwrap();
+        (hts, jsyn)
+    }
+
+    #[test]
+    fn get_sampling_frequency() {
+        let (mut hts, jsyn) = load_models();
+        assert_eq!(
+            unsafe { HTS_ModelSet_get_sampling_frequency(&mut hts) },
+            jsyn.get_sampling_frequency() as u64
+        );
+    }
+    #[test]
+    fn get_sampling_fperiod() {
+        let (mut hts, jsyn) = load_models();
+        assert_eq!(
+            unsafe { HTS_ModelSet_get_fperiod(&mut hts) },
+            jsyn.get_fperiod() as u64
+        );
+    }
+}
