@@ -73,8 +73,8 @@ impl ModelSet {
         self.metadata.sampling_frequency
     }
     /// Get frame period of HTS voices
-    pub fn get_sampling_fperiod(&self) -> usize {
-        self.metadata.sampling_frequency
+    pub fn get_fperiod(&self) -> usize {
+        self.metadata.frame_period
     }
     /// Get stream option
     pub fn get_option(&self, stream_index: usize) -> &[String] {
