@@ -2893,7 +2893,7 @@ mod tests {
     use std::ffi::CString;
 
     use super::*;
-    use crate::{model::ModelSet, HTS_ModelSet};
+    use crate::{model::ModelSet, tests::SAMPLE_SENTENCE, HTS_ModelSet};
 
     fn load_models() -> (HTS_ModelSet, ModelSet) {
         let model_str = CString::new("models/nitech_jp_atr503_m001.htsvoice").unwrap();
@@ -2916,11 +2916,31 @@ mod tests {
         );
     }
     #[test]
-    fn get_sampling_fperiod() {
+    fn get_fperiod() {
         let (mut hts, jsyn) = load_models();
         assert_eq!(
             unsafe { HTS_ModelSet_get_fperiod(&mut hts) },
             jsyn.get_fperiod() as u64
         );
+    }
+
+    #[test]
+    fn get_duration_index() {
+        let (mut hts, jsyn) = load_models();
+        let mut hts_tree_index = 0;
+        let mut hts_pdf_index = 0;
+        let string = CString::new(SAMPLE_SENTENCE[2]).unwrap();
+        unsafe {
+            HTS_ModelSet_get_duration_index(
+                &mut hts,
+                0,
+                string.as_ptr(),
+                &mut hts_tree_index,
+                &mut hts_pdf_index,
+            )
+        };
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_duration_index(0, SAMPLE_SENTENCE[2]);
+        assert_eq!(hts_tree_index, jsyn_tree_index.unwrap() as u64);
+        assert_eq!(hts_pdf_index, jsyn_pdf_index.unwrap() as u64);
     }
 }

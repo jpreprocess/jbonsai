@@ -4,17 +4,12 @@ use crate::model::model::Pattern;
 
 use super::tree::{Tree, TreeIndex};
 
-fn parse_patterns(patterns: &[String]) -> Result<Vec<crate::model::model::Pattern>, regex::Error> {
-    patterns
-        .iter()
-        .map(crate::model::model::Pattern::from_pattern_string)
-        .collect()
-}
-
 pub fn convert_tree(
-    mut orig_tree: Tree,
+    orig_tree: Tree,
     question_lut: &BTreeMap<&String, &Vec<Pattern>>,
 ) -> crate::model::model::Tree {
+    let node_lut = BTreeMap::from_iter(orig_tree.nodes.iter().enumerate().map(|(i, n)| (n.id, i)));
+
     if orig_tree.nodes.len() == 1 && orig_tree.nodes[0].yes == orig_tree.nodes[0].no {
         let TreeIndex::Pdf(i) = orig_tree.nodes[0].yes else {
             todo!("Malformed model file. Should not reach here.");
@@ -27,8 +22,6 @@ pub fn convert_tree(
             state: orig_tree.state,
         };
     }
-
-    orig_tree.nodes.sort_by_key(|n| n.id);
 
     let mut pdfs = Vec::new();
     for node in &orig_tree.nodes {
@@ -46,13 +39,19 @@ pub fn convert_tree(
     let mut nodes = Vec::new();
     for node in &orig_tree.nodes {
         let yes_id = match node.yes {
-            TreeIndex::Node(id) => orig_tree.nodes.binary_search_by_key(&id, |k| k.id),
-            TreeIndex::Pdf(id) => pdfs.binary_search(&id).map(|v| v + orig_tree.nodes.len()),
+            TreeIndex::Node(id) => node_lut.get(&id).copied(),
+            TreeIndex::Pdf(id) => pdfs
+                .binary_search(&id)
+                .map(|v| v + orig_tree.nodes.len())
+                .ok(),
         }
         .unwrap();
         let no_id = match node.no {
-            TreeIndex::Node(id) => orig_tree.nodes.binary_search_by_key(&id, |k| k.id),
-            TreeIndex::Pdf(id) => pdfs.binary_search(&id).map(|v| v + orig_tree.nodes.len()),
+            TreeIndex::Node(id) => node_lut.get(&id).copied(),
+            TreeIndex::Pdf(id) => pdfs
+                .binary_search(&id)
+                .map(|v| v + orig_tree.nodes.len())
+                .ok(),
         }
         .unwrap();
 

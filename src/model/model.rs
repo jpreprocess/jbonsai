@@ -55,7 +55,12 @@ impl Model {
 
         let pdf_index = tree.search_node(string);
 
-        (tree_index, pdf_index)
+        (
+            tree_index
+                // Somehow hts_engine_API requires 2 to be added to tree index
+                .map(|index| index + 2),
+            pdf_index,
+        )
     }
     fn find_tree_index(&self, state_index: usize, string: &str) -> Option<usize> {
         self.trees
@@ -74,7 +79,7 @@ impl Model {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ModelParameter {
     // (mean, vari)
     pub parameters: Vec<(f32, f32)>,
@@ -113,6 +118,7 @@ impl ModelParameter {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Tree {
     pub state: usize,
     pub patterns: Vec<Pattern>,
@@ -146,6 +152,7 @@ impl Tree {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum TreeNode {
     Node {
         patterns: Vec<Pattern>,
