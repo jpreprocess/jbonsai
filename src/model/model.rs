@@ -75,7 +75,7 @@ impl Model {
             todo!("index not found!")
         };
 
-        &self.pdf[tree_index][pdf_index]
+        &self.pdf[tree_index - 2][pdf_index - 1]
     }
 }
 

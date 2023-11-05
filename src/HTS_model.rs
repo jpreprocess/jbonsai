@@ -2908,28 +2908,29 @@ mod tests {
     }
 
     #[test]
-    fn get_sampling_frequency() {
+    fn get_metadata() {
         let (mut hts, jsyn) = load_models();
         assert_eq!(
             unsafe { HTS_ModelSet_get_sampling_frequency(&mut hts) },
             jsyn.get_sampling_frequency() as u64
         );
-    }
-    #[test]
-    fn get_fperiod() {
-        let (mut hts, jsyn) = load_models();
         assert_eq!(
             unsafe { HTS_ModelSet_get_fperiod(&mut hts) },
             jsyn.get_fperiod() as u64
         );
+        assert_eq!(
+            unsafe { HTS_ModelSet_get_nstate(&mut hts) },
+            jsyn.get_nstate() as u64
+        );
     }
 
     #[test]
-    fn get_duration_index() {
+    fn get_duration() {
         let (mut hts, jsyn) = load_models();
+        let string = CString::new(SAMPLE_SENTENCE[2]).unwrap();
+
         let mut hts_tree_index = 0;
         let mut hts_pdf_index = 0;
-        let string = CString::new(SAMPLE_SENTENCE[2]).unwrap();
         unsafe {
             HTS_ModelSet_get_duration_index(
                 &mut hts,
@@ -2942,5 +2943,30 @@ mod tests {
         let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_duration_index(0, SAMPLE_SENTENCE[2]);
         assert_eq!(hts_tree_index, jsyn_tree_index.unwrap() as u64);
         assert_eq!(hts_pdf_index, jsyn_pdf_index.unwrap() as u64);
+
+        let nstate = jsyn.get_nstate();
+        let mut hts_mean = vec![0.; nstate];
+        let mut hts_vari = vec![0.; nstate];
+        unsafe {
+            HTS_ModelSet_get_duration(
+                &mut hts,
+                string.as_ptr(),
+                &vec![1.],
+                hts_mean.as_mut_ptr(),
+                hts_vari.as_mut_ptr(),
+            )
+        }
+        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE[2], &vec![1.]);
+        assert_eq!(
+            hts_mean
+                .into_iter()
+                .zip(hts_vari)
+                .collect::<Vec<(f64, f64)>>(),
+            jsyn_param
+                .parameters
+                .iter()
+                .map(|(m, v)| (*m as f64, *v as f64))
+                .collect::<Vec<(f64, f64)>>(),
+        );
     }
 }
