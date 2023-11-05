@@ -226,7 +226,7 @@ impl ModelSet {
         stream_index: usize,
         state_index: usize,
         string: &str,
-        iw: &[f32],
+        iw: &Vec<Vec<f32>>,
     ) -> ModelParameter {
         self.voices
             .iter()
@@ -236,7 +236,7 @@ impl ModelSet {
                     .stream_model
                     .get_parameter(state_index, string);
                 if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i], params);
+                    acc.add_assign(iw[i][stream_index], params);
                 } else {
                     acc = Some(params.clone());
                 }
@@ -258,7 +258,7 @@ impl ModelSet {
             .get_index(2, string)
     }
     /// Get GV using interpolation weight
-    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &[f32]) -> ModelParameter {
+    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &Vec<Vec<f32>>) -> ModelParameter {
         self.voices
             .iter()
             .enumerate()
@@ -269,7 +269,7 @@ impl ModelSet {
                     .unwrap()
                     .get_parameter(2, string);
                 if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i], params);
+                    acc.add_assign(iw[i][stream_index], params);
                 } else {
                     acc = Some(params.clone());
                 }
