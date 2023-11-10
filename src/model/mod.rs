@@ -159,7 +159,7 @@ impl ModelSet {
         stream_index: usize,
         window_index: usize,
         coefficient_index: usize,
-    ) -> f32 {
+    ) -> f64 {
         // TODO: check implementation
         let row = &self.voices.last().unwrap().stream_models[stream_index].windows[window_index];
         row[row.len() / 2 + coefficient_index]
@@ -193,7 +193,7 @@ impl ModelSet {
         self.voices[voice_index].duration_model.get_index(2, string)
     }
     /// Get duration using interpolation weight
-    pub fn get_duration(&self, string: &str, iw: &[f32]) -> ModelParameter {
+    pub fn get_duration(&self, string: &str, iw: &[f64]) -> ModelParameter {
         self.voices
             .iter()
             .enumerate()
@@ -226,7 +226,7 @@ impl ModelSet {
         stream_index: usize,
         state_index: usize,
         string: &str,
-        iw: &Vec<Vec<f32>>,
+        iw: &Vec<Vec<f64>>,
     ) -> ModelParameter {
         self.voices
             .iter()
@@ -258,7 +258,7 @@ impl ModelSet {
             .get_index(2, string)
     }
     /// Get GV using interpolation weight
-    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &Vec<Vec<f32>>) -> ModelParameter {
+    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &Vec<Vec<f64>>) -> ModelParameter {
         self.voices
             .iter()
             .enumerate()
@@ -330,11 +330,11 @@ mod tests {
             jsyn_param,
             ModelParameter {
                 parameters: vec![
-                    (2.1477857, 2.4373505),
-                    (3.2821403, 4.1925416),
-                    (2.679042, 3.923786),
-                    (3.3788593, 3.8662434),
-                    (2.726448, 3.7256472),
+                    (2.1477856636047363, 2.4373505115509033),
+                    (3.2821402549743652, 4.192541599273682),
+                    (2.679042100906372, 3.923785924911499),
+                    (3.378859281539917, 3.866243362426758),
+                    (2.7264480590820313, 3.725647211074829)
                 ],
                 msd: None
             }
@@ -355,11 +355,11 @@ mod tests {
             jsyn_param,
             ModelParameter {
                 parameters: vec![
-                    (4.8069205, 0.005436265),
-                    (0.0056907176, 8.8307745e-5),
-                    (-0.00019663638, 0.00024312522),
+                    (4.806920528411865, 0.005436264909803867),
+                    (0.005690717604011297, 8.830774459056556e-5),
+                    (-0.00019663637795019895, 0.00024312522145919502)
                 ],
-                msd: Some(0.95,),
+                msd: Some(0.949999988079071),
             }
         );
     }
@@ -378,7 +378,7 @@ mod tests {
         assert_eq!(
             jsyn_param,
             ModelParameter {
-                parameters: vec![(0.03621548, 0.0001093489)],
+                parameters: vec![(0.03621548041701317, 0.00010934889724012464)],
                 msd: None,
             }
         );

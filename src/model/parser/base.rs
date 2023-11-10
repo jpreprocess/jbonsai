@@ -31,7 +31,7 @@ where
         + nom::AsBytes
         + nom::ParseTo<isize>
         + nom::ParseTo<usize>
-        + nom::ParseTo<f32>
+        + nom::ParseTo<f64>
         + nom::Compare<&'static str>
         + for<'a> nom::Compare<&'a [u8]>,
     <Self as nom::InputIter>::Item: nom::AsChar,

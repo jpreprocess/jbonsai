@@ -5,7 +5,7 @@ pub struct StreamModels {
 
     pub stream_model: Model,
     pub gv_model: Option<Model>,
-    pub windows: Vec<Vec<f32>>,
+    pub windows: Vec<Vec<f64>>,
 }
 
 impl StreamModels {
@@ -13,7 +13,7 @@ impl StreamModels {
         metadata: StreamModelMetadata,
         stream_model: Model,
         gv_model: Option<Model>,
-        windows: Vec<Vec<f32>>,
+        windows: Vec<Vec<f64>>,
     ) -> Self {
         StreamModels {
             metadata,
@@ -82,8 +82,8 @@ impl Model {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelParameter {
     // (mean, vari)
-    pub parameters: Vec<(f32, f32)>,
-    pub msd: Option<f32>,
+    pub parameters: Vec<(f64, f64)>,
+    pub msd: Option<f64>,
 }
 
 impl ModelParameter {
@@ -94,7 +94,7 @@ impl ModelParameter {
         }
     }
 
-    pub fn from_linear(lin: Vec<f32>) -> Self {
+    pub fn from_linear(lin: Vec<f64>) -> Self {
         let len = lin.len() / 2;
         let mut parameters = Vec::with_capacity(len);
         for i in 0..len {
@@ -106,7 +106,7 @@ impl ModelParameter {
         }
     }
 
-    pub fn add_assign(&mut self, weight: f32, rhs: &Self) {
+    pub fn add_assign(&mut self, weight: f64, rhs: &Self) {
         for (i, p) in rhs.parameters.iter().enumerate() {
             self.parameters[i].0 += weight * p.0;
             self.parameters[i].1 += weight * p.1;

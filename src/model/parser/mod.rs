@@ -156,7 +156,7 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                     n,
                     n,
                     map(
-                        many_m_n(pdf_len, pdf_len, le_f32),
+                        many_m_n(pdf_len, pdf_len, map(le_f32, |v| v as f64)),
                         crate::model::model::ModelParameter::from_linear,
                     ),
                 )(i)?;

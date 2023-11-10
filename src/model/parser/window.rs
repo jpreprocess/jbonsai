@@ -4,7 +4,7 @@ use nom::{
     character::complete::{digit1, space1},
     error::{ContextError, ErrorKind, ParseError},
     multi::many_m_n,
-    number::complete::float,
+    number::complete::double,
     sequence::preceded,
     IResult,
 };
@@ -21,12 +21,12 @@ where
 {
     pub fn parse_window_row<'a, E: ParseError<S> + ContextError<S>>(
         i: S,
-    ) -> IResult<S, Vec<f32>, E> {
+    ) -> IResult<S, Vec<f64>, E> {
         let (i, n) = digit1(i)?;
         let Some(n) = n.parse_to() else {
             return Err(nom::Err::Error(E::from_error_kind(n, ErrorKind::Float)));
         };
-        many_m_n(n, n, preceded(space1, float))(i)
+        many_m_n(n, n, preceded(space1, double))(i)
     }
 }
 
