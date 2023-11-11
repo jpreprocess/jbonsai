@@ -20,6 +20,7 @@ pub use HTS_vocoder::*;
 
 pub mod model;
 pub mod label;
+pub mod sstream;
 
 #[cfg(test)]
 mod tests {
