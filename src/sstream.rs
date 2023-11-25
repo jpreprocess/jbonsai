@@ -171,7 +171,7 @@ impl SStreamSet {
     fn estimate_duration(duration_params: &[(f64, f64)], rho: f64) -> Vec<usize> {
         duration_params
             .iter()
-            .map(|(mean, vari)| (mean + rho * vari).round().min(1.0) as usize)
+            .map(|(mean, vari)| (mean + rho * vari).round().max(1.0) as usize)
             .collect()
     }
     fn estimate_duration_with_frame_length(
@@ -181,7 +181,7 @@ impl SStreamSet {
         let size = duration_params.len();
 
         // get the target frame length
-        let target_length: usize = frame_length.round().min(1.0) as usize;
+        let target_length: usize = frame_length.round().max(1.0) as usize;
 
         // check the specified duration
         if target_length <= size {
