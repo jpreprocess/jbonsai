@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     label::Label,
     model::{model::ModelParameter, ModelSet},
@@ -55,13 +57,13 @@ impl FromIterator<ModelParameter> for ModelParameterSequence {
     }
 }
 
-pub struct SStreamSet<'a> {
+pub struct SStreamSet {
     sstreams: Vec<SStream>,
     // nstate: usize,
     duration: Vec<usize>,
     total_state: usize,
     total_frame: usize,
-    ms: &'a ModelSet,
+    ms: Rc<ModelSet>,
 }
 
 pub struct SStream {
@@ -72,10 +74,10 @@ pub struct SStream {
     // gv_switch: bool,
 }
 
-impl<'a> SStreamSet<'a> {
+impl SStreamSet {
     pub fn create(
-        ms: &'a ModelSet,
-        label: Label,
+        ms: Rc<ModelSet>,
+        label: &Label,
         phoneme_alignment_flag: bool,
         speed: f64,
         duration_iw: &[f64],
@@ -136,16 +138,16 @@ impl<'a> SStreamSet<'a> {
             .map(|stream_idx| {
                 let params = (0..label.get_size())
                     .flat_map(|label_idx| {
-                        (0..ms.get_nstate()).zip(std::iter::repeat(label_idx)).map(
-                            |(state_idx, label_idx)| {
+                        (2..2 + ms.get_nstate())
+                            .zip(std::iter::repeat(label_idx))
+                            .map(|(state_idx, label_idx)| {
                                 ms.get_parameter(
                                     stream_idx,
                                     state_idx,
                                     label.get_string(label_idx),
                                     parameter_iw,
                                 )
-                            },
-                        )
+                            })
                     })
                     .collect();
                 let gv_params = if ms.use_gv(stream_idx) {
@@ -268,7 +270,7 @@ impl<'a> SStreamSet<'a> {
         self.ms.get_window_coefficient(
             stream_index as usize,
             window_index as usize,
-            coefficient_index as usize,
+            coefficient_index as isize,
         )
     }
     pub fn get_window_max_width(&self, stream_index: u64) -> u64 {
@@ -282,12 +284,12 @@ impl<'a> SStreamSet<'a> {
     }
     pub fn get_mean(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
         self.sstreams[stream_index as usize].params.parameters
-            [self.ms.get_nstate() * (state_index as usize) + vector_index as usize]
+            [self.ms.get_window_size(stream_index as usize) * (state_index as usize) + vector_index as usize]
             .0
     }
     pub fn get_vari(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
         self.sstreams[stream_index as usize].params.parameters
-            [self.ms.get_nstate() * (state_index as usize) + vector_index as usize]
+            [self.ms.get_window_size(stream_index as usize) * (state_index as usize) + vector_index as usize]
             .1
     }
     pub fn get_gv_mean(&self, stream_index: u64, vector_index: u64) -> f64 {
@@ -308,5 +310,11 @@ impl<'a> SStreamSet<'a> {
     }
     pub fn get_gv_switch(&self, _stream_index: u64, _state_index: u64) -> i8 {
         0
+    }
+
+    pub fn set_mean(&mut self, stream_index: u64, state_index: u64, vector_index: u64, value: f64) {
+        self.sstreams[stream_index as usize].params.parameters
+            [self.ms.get_nstate() * (state_index as usize) + vector_index as usize]
+            .0 = value;
     }
 }

@@ -1,5 +1,10 @@
+use std::rc::Rc;
+
 use libc::FILE;
 
+use crate::label::Label;
+use crate::model::ModelSet;
+use crate::sstream::SStreamSet;
 use crate::{util::*, HTS_GStreamSet, HTS_Label, HTS_ModelSet, HTS_PStreamSet, HTS_SStreamSet};
 
 extern "C" {
@@ -56,18 +61,18 @@ pub struct HTS_Condition {
     pub gv_iw: Vec<Vec<f64>>,
 }
 
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct HTS_Engine {
     pub condition: HTS_Condition,
-    pub ms: HTS_ModelSet,
-    pub label: HTS_Label,
-    pub sss: HTS_SStreamSet,
+    pub ms: Rc<ModelSet>,
+    pub label: Option<Label>,
+    pub sss: Option<SStreamSet>,
     pub pss: HTS_PStreamSet,
     pub gss: HTS_GStreamSet,
 }
 
-pub fn HTS_Engine_initialize() -> HTS_Engine {
-    let condition = HTS_Condition {
+pub unsafe fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
+    let mut condition = HTS_Condition {
         sampling_frequency: 0,
         fperiod: 0,
         stop: false,
@@ -86,86 +91,68 @@ pub fn HTS_Engine_initialize() -> HTS_Engine {
         gv_iw: Vec::new(),
     };
 
-    HTS_Engine {
-        condition,
-        ms: HTS_ModelSet_initialize(),
-        label: HTS_Label_initialize(),
-        sss: HTS_SStreamSet_initialize(),
-        pss: HTS_PStreamSet_initialize(),
-        gss: HTS_GStreamSet_initialize(),
-    }
-}
-
-pub unsafe fn HTS_Engine_load(
-    engine: &mut HTS_Engine,
-    voices: *mut *mut libc::c_char,
-    num_voices: usize,
-) -> bool {
     let mut nstream: usize = 0;
     let mut average_weight: f64 = 0.;
-    let mut option: *const libc::c_char = std::ptr::null::<libc::c_char>();
     let mut find: *const libc::c_char = std::ptr::null::<libc::c_char>();
 
-    /* reset engine */
-    HTS_Engine_clear(engine);
-
     /* load voices */
-    if HTS_ModelSet_load(&mut engine.ms, voices, num_voices as u64) as libc::c_int
-        != 1 as libc::c_int
-    {
-        HTS_Engine_clear(engine);
-        return false;
-    }
-    nstream = HTS_ModelSet_get_nstream(&mut engine.ms) as usize;
-    average_weight = 1.0f64 / num_voices as f64;
+    let ms = ModelSet::load_htsvoice_files(voices).unwrap();
+    nstream = ms.get_nstream();
+    average_weight = 1.0f64 / voices.len() as f64;
 
     /* global */
-    engine.condition.sampling_frequency =
-        HTS_ModelSet_get_sampling_frequency(&mut engine.ms) as usize;
-    engine.condition.fperiod = HTS_ModelSet_get_fperiod(&mut engine.ms) as usize;
-    engine.condition.msd_threshold = (0..nstream).into_iter().map(|_| 0.5).collect();
-    engine.condition.gv_weight = (0..nstream).into_iter().map(|_| 1.0).collect();
+    condition.sampling_frequency = ms.get_sampling_frequency() as usize;
+    condition.fperiod = ms.get_fperiod();
+    condition.msd_threshold = (0..nstream).into_iter().map(|_| 0.5).collect();
+    condition.gv_weight = (0..nstream).into_iter().map(|_| 1.0).collect();
 
     /* spectrum */
-    option = HTS_ModelSet_get_option(&mut engine.ms, 0);
-    find = strstr(option, b"GAMMA=\0" as *const u8 as *const libc::c_char);
-    if !find.is_null() {
-        engine.condition.stage =
-            atoi(&*find.offset((strlen)(b"GAMMA=\0" as *const u8 as *const libc::c_char) as isize))
-                as usize;
-    }
-    find = strstr(option, b"LN_GAIN=\0" as *const u8 as *const libc::c_char);
-    if !find.is_null() {
-        engine.condition.use_log_gain = if atoi(
-            &*find.offset(strlen(b"LN_GAIN=\0" as *const u8 as *const libc::c_char) as isize),
-        ) == 1 as libc::c_int
-        {
-            true
-        } else {
-            false
-        };
-    }
-    find = strstr(option, b"ALPHA=\0" as *const u8 as *const libc::c_char);
-    if !find.is_null() {
-        engine.condition.alpha =
-            atof(&*find.offset(strlen(b"ALPHA=\0" as *const u8 as *const libc::c_char) as isize));
-    }
+    let option = ms.get_option(0);
+    // find = strstr(option, b"GAMMA=\0" as *const u8 as *const libc::c_char);
+    // if !find.is_null() {
+    //     condition.stage =
+    //         atoi(&*find.offset((strlen)(b"GAMMA=\0" as *const u8 as *const libc::c_char) as isize))
+    //             as usize;
+    // }
+    // find = strstr(option, b"LN_GAIN=\0" as *const u8 as *const libc::c_char);
+    // if !find.is_null() {
+    //     condition.use_log_gain = if atoi(
+    //         &*find.offset(strlen(b"LN_GAIN=\0" as *const u8 as *const libc::c_char) as isize),
+    //     ) == 1 as libc::c_int
+    //     {
+    //         true
+    //     } else {
+    //         false
+    //     };
+    // }
+    // find = strstr(option, b"ALPHA=\0" as *const u8 as *const libc::c_char);
+    // if !find.is_null() {
+    //     condition.alpha =
+    //         atof(&*find.offset(strlen(b"ALPHA=\0" as *const u8 as *const libc::c_char) as isize));
+    // }
 
     /* interpolation weights */
-    engine.condition.duration_iw = (0..num_voices)
+    condition.duration_iw = (0..voices.len())
         .into_iter()
         .map(|_| average_weight)
         .collect();
-    engine.condition.parameter_iw = (0..num_voices)
+    condition.parameter_iw = (0..voices.len())
         .into_iter()
         .map(|_| (0..nstream).into_iter().map(|_| average_weight).collect())
         .collect();
-    engine.condition.gv_iw = (0..num_voices)
+    condition.gv_iw = (0..voices.len())
         .into_iter()
         .map(|_| (0..nstream).into_iter().map(|_| average_weight).collect())
         .collect();
 
-    true
+    HTS_Engine {
+        condition,
+        ms: Rc::new(ms),
+        label: None,
+        sss: None,
+        pss: HTS_PStreamSet_initialize(),
+        gss: HTS_GStreamSet_initialize(),
+    }
 }
 
 pub fn HTS_Engine_set_sampling_frequency(engine: &mut HTS_Engine, mut i: usize) {
@@ -206,11 +193,7 @@ pub unsafe fn HTS_Engine_get_volume(engine: &mut HTS_Engine) -> f64 {
     log(engine.condition.volume) / DB
 }
 
-pub fn HTS_Engine_set_msd_threshold(
-    engine: &mut HTS_Engine,
-    stream_index: usize,
-    mut f: f64,
-) {
+pub fn HTS_Engine_set_msd_threshold(engine: &mut HTS_Engine, stream_index: usize, mut f: f64) {
     if f < 0.0 {
         f = 0.0;
     }
@@ -328,7 +311,7 @@ pub fn HTS_Engine_get_gv_interpolation_weight(
 }
 
 pub unsafe fn HTS_Engine_get_total_state(engine: &mut HTS_Engine) -> size_t {
-    HTS_SStreamSet_get_total_state(&mut engine.sss)
+    engine.sss.as_ref().unwrap().get_total_state()
 }
 
 pub unsafe fn HTS_Engine_set_state_mean(
@@ -338,7 +321,7 @@ pub unsafe fn HTS_Engine_set_state_mean(
     vector_index: size_t,
     f: f64,
 ) {
-    HTS_SStreamSet_set_mean(&mut engine.sss, stream_index, state_index, vector_index, f);
+    engine.sss.as_mut().unwrap().set_mean(stream_index, state_index, vector_index, f);
 }
 
 pub unsafe fn HTS_Engine_get_state_mean(
@@ -347,38 +330,38 @@ pub unsafe fn HTS_Engine_get_state_mean(
     state_index: size_t,
     vector_index: size_t,
 ) -> f64 {
-    HTS_SStreamSet_get_mean(&mut engine.sss, stream_index, state_index, vector_index)
+    engine
+        .sss
+        .as_ref()
+        .unwrap()
+        .get_mean(stream_index, state_index, vector_index)
 }
 
 pub unsafe fn HTS_Engine_get_state_duration(
     engine: &mut HTS_Engine,
     state_index: size_t,
 ) -> size_t {
-    HTS_SStreamSet_get_duration(&mut engine.sss, state_index)
+    engine.sss.as_ref().unwrap().get_duration(state_index)
 }
 
-pub unsafe fn HTS_Engine_get_nvoices(engine: &mut HTS_Engine) -> size_t {
-    HTS_ModelSet_get_nvoices(&mut engine.ms)
+pub unsafe fn HTS_Engine_get_nvoices(engine: &mut HTS_Engine) -> usize {
+    engine.ms.get_nvoices()
 }
 
-pub unsafe fn HTS_Engine_get_nstream(engine: &mut HTS_Engine) -> size_t {
-    HTS_ModelSet_get_nstream(&mut engine.ms)
+pub unsafe fn HTS_Engine_get_nstream(engine: &mut HTS_Engine) -> usize {
+    engine.ms.get_nstream()
 }
 
-pub unsafe fn HTS_Engine_get_nstate(engine: &mut HTS_Engine) -> size_t {
-    HTS_ModelSet_get_nstate(&mut engine.ms)
+pub unsafe fn HTS_Engine_get_nstate(engine: &mut HTS_Engine) -> usize {
+    engine.ms.get_nstate()
 }
 
-pub unsafe fn HTS_Engine_get_fullcontext_label_format(
-    engine: &mut HTS_Engine,
-) -> *const libc::c_char {
-    HTS_ModelSet_get_fullcontext_label_format(&mut engine.ms)
+pub unsafe fn HTS_Engine_get_fullcontext_label_format(engine: &mut HTS_Engine) -> &str {
+    engine.ms.get_fullcontext_label_format()
 }
 
-pub unsafe fn HTS_Engine_get_fullcontext_label_version(
-    engine: &mut HTS_Engine,
-) -> *const libc::c_char {
-    HTS_ModelSet_get_fullcontext_label_version(&mut engine.ms)
+pub unsafe fn HTS_Engine_get_fullcontext_label_version(engine: &mut HTS_Engine) -> &str {
+    engine.ms.get_fullcontext_label_version()
 }
 
 pub unsafe fn HTS_Engine_get_total_frame(engine: &mut HTS_Engine) -> size_t {
@@ -403,24 +386,18 @@ pub unsafe fn HTS_Engine_get_generated_speech(engine: &mut HTS_Engine, index: si
 }
 unsafe fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> bool {
     let mut i: size_t = 0;
-    let mut state_index: size_t = 0;
+    let mut state_index = 0;
     let mut model_index: size_t = 0;
     let mut f: f64 = 0.;
-    if HTS_SStreamSet_create(
-        &mut engine.sss,
-        &mut engine.ms,
-        &mut engine.label,
-        engine.condition.phoneme_alignment_flag as i8,
+    engine.sss = SStreamSet::create(
+        engine.ms.clone(),
+        engine.label.as_ref().unwrap(),
+        engine.condition.phoneme_alignment_flag,
         engine.condition.speed,
         &mut engine.condition.duration_iw,
         &mut engine.condition.parameter_iw,
         &mut engine.condition.gv_iw,
-    ) as libc::c_int
-        != 1 as libc::c_int
-    {
-        HTS_Engine_refresh(engine);
-        return false;
-    }
+    );
     if engine.condition.additional_half_tone != 0.0f64 {
         state_index = 0 as libc::c_int as size_t;
         model_index = 0 as libc::c_int as size_t;
@@ -446,7 +423,7 @@ unsafe fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> bool {
                 f,
             );
             state_index = state_index.wrapping_add(1);
-            if state_index >= HTS_Engine_get_nstate(engine) {
+            if state_index as usize >= HTS_Engine_get_nstate(engine) {
                 state_index = 0 as libc::c_int as size_t;
                 model_index = model_index.wrapping_add(1);
             }
@@ -456,40 +433,37 @@ unsafe fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> bool {
     true
 }
 
-pub unsafe fn HTS_Engine_generate_state_sequence_from_fn(
-    engine: &mut HTS_Engine,
-    fn_0: *const libc::c_char,
-) -> bool {
-    HTS_Engine_refresh(engine);
-    HTS_Label_load_from_fn(
-        &mut engine.label,
-        engine.condition.sampling_frequency as u64,
-        engine.condition.fperiod as u64,
-        fn_0,
-    );
-    HTS_Engine_generate_state_sequence(engine)
-}
+// pub unsafe fn HTS_Engine_generate_state_sequence_from_fn(
+//     engine: &mut HTS_Engine,
+//     fn_0: *const libc::c_char,
+// ) -> bool {
+//     HTS_Engine_refresh(engine);
+//     HTS_Label_load_from_fn(
+//         &mut engine.label,
+//         engine.condition.sampling_frequency as u64,
+//         engine.condition.fperiod as u64,
+//         fn_0,
+//     );
+//     HTS_Engine_generate_state_sequence(engine)
+// }
 
 pub unsafe fn HTS_Engine_generate_state_sequence_from_strings(
     engine: &mut HTS_Engine,
-    lines: *mut *mut libc::c_char,
-    num_lines: size_t,
+    lines: &[String],
 ) -> bool {
     HTS_Engine_refresh(engine);
-    HTS_Label_load_from_strings(
-        &mut engine.label,
-        engine.condition.sampling_frequency as u64,
-        engine.condition.fperiod as u64,
+    engine.label = Some(Label::load_from_strings(
+        engine.condition.sampling_frequency,
+        engine.condition.fperiod,
         lines,
-        num_lines,
-    );
+    ));
     HTS_Engine_generate_state_sequence(engine)
 }
 
 pub unsafe fn HTS_Engine_generate_parameter_sequence(engine: &mut HTS_Engine) -> bool {
     HTS_PStreamSet_create(
         &mut engine.pss,
-        &mut engine.sss,
+        engine.sss.as_ref().unwrap(),
         engine.condition.msd_threshold.as_mut_ptr(),
         engine.condition.gv_weight.as_mut_ptr(),
     )
@@ -525,33 +499,30 @@ unsafe fn HTS_Engine_synthesize(engine: &mut HTS_Engine) -> bool {
     true
 }
 
-pub unsafe fn HTS_Engine_synthesize_from_fn(
-    engine: &mut HTS_Engine,
-    fn_0: *const libc::c_char,
-) -> bool {
-    HTS_Engine_refresh(engine);
-    HTS_Label_load_from_fn(
-        &mut engine.label,
-        engine.condition.sampling_frequency as u64,
-        engine.condition.fperiod as u64,
-        fn_0,
-    );
-    HTS_Engine_synthesize(engine)
-}
+// pub unsafe fn HTS_Engine_synthesize_from_fn(
+//     engine: &mut HTS_Engine,
+//     fn_0: *const libc::c_char,
+// ) -> bool {
+//     HTS_Engine_refresh(engine);
+//     HTS_Label_load_from_fn(
+//         &mut engine.label,
+//         engine.condition.sampling_frequency as u64,
+//         engine.condition.fperiod as u64,
+//         fn_0,
+//     );
+//     HTS_Engine_synthesize(engine)
+// }
 
 pub unsafe fn HTS_Engine_synthesize_from_strings(
     engine: &mut HTS_Engine,
-    lines: *mut *mut libc::c_char,
-    num_lines: size_t,
+    lines: &[String],
 ) -> bool {
     HTS_Engine_refresh(engine);
-    HTS_Label_load_from_strings(
-        &mut engine.label,
-        engine.condition.sampling_frequency as u64,
-        engine.condition.fperiod as u64,
+    engine.label = Some(Label::load_from_strings(
+        engine.condition.sampling_frequency,
+        engine.condition.fperiod,
         lines,
-        num_lines,
-    );
+    ));
     HTS_Engine_synthesize(engine)
 }
 
@@ -936,36 +907,36 @@ pub unsafe fn HTS_Engine_save_information(engine: &mut HTS_Engine, fp: *mut FILE
 }
 
 pub unsafe fn HTS_Engine_save_label(engine: &mut HTS_Engine, fp: *mut FILE) {
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
-    let mut frame: size_t = 0;
-    let mut state: size_t = 0;
-    let mut duration: size_t = 0;
-    let label: &mut HTS_Label = &mut engine.label;
-    let sss: &mut HTS_SStreamSet = &mut engine.sss;
-    let nstate: size_t = HTS_ModelSet_get_nstate(&mut engine.ms);
+    let mut i = 0;
+    let mut j = 0;
+    let mut frame = 0;
+    let mut state = 0;
+    let mut duration = 0;
+    let label = engine.label.as_ref().unwrap();
+    let sss = engine.sss.as_ref().unwrap();
+    let nstate = engine.ms.get_nstate();
     let rate: f64 =
         engine.condition.fperiod as f64 * 1.0e+07f64 / engine.condition.sampling_frequency as f64;
-    i = 0 as libc::c_int as size_t;
-    state = 0 as libc::c_int as size_t;
-    frame = 0 as libc::c_int as size_t;
-    while i < HTS_Label_get_size(label) {
-        j = 0 as libc::c_int as size_t;
-        duration = 0 as libc::c_int as size_t;
+    i = 0;
+    state = 0;
+    frame = 0;
+    while i < label.get_size() {
+        j = 0;
+        duration = 0;
         while j < nstate {
             let fresh2 = state;
-            state = state.wrapping_add(1);
-            duration = duration.wrapping_add(HTS_SStreamSet_get_duration(sss, fresh2));
+            state += 1;
+            duration += sss.get_duration(fresh2);
             j = j.wrapping_add(1);
         }
         fprintf(
             fp,
             b"%lu %lu %s\n\0" as *const u8 as *const libc::c_char,
             (frame as f64 * rate) as libc::c_ulong,
-            (frame.wrapping_add(duration) as f64 * rate) as libc::c_ulong,
-            HTS_Label_get_string(label, i),
+            ((frame as f64 + duration as f64) * rate) as libc::c_ulong,
+            label.get_string(i),
         );
-        frame = frame.wrapping_add(duration);
+        frame += duration;
         i = i.wrapping_add(1);
     }
 }
@@ -1170,11 +1141,9 @@ pub unsafe fn HTS_Engine_save_riff(engine: &mut HTS_Engine, fp: *mut FILE) {
 pub unsafe fn HTS_Engine_refresh(engine: &mut HTS_Engine) {
     HTS_GStreamSet_clear(&mut engine.gss);
     HTS_PStreamSet_clear(&mut engine.pss);
-    HTS_SStreamSet_clear(&mut engine.sss);
-    HTS_Label_clear(&mut engine.label);
+    engine.sss = None;
+    engine.label = None;
     engine.condition.stop = false;
 }
 
-pub unsafe fn HTS_Engine_clear(engine: &mut HTS_Engine) {
-    HTS_ModelSet_clear(&mut engine.ms);
-}
+pub unsafe fn HTS_Engine_clear(engine: &mut HTS_Engine) {}
