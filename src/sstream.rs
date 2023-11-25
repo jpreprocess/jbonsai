@@ -56,21 +56,21 @@ impl FromIterator<ModelParameter> for ModelParameterSequence {
 }
 
 pub struct SStreamSet<'a> {
-    // sstreams: Vec<SStream>,
+    sstreams: Vec<SStream>,
     // nstate: usize,
     duration: Vec<usize>,
-    // total_state: usize,
-    // total_frame: usize,
+    total_state: usize,
+    total_frame: usize,
     ms: &'a ModelSet,
 }
 
-// pub struct SStream {
-//     vector_length: usize,
-//     params: ModelParameter,
-//     win_coef: Vec<Vec<f32>>,
-//     gv_params: Option<ModelParameter>,
-//     gv_switch: bool,
-// }
+pub struct SStream {
+    // vector_length: usize,
+    params: ModelParameterSequence,
+    // win_coef: Vec<Vec<f32>>,
+    gv_params: Option<ModelParameter>,
+    // gv_switch: bool,
+}
 
 impl<'a> SStreamSet<'a> {
     pub fn create(
@@ -79,8 +79,8 @@ impl<'a> SStreamSet<'a> {
         phoneme_alignment_flag: bool,
         speed: f64,
         duration_iw: &[f64],
-        parameter_iw: &[f64],
-        gv_iw: &[f64],
+        parameter_iw: &Vec<Vec<f64>>,
+        gv_iw: &Vec<Vec<f64>>,
     ) -> Option<Self> {
         // check interpolation weights
         let duration_iw_sum: f64 = duration_iw.iter().sum();
@@ -121,6 +121,7 @@ impl<'a> SStreamSet<'a> {
                 state += ms.get_nstate();
             }
         } else {
+            // determine frame length
             duration = Self::estimate_duration(&duration_params, 0.);
             if speed != 1.0 {
                 let length: usize = duration.iter().sum();
@@ -131,7 +132,38 @@ impl<'a> SStreamSet<'a> {
             }
         }
 
-        Some(Self { duration, ms })
+        let sstreams: Vec<SStream> = (0..ms.get_nstream())
+            .map(|stream_idx| {
+                let params = (0..label.get_size())
+                    .flat_map(|label_idx| {
+                        (0..ms.get_nstate()).zip(std::iter::repeat(label_idx)).map(
+                            |(state_idx, label_idx)| {
+                                ms.get_parameter(
+                                    stream_idx,
+                                    state_idx,
+                                    label.get_string(label_idx),
+                                    parameter_iw,
+                                )
+                            },
+                        )
+                    })
+                    .collect();
+                let gv_params = if ms.use_gv(stream_idx) {
+                    Some(ms.get_gv(stream_idx, label.get_string(0), gv_iw))
+                } else {
+                    None
+                };
+                SStream { params, gv_params }
+            })
+            .collect();
+
+        Some(Self {
+            total_state: label.get_size() * ms.get_nstate(),
+            total_frame: duration.iter().sum(),
+            duration,
+            ms,
+            sstreams,
+        })
     }
 
     fn estimate_duration(duration_params: &[(f64, f64)], rho: f64) -> Vec<usize> {
@@ -192,5 +224,89 @@ impl<'a> SStreamSet<'a> {
         }
 
         duration
+    }
+
+    pub fn get_nstream(&self) -> u64 {
+        self.ms.get_nstream() as u64
+    }
+    pub fn get_vector_length(&self, stream_index: u64) -> u64 {
+        self.ms.get_vector_length(stream_index as usize) as u64
+    }
+    pub fn is_msd(&self, stream_index: u64) -> i8 {
+        self.ms.is_msd(stream_index as usize) as i8
+    }
+    pub fn get_total_state(&self) -> u64 {
+        self.total_state as u64
+    }
+    pub fn get_total_frame(&self) -> u64 {
+        self.total_frame as u64
+    }
+    pub fn get_msd(&self, stream_index: u64, state_index: u64) -> f64 {
+        self.sstreams[stream_index as usize]
+            .params
+            .msd
+            .as_ref()
+            .unwrap()[state_index as usize]
+    }
+    pub fn get_window_size(&self, stream_index: u64) -> u64 {
+        self.ms.get_window_size(stream_index as usize) as u64
+    }
+    pub fn get_window_left_width(&self, stream_index: u64, window_index: u64) -> i32 {
+        self.ms
+            .get_window_left_width(stream_index as usize, window_index as usize) as i32
+    }
+    pub fn get_window_right_width(&self, stream_index: u64, window_index: u64) -> i32 {
+        self.ms
+            .get_window_right_width(stream_index as usize, window_index as usize) as i32
+    }
+    pub fn get_window_coefficient(
+        &self,
+        stream_index: u64,
+        window_index: u64,
+        coefficient_index: i32,
+    ) -> f64 {
+        self.ms.get_window_coefficient(
+            stream_index as usize,
+            window_index as usize,
+            coefficient_index as usize,
+        )
+    }
+    pub fn get_window_max_width(&self, stream_index: u64) -> u64 {
+        self.ms.get_window_max_width(stream_index as usize) as u64
+    }
+    pub fn use_gv(&self, stream_index: u64) -> i8 {
+        self.sstreams[stream_index as usize].gv_params.is_some() as i8
+    }
+    pub fn get_duration(&self, state_index: u64) -> u64 {
+        self.duration[state_index as usize] as u64
+    }
+    pub fn get_mean(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
+        self.sstreams[stream_index as usize].params.parameters
+            [self.ms.get_nstate() * (state_index as usize) + vector_index as usize]
+            .0
+    }
+    pub fn get_vari(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
+        self.sstreams[stream_index as usize].params.parameters
+            [self.ms.get_nstate() * (state_index as usize) + vector_index as usize]
+            .1
+    }
+    pub fn get_gv_mean(&self, stream_index: u64, vector_index: u64) -> f64 {
+        self.sstreams[stream_index as usize]
+            .gv_params
+            .as_ref()
+            .unwrap()
+            .parameters[vector_index as usize]
+            .0
+    }
+    pub fn get_gv_vari(&self, stream_index: u64, vector_index: u64) -> f64 {
+        self.sstreams[stream_index as usize]
+            .gv_params
+            .as_ref()
+            .unwrap()
+            .parameters[vector_index as usize]
+            .1
+    }
+    pub fn get_gv_switch(&self, _stream_index: u64, _state_index: u64) -> i8 {
+        0
     }
 }
