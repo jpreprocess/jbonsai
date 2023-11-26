@@ -68,7 +68,7 @@ pub struct SStreamSet {
 
 pub struct SStream {
     // vector_length: usize,
-    params: ModelParameterSequence,
+    params: Vec<ModelParameter>,
     // win_coef: Vec<Vec<f32>>,
     gv_params: Option<ModelParameter>,
     // gv_switch: bool,
@@ -244,11 +244,9 @@ impl SStreamSet {
         self.total_frame as u64
     }
     pub fn get_msd(&self, stream_index: u64, state_index: u64) -> f64 {
-        self.sstreams[stream_index as usize]
-            .params
+        self.sstreams[stream_index as usize].params[state_index as usize]
             .msd
-            .as_ref()
-            .unwrap()[state_index as usize]
+            .unwrap()
     }
     pub fn get_window_size(&self, stream_index: u64) -> u64 {
         self.ms.get_window_size(stream_index as usize) as u64
@@ -283,13 +281,13 @@ impl SStreamSet {
         self.duration[state_index as usize] as u64
     }
     pub fn get_mean(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
-        self.sstreams[stream_index as usize].params.parameters
-            [self.ms.get_window_size(stream_index as usize) * (state_index as usize) + vector_index as usize]
+        self.sstreams[stream_index as usize].params[state_index as usize].parameters
+            [vector_index as usize]
             .0
     }
     pub fn get_vari(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
-        self.sstreams[stream_index as usize].params.parameters
-            [self.ms.get_window_size(stream_index as usize) * (state_index as usize) + vector_index as usize]
+        self.sstreams[stream_index as usize].params[state_index as usize].parameters
+            [vector_index as usize]
             .1
     }
     pub fn get_gv_mean(&self, stream_index: u64, vector_index: u64) -> f64 {
@@ -313,8 +311,8 @@ impl SStreamSet {
     }
 
     pub fn set_mean(&mut self, stream_index: u64, state_index: u64, vector_index: u64, value: f64) {
-        self.sstreams[stream_index as usize].params.parameters
-            [self.ms.get_nstate() * (state_index as usize) + vector_index as usize]
+        self.sstreams[stream_index as usize].params[state_index as usize].parameters
+            [vector_index as usize]
             .0 = value;
     }
 }
