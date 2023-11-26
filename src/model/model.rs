@@ -184,7 +184,12 @@ impl Pattern {
         } else {
             Ok(Self::Regex(Regex::new(&format!(
                 "^{}$",
-                pattern.replace('*', ".*").replace('?', ".?")
+                pattern
+                    .replace('+', "\\+")
+                    .replace('^', "\\^")
+                    .replace('|', "\\|")
+                    .replace('*', ".*")
+                    .replace('?', ".")
             ))?))
         }
     }
