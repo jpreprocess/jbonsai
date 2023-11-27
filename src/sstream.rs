@@ -71,7 +71,7 @@ pub struct SStream {
     params: Vec<ModelParameter>,
     // win_coef: Vec<Vec<f32>>,
     gv_params: Option<ModelParameter>,
-    // gv_switch: bool,
+    gv_switch: Vec<bool>,
 }
 
 impl SStreamSet {
@@ -150,12 +150,23 @@ impl SStreamSet {
                             })
                     })
                     .collect();
+                let gv_switch = (0..label.get_size())
+                    .flat_map(|label_idx| {
+                        let sw =
+                            !ms.use_gv(stream_idx) || ms.get_gv_flag(label.get_string(label_idx));
+                        vec![sw].repeat(ms.get_nstate())
+                    })
+                    .collect();
                 let gv_params = if ms.use_gv(stream_idx) {
                     Some(ms.get_gv(stream_idx, label.get_string(0), gv_iw))
                 } else {
                     None
                 };
-                SStream { params, gv_params }
+                SStream {
+                    params,
+                    gv_params,
+                    gv_switch,
+                }
             })
             .collect();
 
@@ -306,8 +317,8 @@ impl SStreamSet {
             .parameters[vector_index as usize]
             .1
     }
-    pub fn get_gv_switch(&self, _stream_index: u64, _state_index: u64) -> i8 {
-        0
+    pub fn get_gv_switch(&self, stream_index: u64, state_index: u64) -> i8 {
+        self.sstreams[stream_index as usize].gv_switch[state_index as usize] as i8
     }
 
     pub fn set_mean(&mut self, stream_index: u64, state_index: u64, vector_index: u64, value: f64) {
