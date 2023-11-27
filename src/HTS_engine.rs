@@ -71,7 +71,7 @@ pub struct HTS_Engine {
     pub gss: HTS_GStreamSet,
 }
 
-pub unsafe fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
+pub fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
     let mut condition = HTS_Condition {
         sampling_frequency: 0,
         fperiod: 0,
@@ -91,13 +91,10 @@ pub unsafe fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
         gv_iw: Vec::new(),
     };
 
-    let mut nstream: usize = 0;
-    let mut average_weight: f64 = 0.;
-
     /* load voices */
     let ms = ModelSet::load_htsvoice_files(voices).unwrap();
-    nstream = ms.get_nstream();
-    average_weight = 1.0f64 / voices.len() as f64;
+    let nstream = ms.get_nstream();
+    let average_weight = 1.0f64 / voices.len() as f64;
 
     /* global */
     condition.sampling_frequency = ms.get_sampling_frequency() as usize;
@@ -173,12 +170,12 @@ pub fn HTS_Engine_get_stop_flag(engine: &mut HTS_Engine) -> bool {
     engine.condition.stop
 }
 
-pub unsafe fn HTS_Engine_set_volume(engine: &mut HTS_Engine, f: f64) {
-    engine.condition.volume = exp(f * DB);
+pub fn HTS_Engine_set_volume(engine: &mut HTS_Engine, f: f64) {
+    engine.condition.volume = (f * DB).exp();
 }
 
-pub unsafe fn HTS_Engine_get_volume(engine: &mut HTS_Engine) -> f64 {
-    log(engine.condition.volume) / DB
+pub fn HTS_Engine_get_volume(engine: &mut HTS_Engine) -> f64 {
+    engine.condition.volume.ln() / DB
 }
 
 pub fn HTS_Engine_set_msd_threshold(engine: &mut HTS_Engine, stream_index: usize, mut f: f64) {
@@ -298,11 +295,11 @@ pub fn HTS_Engine_get_gv_interpolation_weight(
     engine.condition.gv_iw[voice_index][stream_index]
 }
 
-pub unsafe fn HTS_Engine_get_total_state(engine: &mut HTS_Engine) -> size_t {
+pub fn HTS_Engine_get_total_state(engine: &mut HTS_Engine) -> size_t {
     engine.sss.as_ref().unwrap().get_total_state()
 }
 
-pub unsafe fn HTS_Engine_set_state_mean(
+pub fn HTS_Engine_set_state_mean(
     engine: &mut HTS_Engine,
     stream_index: size_t,
     state_index: size_t,
@@ -316,7 +313,7 @@ pub unsafe fn HTS_Engine_set_state_mean(
         .set_mean(stream_index, state_index, vector_index, f);
 }
 
-pub unsafe fn HTS_Engine_get_state_mean(
+pub fn HTS_Engine_get_state_mean(
     engine: &mut HTS_Engine,
     stream_index: size_t,
     state_index: size_t,
@@ -329,30 +326,30 @@ pub unsafe fn HTS_Engine_get_state_mean(
         .get_mean(stream_index, state_index, vector_index)
 }
 
-pub unsafe fn HTS_Engine_get_state_duration(
+pub fn HTS_Engine_get_state_duration(
     engine: &mut HTS_Engine,
     state_index: size_t,
 ) -> size_t {
     engine.sss.as_ref().unwrap().get_duration(state_index)
 }
 
-pub unsafe fn HTS_Engine_get_nvoices(engine: &mut HTS_Engine) -> usize {
+pub fn HTS_Engine_get_nvoices(engine: &mut HTS_Engine) -> usize {
     engine.ms.get_nvoices()
 }
 
-pub unsafe fn HTS_Engine_get_nstream(engine: &mut HTS_Engine) -> usize {
+pub fn HTS_Engine_get_nstream(engine: &mut HTS_Engine) -> usize {
     engine.ms.get_nstream()
 }
 
-pub unsafe fn HTS_Engine_get_nstate(engine: &mut HTS_Engine) -> usize {
+pub fn HTS_Engine_get_nstate(engine: &mut HTS_Engine) -> usize {
     engine.ms.get_nstate()
 }
 
-pub unsafe fn HTS_Engine_get_fullcontext_label_format(engine: &mut HTS_Engine) -> &str {
+pub fn HTS_Engine_get_fullcontext_label_format(engine: &mut HTS_Engine) -> &str {
     engine.ms.get_fullcontext_label_format()
 }
 
-pub unsafe fn HTS_Engine_get_fullcontext_label_version(engine: &mut HTS_Engine) -> &str {
+pub fn HTS_Engine_get_fullcontext_label_version(engine: &mut HTS_Engine) -> &str {
     engine.ms.get_fullcontext_label_version()
 }
 
@@ -376,7 +373,7 @@ pub unsafe fn HTS_Engine_get_generated_parameter(
 pub unsafe fn HTS_Engine_get_generated_speech(engine: &mut HTS_Engine, index: size_t) -> f64 {
     HTS_GStreamSet_get_speech(&mut engine.gss, index)
 }
-unsafe fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> bool {
+fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> bool {
     let mut i: size_t = 0;
     let mut state_index = 0;
     let mut model_index: size_t = 0;
@@ -1137,5 +1134,3 @@ pub unsafe fn HTS_Engine_refresh(engine: &mut HTS_Engine) {
     engine.label = None;
     engine.condition.stop = false;
 }
-
-pub unsafe fn HTS_Engine_clear(engine: &mut HTS_Engine) {}

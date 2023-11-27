@@ -47,9 +47,9 @@ mod tests {
     fn load() {
         let lines: Vec<String> = SAMPLE_SENTENCE.iter().map(|l| l.to_string()).collect();
 
+        let mut htsengine =
+            HTS_Engine_load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
         unsafe {
-            let mut htsengine =
-                HTS_Engine_load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
             HTS_Engine_synthesize_from_strings(&mut htsengine, &lines);
             let l2000 = HTS_Engine_get_generated_speech(&mut htsengine, 2000);
             assert_eq!(l2000, 19.35141137623778);
