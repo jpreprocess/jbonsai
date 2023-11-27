@@ -93,7 +93,6 @@ pub unsafe fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
 
     let mut nstream: usize = 0;
     let mut average_weight: f64 = 0.;
-    let mut find: *const libc::c_char = std::ptr::null::<libc::c_char>();
 
     /* load voices */
     let ms = ModelSet::load_htsvoice_files(voices).unwrap();
@@ -107,29 +106,18 @@ pub unsafe fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
     condition.gv_weight = (0..nstream).into_iter().map(|_| 1.0).collect();
 
     /* spectrum */
-    let option = ms.get_option(0);
-    // find = strstr(option, b"GAMMA=\0" as *const u8 as *const libc::c_char);
-    // if !find.is_null() {
-    //     condition.stage =
-    //         atoi(&*find.offset((strlen)(b"GAMMA=\0" as *const u8 as *const libc::c_char) as isize))
-    //             as usize;
-    // }
-    // find = strstr(option, b"LN_GAIN=\0" as *const u8 as *const libc::c_char);
-    // if !find.is_null() {
-    //     condition.use_log_gain = if atoi(
-    //         &*find.offset(strlen(b"LN_GAIN=\0" as *const u8 as *const libc::c_char) as isize),
-    //     ) == 1 as libc::c_int
-    //     {
-    //         true
-    //     } else {
-    //         false
-    //     };
-    // }
-    // find = strstr(option, b"ALPHA=\0" as *const u8 as *const libc::c_char);
-    // if !find.is_null() {
-    //     condition.alpha =
-    //         atof(&*find.offset(strlen(b"ALPHA=\0" as *const u8 as *const libc::c_char) as isize));
-    // }
+    for option in ms.get_option(0) {
+        let Some((key, value)) = option.split_once('=') else {
+            eprintln!("Skipped unrecognized option {}.", option);
+            continue;
+        };
+        match key {
+            "GAMMA" => condition.stage = value.parse().unwrap(),
+            "LN_GAIN" => condition.use_log_gain = value == "1",
+            "ALPHA" => condition.alpha = value.parse().unwrap(),
+            _ => eprintln!("Skipped unrecognized option {}.", option),
+        }
+    }
 
     /* interpolation weights */
     condition.duration_iw = (0..voices.len())
