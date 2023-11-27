@@ -309,7 +309,11 @@ pub unsafe fn HTS_Engine_set_state_mean(
     vector_index: size_t,
     f: f64,
 ) {
-    engine.sss.as_mut().unwrap().set_mean(stream_index, state_index, vector_index, f);
+    engine
+        .sss
+        .as_mut()
+        .unwrap()
+        .set_mean(stream_index, state_index, vector_index, f);
 }
 
 pub unsafe fn HTS_Engine_get_state_mean(

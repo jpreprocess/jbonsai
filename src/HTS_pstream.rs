@@ -465,8 +465,7 @@ pub unsafe fn HTS_PStreamSet_create(
         j = 0 as libc::c_int as size_t;
         while j < pst.win_size {
             *(pst.win_l_width).offset(j as isize) = sss.get_window_left_width(i, j);
-            *(pst.win_r_width).offset(j as isize) =
-                sss.get_window_right_width(i, j);
+            *(pst.win_r_width).offset(j as isize) = sss.get_window_right_width(i, j);
             if *(pst.win_l_width).offset(j as isize) + *(pst.win_r_width).offset(j as isize)
                 == 0 as libc::c_int
             {
@@ -523,8 +522,7 @@ pub unsafe fn HTS_PStreamSet_create(
                         if *(pst.msd_flag).offset(frame as isize) != 0 {
                             let fresh3 = msd_frame;
                             msd_frame = msd_frame.wrapping_add(1);
-                            *(pst.gv_switch).offset(fresh3 as isize) =
-                                sss.get_gv_switch(i, state);
+                            *(pst.gv_switch).offset(fresh3 as isize) = sss.get_gv_switch(i, state);
                         }
                         j = j.wrapping_add(1);
                         frame = frame.wrapping_add(1);
@@ -539,8 +537,7 @@ pub unsafe fn HTS_PStreamSet_create(
                     while j < sss.get_duration(state) {
                         let fresh4 = frame;
                         frame = frame.wrapping_add(1);
-                        *(pst.gv_switch).offset(fresh4 as isize) =
-                            sss.get_gv_switch(i, state);
+                        *(pst.gv_switch).offset(fresh4 as isize) = sss.get_gv_switch(i, state);
                         j = j.wrapping_add(1);
                     }
                     state = state.wrapping_add(1);
@@ -595,8 +592,7 @@ pub unsafe fn HTS_PStreamSet_create(
                                 if not_bound as libc::c_int != 0 || k == 0 as libc::c_int as size_t
                                 {
                                     *(*(pst.sm.ivar).offset(msd_frame as isize))
-                                        .offset(m as isize) =
-                                        HTS_finv(sss.get_vari(i, state, m));
+                                        .offset(m as isize) = HTS_finv(sss.get_vari(i, state, m));
                                 } else {
                                     *(*(pst.sm.ivar).offset(msd_frame as isize))
                                         .offset(m as isize) = 0.0f64;
