@@ -18,22 +18,18 @@ pub use HTS_pstream::*;
 pub use HTS_sstream::*;
 pub use HTS_vocoder::*;
 
-pub mod model;
 pub mod label;
+pub mod model;
+pub mod sstream;
 
 #[cfg(test)]
 mod tests {
     use std::{ffi::CString, mem::MaybeUninit};
 
     use crate::{
-        HTS_Engine, HTS_Engine_get_generated_speech, HTS_Engine_initialize, HTS_Engine_load,
+        HTS_Engine, HTS_Engine_get_generated_speech, HTS_Engine_load,
         HTS_Engine_synthesize_from_strings,
     };
-
-    #[test]
-    fn new() {
-        HTS_Engine_initialize();
-    }
 
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
     pub const SAMPLE_SENTENCE: [&str;8]= [
@@ -49,24 +45,12 @@ mod tests {
 
     #[test]
     fn load() {
-        let mut htsengine = HTS_Engine_initialize();
-
-        let model_str = CString::new("models/nitech_jp_atr503_m001.htsvoice").unwrap();
-        let voices = &[model_str.as_ptr() as *mut i8];
-
-        let proto_lines: Vec<CString> = SAMPLE_SENTENCE
-            .iter()
-            .map(|l| CString::new(*l).unwrap())
-            .collect();
-        let mut lines: Vec<*mut i8> = proto_lines.iter().map(|l| l.as_ptr() as *mut i8).collect();
+        let lines: Vec<String> = SAMPLE_SENTENCE.iter().map(|l| l.to_string()).collect();
 
         unsafe {
-            HTS_Engine_load(&mut htsengine, voices.as_ptr() as *mut *mut i8, 1);
-            HTS_Engine_synthesize_from_strings(
-                &mut htsengine,
-                lines.as_mut_ptr(),
-                lines.len() as u64,
-            );
+            let mut htsengine =
+                HTS_Engine_load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+            HTS_Engine_synthesize_from_strings(&mut htsengine, &lines);
             let l2000 = HTS_Engine_get_generated_speech(&mut htsengine, 2000);
             assert_eq!(l2000, 19.35141137623778);
             let l30000 = HTS_Engine_get_generated_speech(&mut htsengine, 30000);

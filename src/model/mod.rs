@@ -158,11 +158,11 @@ impl ModelSet {
         &self,
         stream_index: usize,
         window_index: usize,
-        coefficient_index: usize,
+        coefficient_index: isize,
     ) -> f64 {
         // TODO: check implementation
         let row = &self.voices.last().unwrap().stream_models[stream_index].windows[window_index];
-        row[row.len() / 2 + coefficient_index]
+        row[((row.len() / 2) as isize + coefficient_index) as usize]
     }
     /// Get max width of dynamic window
     pub fn get_window_max_width(&self, stream_index: usize) -> usize {
