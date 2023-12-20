@@ -141,10 +141,12 @@ impl Vocoder {
                 if x != 0.0 {
                     x *= self.c[0].exp();
                 }
-                mlsadf(&mut x, &self.c, alpha, 5, &mut self.d1);
+                let mlsa = Mlsa::new(&self.c, alpha, 5);
+                mlsa.df(&mut x, &mut self.d1)
             } else {
                 x *= self.c[0];
-                mglsadf(&mut x, &self.c, alpha, self.stage, &mut self.d1);
+                let mglsa = Mglsa::new(&self.c, alpha, self.stage);
+                mglsa.df(&mut x, &mut self.d1)
             }
             x *= volume;
 
@@ -701,84 +703,116 @@ fn gnorm(c1: &[f64], gamma: f64) -> Vec<f64> {
     }
 }
 
-/// d.len() == pd * b.len() + 4 * pd + 3
-fn mlsadf(x: &mut f64, b: &[f64], alpha: f64, pd: usize, d: &mut [f64]) {
-    let aa = 1.0 - alpha * alpha;
-    let ppade = &HTS_PADE[(pd * (pd + 1) / 2)..];
-    let (d1, d2) = d.split_at_mut(2 * (pd + 1));
-    mlsadf1(x, b, alpha, aa, pd, d1, ppade);
-    mlsadf2(x, b, alpha, aa, pd, d2, ppade);
+#[derive(Debug)]
+struct Mlsa<'a> {
+    b: &'a [f64],
+    alpha: f64,
+    pd: usize,
+    aa: f64,
+    ppade: &'a [f64],
 }
 
-/// d.len() == 2 * pd + 2
-fn mlsadf1(x: &mut f64, b: &[f64], alpha: f64, aa: f64, pd: usize, d: &mut [f64], ppade: &[f64]) {
-    let mut out = 0.0;
-    let (d, pt) = d.split_at_mut(pd + 1);
-    for i in (1..=pd).rev() {
-        d[i] = aa * pt[i - 1] + alpha * d[i];
-        pt[i] = d[i] * b[1];
-        let v = pt[i] * ppade[i];
-        *x += if i & 1 != 0 { v } else { -v };
-        out += v;
-    }
-    pt[0] = *x;
-    *x += out;
-}
-
-/// d.len() == pd * b.len() + 2 * pd + 1
-fn mlsadf2(x: &mut f64, b: &[f64], alpha: f64, aa: f64, pd: usize, d: &mut [f64], ppade: &[f64]) {
-    let mut out = 0.0;
-    let (d, pt) = d.split_at_mut(pd * (b.len() + 1));
-    for i in (1..=pd).rev() {
-        pt[i] = mlsafir(
-            pt[i - 1],
+impl<'a> Mlsa<'a> {
+    fn new(b: &'a [f64], alpha: f64, pd: usize) -> Self {
+        Self {
             b,
             alpha,
-            aa,
-            &mut d[(i - 1) * (b.len() + 1)..i * (b.len() + 1)],
-        );
-        let v = pt[i] * ppade[i];
-        *x += if i & 1 != 0 { v } else { -v };
-        out += v;
+            pd,
+            aa: 1.0 - alpha * alpha,
+            ppade: &HTS_PADE[(pd * (pd + 1) / 2)..],
+        }
     }
-    pt[0] = *x;
-    *x += out;
+
+    /// d.len() == pd * b.len() + 4 * pd + 3
+    fn df(&self, x: &mut f64, d: &mut [f64]) {
+        let (d1, d2) = d.split_at_mut(2 * (self.pd + 1));
+        self.df1(x, d1);
+        self.df2(x, d2);
+    }
+
+    /// d.len() == 2 * self.pd + 2
+    fn df1(&self, x: &mut f64, d: &mut [f64]) {
+        let mut out = 0.0;
+        let (d, pt) = d.split_at_mut(self.pd + 1);
+        for i in (1..=self.pd).rev() {
+            d[i] = self.aa * pt[i - 1] + self.alpha * d[i];
+            pt[i] = d[i] * self.b[1];
+            let v = pt[i] * self.ppade[i];
+            *x += if i & 1 != 0 { v } else { -v };
+            out += v;
+        }
+        pt[0] = *x;
+        *x += out;
+    }
+
+    /// d.len() == self.pd * self.b.len() + 2 * self.pd + 1
+    fn df2(&self, x: &mut f64, d: &mut [f64]) {
+        let mut out = 0.0;
+        let (d, pt) = d.split_at_mut(self.pd * (self.b.len() + 1));
+        for i in (1..=self.pd).rev() {
+            pt[i] = self.fir(
+                pt[i - 1],
+                &mut d[(i - 1) * (self.b.len() + 1)..i * (self.b.len() + 1)],
+            );
+            let v = pt[i] * self.ppade[i];
+            *x += if i & 1 != 0 { v } else { -v };
+            out += v;
+        }
+        pt[0] = *x;
+        *x += out;
+    }
+
+    fn fir(&self, x: f64, d: &mut [f64]) -> f64 {
+        d[0] = x;
+        d[1] = self.aa * d[0] + self.alpha * d[1];
+        for i in 2..self.b.len() {
+            d[i] += self.alpha * (d[i + 1] - d[i - 1]);
+        }
+        let mut y = 0.0;
+        for i in 2..self.b.len() {
+            y += d[i] * self.b[i];
+        }
+        for i in (2..d.len()).rev() {
+            d[i] = d[i - 1];
+        }
+        y
+    }
 }
 
-/// d.len() == b.len() + 1
-fn mlsafir(x: f64, b: &[f64], alpha: f64, aa: f64, d: &mut [f64]) -> f64 {
-    d[0] = x;
-    d[1] = aa * d[0] + alpha * d[1];
-    for i in 2..b.len() {
-        d[i] += alpha * (d[i + 1] - d[i - 1]);
-    }
-    let mut y = 0.0;
-    for i in 2..b.len() {
-        y += d[i] * b[i];
-    }
-    for i in (2..d.len()).rev() {
-        d[i] = d[i - 1];
-    }
-    y
+#[derive(Debug)]
+struct Mglsa<'a> {
+    b: &'a [f64],
+    alpha: f64,
+    n: usize,
+    aa: f64,
 }
 
-/// d.len() == n * b.len()
-fn mglsadf(x: &mut f64, b: &[f64], alpha: f64, n: usize, d: &mut [f64]) {
-    for i in 0..n {
-        mglsadff(x, b, alpha, &mut d[i * b.len()..(i + 1) * b.len()]);
+impl<'a> Mglsa<'a> {
+    fn new(b: &'a [f64], alpha: f64, n: usize) -> Self {
+        Self {
+            b,
+            alpha,
+            n,
+            aa: 1.0 - alpha * alpha,
+        }
     }
-}
 
-/// d.len() == b.len()
-fn mglsadff(x: &mut f64, b: &[f64], alpha: f64, d: &mut [f64]) {
-    let mut y = d[0] * b[1];
-    for i in 1..b.len() - 1 {
-        d[i] += alpha * (d[i + 1] - d[i - 1]);
-        y += d[i] * b[i + 1];
+    fn df(&self, x: &mut f64, d: &mut [f64]) {
+        for i in 0..self.n {
+            self.dff(x, &mut d[i * self.b.len()..(i + 1) * self.b.len()]);
+        }
     }
-    *x -= y;
-    for i in (1..b.len()).rev() {
-        d[i] = d[i - 1];
+
+    fn dff(&self, x: &mut f64, d: &mut [f64]) {
+        let mut y = d[0] * self.b[1];
+        for i in 1..self.b.len() - 1 {
+            d[i] += self.alpha * (d[i + 1] - d[i - 1]);
+            y += d[i] * self.b[i + 1];
+        }
+        *x -= y;
+        for i in (1..self.b.len()).rev() {
+            d[i] = d[i - 1];
+        }
+        d[0] = self.alpha * d[0] + self.aa * *x;
     }
-    d[0] = alpha * d[0] + (1.0 - alpha * alpha) * *x;
 }
