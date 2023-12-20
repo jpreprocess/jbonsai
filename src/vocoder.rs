@@ -146,7 +146,7 @@ impl Vocoder {
                 x *= self.c[0];
                 mglsadf(&mut x, &self.c, alpha, self.stage, &mut self.d1);
             }
-            x += volume;
+            x *= volume;
 
             rawdata[j] = x;
             for i in 0..self.c.len() {
@@ -756,7 +756,7 @@ fn mlsafir(x: f64, b: &[f64], alpha: f64, aa: f64, d: &mut [f64]) -> f64 {
     for i in 2..b.len() {
         y += d[i] * b[i];
     }
-    for i in (1..d.len()).rev() {
+    for i in (2..d.len()).rev() {
         d[i] = d[i - 1];
     }
     y
