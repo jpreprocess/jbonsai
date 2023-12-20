@@ -26,12 +26,12 @@ use crate::{
 
 #[derive(Clone)]
 pub struct HTS_PStream {
-    pub vector_length: size_t,
-    pub length: size_t,
-    pub width: size_t,
+    pub vector_length: usize,
+    pub length: usize,
+    pub width: usize,
     pub par: *mut *mut libc::c_double,
     pub sm: HTS_SMatrices,
-    pub win_size: size_t,
+    pub win_size: usize,
     pub win_l_width: *mut libc::c_int,
     pub win_r_width: *mut libc::c_int,
     pub win_coefficient: *mut *mut libc::c_double,
@@ -39,14 +39,14 @@ pub struct HTS_PStream {
     pub gv_mean: *mut libc::c_double,
     pub gv_vari: *mut libc::c_double,
     pub gv_switch: *mut HTS_Boolean,
-    pub gv_length: size_t,
+    pub gv_length: usize,
 }
 
 #[derive(Clone)]
 pub struct HTS_PStreamSet {
     pub pstream: *mut HTS_PStream,
-    pub nstream: size_t,
-    pub total_frame: size_t,
+    pub nstream: usize,
+    pub total_frame: usize,
 }
 
 unsafe fn HTS_finv(x: libc::c_double) -> libc::c_double {
@@ -64,45 +64,45 @@ unsafe fn HTS_finv(x: libc::c_double) -> libc::c_double {
     }
     1.0f64 / x
 }
-unsafe fn HTS_PStream_calc_wuw_and_wum(pst: &mut HTS_PStream, mut m: size_t) {
-    let mut t: size_t = 0;
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
+unsafe fn HTS_PStream_calc_wuw_and_wum(pst: &mut HTS_PStream, mut m: usize) {
+    let mut t: usize = 0;
+    let mut i: usize = 0;
+    let mut j: usize = 0;
     let mut shift: libc::c_int = 0;
     let mut wu: libc::c_double = 0.;
-    t = 0 as libc::c_int as size_t;
+    t = 0 as libc::c_int as usize;
     while t < pst.length {
         *(pst.sm.wum).offset(t as isize) = 0.0f64;
-        i = 0 as libc::c_int as size_t;
+        i = 0 as libc::c_int as usize;
         while i < pst.width {
             *(*(pst.sm.wuw).offset(t as isize)).offset(i as isize) = 0.0f64;
             i = i.wrapping_add(1);
         }
-        i = 0 as libc::c_int as size_t;
+        i = 0 as libc::c_int as usize;
         while i < pst.win_size {
             shift = *(pst.win_l_width).offset(i as isize);
             while shift <= *(pst.win_r_width).offset(i as isize) {
                 if t as libc::c_int + shift >= 0 as libc::c_int
-                    && ((t as libc::c_int + shift) as size_t) < pst.length
+                    && ((t as libc::c_int + shift) as usize) < pst.length
                     && *(*(pst.win_coefficient).offset(i as isize)).offset(-shift as isize)
                         != 0.0f64
                 {
                     wu = *(*(pst.win_coefficient).offset(i as isize)).offset(-shift as isize)
-                        * *(*(pst.sm.ivar).offset(t.wrapping_add(shift as size_t) as isize))
+                        * *(*(pst.sm.ivar).offset(t.wrapping_add(shift as usize) as isize))
                             .offset((i * pst.vector_length).wrapping_add(m) as isize);
                     *(pst.sm.wum).offset(t as isize) += wu
-                        * *(*(pst.sm.mean).offset(t.wrapping_add(shift as size_t) as isize))
+                        * *(*(pst.sm.mean).offset(t.wrapping_add(shift as usize) as isize))
                             .offset((i * pst.vector_length).wrapping_add(m) as isize);
-                    j = 0 as libc::c_int as size_t;
+                    j = 0 as libc::c_int as usize;
                     while j < pst.width && t.wrapping_add(j) < pst.length {
                         if j as libc::c_int <= *(pst.win_r_width).offset(i as isize) + shift
                             && *(*(pst.win_coefficient).offset(i as isize))
-                                .offset(j.wrapping_sub(shift as size_t) as isize)
+                                .offset(j.wrapping_sub(shift as usize) as isize)
                                 != 0.0f64
                         {
                             *(*(pst.sm.wuw).offset(t as isize)).offset(j as isize) += wu
                                 * *(*(pst.win_coefficient).offset(i as isize))
-                                    .offset(j.wrapping_sub(shift as size_t) as isize);
+                                    .offset(j.wrapping_sub(shift as usize) as isize);
                         }
                         j = j.wrapping_add(1);
                     }
@@ -115,12 +115,12 @@ unsafe fn HTS_PStream_calc_wuw_and_wum(pst: &mut HTS_PStream, mut m: size_t) {
     }
 }
 unsafe fn HTS_PStream_ldl_factorization(pst: &mut HTS_PStream) {
-    let mut t: size_t = 0;
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
-    t = 0 as libc::c_int as size_t;
+    let mut t: usize = 0;
+    let mut i: usize = 0;
+    let mut j: usize = 0;
+    t = 0 as libc::c_int as usize;
     while t < pst.length {
-        i = 1 as libc::c_int as size_t;
+        i = 1 as libc::c_int as usize;
         while i < pst.width && t >= i {
             *(*(pst.sm.wuw).offset(t as isize)).offset(0 as libc::c_int as isize) -=
                 *(*(pst.sm.wuw).offset(t.wrapping_sub(i) as isize)).offset(i as isize)
@@ -129,9 +129,9 @@ unsafe fn HTS_PStream_ldl_factorization(pst: &mut HTS_PStream) {
                         .offset(0 as libc::c_int as isize);
             i = i.wrapping_add(1);
         }
-        i = 1 as libc::c_int as size_t;
+        i = 1 as libc::c_int as usize;
         while i < pst.width {
-            j = 1 as libc::c_int as size_t;
+            j = 1 as libc::c_int as usize;
             while i.wrapping_add(j) < pst.width && t >= j {
                 *(*(pst.sm.wuw).offset(t as isize)).offset(i as isize) -=
                     *(*(pst.sm.wuw).offset(t.wrapping_sub(j) as isize)).offset(j as isize)
@@ -149,12 +149,12 @@ unsafe fn HTS_PStream_ldl_factorization(pst: &mut HTS_PStream) {
     }
 }
 unsafe fn HTS_PStream_forward_substitution(pst: &mut HTS_PStream) {
-    let mut t: size_t = 0;
-    let mut i: size_t = 0;
-    t = 0 as libc::c_int as size_t;
+    let mut t: usize = 0;
+    let mut i: usize = 0;
+    t = 0 as libc::c_int as usize;
     while t < pst.length {
         *(pst.sm.g).offset(t as isize) = *(pst.sm.wum).offset(t as isize);
-        i = 1 as libc::c_int as size_t;
+        i = 1 as libc::c_int as usize;
         while i < pst.width && t >= i {
             *(pst.sm.g).offset(t as isize) -= *(*(pst.sm.wuw).offset(t.wrapping_sub(i) as isize))
                 .offset(i as isize)
@@ -164,18 +164,18 @@ unsafe fn HTS_PStream_forward_substitution(pst: &mut HTS_PStream) {
         t = t.wrapping_add(1);
     }
 }
-unsafe fn HTS_PStream_backward_substitution(pst: &mut HTS_PStream, mut m: size_t) {
-    let mut rev: size_t = 0;
-    let mut t: size_t = 0;
-    let mut i: size_t = 0;
-    rev = 0 as libc::c_int as size_t;
+unsafe fn HTS_PStream_backward_substitution(pst: &mut HTS_PStream, mut m: usize) {
+    let mut rev: usize = 0;
+    let mut t: usize = 0;
+    let mut i: usize = 0;
+    rev = 0 as libc::c_int as usize;
     while rev < pst.length {
         t = (pst.length)
-            .wrapping_sub(1 as libc::c_int as size_t)
+            .wrapping_sub(1 as libc::c_int as usize)
             .wrapping_sub(rev);
         *(*(pst.par).offset(t as isize)).offset(m as isize) = *(pst.sm.g).offset(t as isize)
             / *(*(pst.sm.wuw).offset(t as isize)).offset(0 as libc::c_int as isize);
-        i = 1 as libc::c_int as size_t;
+        i = 1 as libc::c_int as usize;
         while i < pst.width && t.wrapping_add(i) < pst.length {
             *(*(pst.par).offset(t as isize)).offset(m as isize) -=
                 *(*(pst.sm.wuw).offset(t as isize)).offset(i as isize)
@@ -187,13 +187,13 @@ unsafe fn HTS_PStream_backward_substitution(pst: &mut HTS_PStream, mut m: size_t
 }
 unsafe fn HTS_PStream_calc_gv(
     pst: &mut HTS_PStream,
-    mut m: size_t,
+    mut m: usize,
     mut mean: *mut libc::c_double,
     mut vari: *mut libc::c_double,
 ) {
-    let mut t: size_t = 0;
+    let mut t: usize = 0;
     *mean = 0.0f64;
-    t = 0 as libc::c_int as size_t;
+    t = 0 as libc::c_int as usize;
     while t < pst.length {
         if *(pst.gv_switch).offset(t as isize) != 0 {
             *mean += *(*(pst.par).offset(t as isize)).offset(m as isize);
@@ -202,7 +202,7 @@ unsafe fn HTS_PStream_calc_gv(
     }
     *mean /= pst.gv_length as libc::c_double;
     *vari = 0.0f64;
-    t = 0 as libc::c_int as size_t;
+    t = 0 as libc::c_int as usize;
     while t < pst.length {
         if *(pst.gv_switch).offset(t as isize) != 0 {
             *vari += (*(*(pst.par).offset(t as isize)).offset(m as isize) - *mean)
@@ -212,14 +212,14 @@ unsafe fn HTS_PStream_calc_gv(
     }
     *vari /= pst.gv_length as libc::c_double;
 }
-unsafe fn HTS_PStream_conv_gv(pst: &mut HTS_PStream, mut m: size_t) {
-    let mut t: size_t = 0;
+unsafe fn HTS_PStream_conv_gv(pst: &mut HTS_PStream, mut m: usize) {
+    let mut t: usize = 0;
     let mut ratio: libc::c_double = 0.;
     let mut mean: libc::c_double = 0.;
     let mut vari: libc::c_double = 0.;
     HTS_PStream_calc_gv(pst, m, &mut mean, &mut vari);
     ratio = sqrt(*(pst.gv_mean).offset(m as isize) / vari);
-    t = 0 as libc::c_int as size_t;
+    t = 0 as libc::c_int as usize;
     while t < pst.length {
         if *(pst.gv_switch).offset(t as isize) != 0 {
             *(*(pst.par).offset(t as isize)).offset(m as isize) =
@@ -228,9 +228,9 @@ unsafe fn HTS_PStream_conv_gv(pst: &mut HTS_PStream, mut m: size_t) {
         t = t.wrapping_add(1);
     }
 }
-unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: size_t) -> libc::c_double {
-    let mut t: size_t = 0;
-    let mut i: size_t = 0;
+unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: usize) -> libc::c_double {
+    let mut t: usize = 0;
+    let mut i: usize = 0;
     let mut mean: libc::c_double = 0.;
     let mut vari: libc::c_double = 0.;
     let mut dv: libc::c_double = 0.;
@@ -246,19 +246,19 @@ unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: size_t) -> l
         * (vari - 2.0f64 * *(pst.gv_mean).offset(m as isize));
     dv = -2.0f64 * *(pst.gv_vari).offset(m as isize) * (vari - *(pst.gv_mean).offset(m as isize))
         / pst.length as libc::c_double;
-    t = 0 as libc::c_int as size_t;
+    t = 0 as libc::c_int as usize;
     while t < pst.length {
         *(pst.sm.g).offset(t as isize) = *(*(pst.sm.wuw).offset(t as isize))
             .offset(0 as libc::c_int as isize)
             * *(*(pst.par).offset(t as isize)).offset(m as isize);
-        i = 1 as libc::c_int as size_t;
+        i = 1 as libc::c_int as usize;
         while i < pst.width {
             if t.wrapping_add(i) < pst.length {
                 *(pst.sm.g).offset(t as isize) += *(*(pst.sm.wuw).offset(t as isize))
                     .offset(i as isize)
                     * *(*(pst.par).offset(t.wrapping_add(i) as isize)).offset(m as isize);
             }
-            if t.wrapping_add(1 as libc::c_int as size_t) > i {
+            if t.wrapping_add(1 as libc::c_int as usize) > i {
                 *(pst.sm.g).offset(t as isize) +=
                     *(*(pst.sm.wuw).offset(t.wrapping_sub(i) as isize)).offset(i as isize)
                         * *(*(pst.par).offset(t.wrapping_sub(i) as isize)).offset(m as isize);
@@ -267,7 +267,7 @@ unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: size_t) -> l
         }
         t = t.wrapping_add(1);
     }
-    t = 0 as libc::c_int as size_t;
+    t = 0 as libc::c_int as usize;
     hmmobj = 0.0f64;
     while t < pst.length {
         hmmobj += 1.0f64
@@ -279,7 +279,7 @@ unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: size_t) -> l
             * *(*(pst.sm.wuw).offset(t as isize))
                 .offset((1 as libc::c_int - 1 as libc::c_int) as isize)
             - 1.0f64 * 2.0f64 / (pst.length * pst.length) as libc::c_double
-                * ((pst.length).wrapping_sub(1 as libc::c_int as size_t) as libc::c_double
+                * ((pst.length).wrapping_sub(1 as libc::c_int as usize) as libc::c_double
                     * *(pst.gv_vari).offset(m as isize)
                     * (vari - *(pst.gv_mean).offset(m as isize))
                     + 2.0f64
@@ -302,22 +302,22 @@ unsafe fn HTS_PStream_calc_derivative(pst: &mut HTS_PStream, mut m: size_t) -> l
     }
     -(hmmobj + gvobj)
 }
-unsafe fn HTS_PStream_gv_parmgen(pst: &mut HTS_PStream, mut m: size_t) {
-    let mut t: size_t = 0;
-    let mut i: size_t = 0;
+unsafe fn HTS_PStream_gv_parmgen(pst: &mut HTS_PStream, mut m: usize) {
+    let mut t: usize = 0;
+    let mut i: usize = 0;
     let mut step: libc::c_double = 0.1f64;
     let mut prev: libc::c_double = 0.0f64;
     let mut obj: libc::c_double = 0.;
-    if pst.gv_length == 0 as libc::c_int as size_t {
+    if pst.gv_length == 0 as libc::c_int as usize {
         return;
     }
     HTS_PStream_conv_gv(pst, m);
     if 5 as libc::c_int > 0 as libc::c_int {
         HTS_PStream_calc_wuw_and_wum(pst, m);
-        i = 1 as libc::c_int as size_t;
-        while i <= 5 as libc::c_int as size_t {
+        i = 1 as libc::c_int as usize;
+        while i <= 5 as libc::c_int as usize {
             obj = HTS_PStream_calc_derivative(pst, m);
-            if i > 1 as libc::c_int as size_t {
+            if i > 1 as libc::c_int as usize {
                 if obj > prev {
                     step *= 0.5f64;
                 }
@@ -325,7 +325,7 @@ unsafe fn HTS_PStream_gv_parmgen(pst: &mut HTS_PStream, mut m: size_t) {
                     step *= 1.2f64;
                 }
             }
-            t = 0 as libc::c_int as size_t;
+            t = 0 as libc::c_int as usize;
             while t < pst.length {
                 *(*(pst.par).offset(t as isize)).offset(m as isize) +=
                     step * *(pst.sm.g).offset(t as isize);
@@ -337,17 +337,17 @@ unsafe fn HTS_PStream_gv_parmgen(pst: &mut HTS_PStream, mut m: size_t) {
     }
 }
 unsafe fn HTS_PStream_mlpg(pst: &mut HTS_PStream) {
-    let mut m: size_t = 0;
-    if pst.length == 0 as libc::c_int as size_t {
+    let mut m: usize = 0;
+    if pst.length == 0 as libc::c_int as usize {
         return;
     }
-    m = 0 as libc::c_int as size_t;
+    m = 0 as libc::c_int as usize;
     while m < pst.vector_length {
         HTS_PStream_calc_wuw_and_wum(pst, m);
         HTS_PStream_ldl_factorization(pst);
         HTS_PStream_forward_substitution(pst);
         HTS_PStream_backward_substitution(pst, m);
-        if pst.gv_length > 0 as libc::c_int as size_t {
+        if pst.gv_length > 0 as libc::c_int as usize {
             HTS_PStream_gv_parmgen(pst, m);
         }
         m = m.wrapping_add(1);
@@ -357,8 +357,8 @@ unsafe fn HTS_PStream_mlpg(pst: &mut HTS_PStream) {
 pub fn HTS_PStreamSet_initialize() -> HTS_PStreamSet {
     HTS_PStreamSet {
         pstream: std::ptr::null_mut::<HTS_PStream>(),
-        nstream: 0 as libc::c_int as size_t,
-        total_frame: 0 as libc::c_int as size_t,
+        nstream: 0 as libc::c_int as usize,
+        total_frame: 0 as libc::c_int as usize,
     }
 }
 
@@ -368,17 +368,17 @@ pub unsafe fn HTS_PStreamSet_create(
     mut msd_threshold: *mut libc::c_double,
     mut gv_weight: *mut libc::c_double,
 ) -> bool {
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
-    let mut k: size_t = 0;
-    let mut l: size_t = 0;
-    let mut m: size_t = 0;
+    let mut i: usize = 0;
+    let mut j: usize = 0;
+    let mut k: usize = 0;
+    let mut l: usize = 0;
+    let mut m: usize = 0;
     let mut shift: libc::c_int = 0;
-    let mut frame: size_t = 0;
-    let mut msd_frame: size_t = 0;
-    let mut state: size_t = 0;
+    let mut frame: usize = 0;
+    let mut msd_frame: usize = 0;
+    let mut state: usize = 0;
     let mut not_bound: HTS_Boolean = 0;
-    if pss.nstream != 0 as libc::c_int as size_t {
+    if pss.nstream != 0 as libc::c_int as usize {
         HTS_error!(
             1 as libc::c_int,
             b"HTS_PstreamSet_create: HTS_PStreamSet should be clear.\n\0" as *const u8
@@ -388,16 +388,16 @@ pub unsafe fn HTS_PStreamSet_create(
     }
     pss.nstream = sss.get_nstream();
     pss.pstream = HTS_calloc(
-        pss.nstream,
+        pss.nstream as u64,
         ::core::mem::size_of::<HTS_PStream>() as libc::c_ulong,
     ) as *mut HTS_PStream;
     pss.total_frame = sss.get_total_frame();
-    i = 0 as libc::c_int as size_t;
+    i = 0 as libc::c_int as usize;
     while i < pss.nstream {
         let pst = &mut *(pss.pstream).offset(i as isize) as &mut HTS_PStream;
-        if sss.is_msd(i) != 0 {
-            pst.length = 0 as libc::c_int as size_t;
-            state = 0 as libc::c_int as size_t;
+        if sss.is_msd(i) {
+            pst.length = 0 as libc::c_int as usize;
+            state = 0 as libc::c_int as usize;
             while state < sss.get_total_state() {
                 if sss.get_msd(i, state) > *msd_threshold.offset(i as isize) {
                     pst.length = (pst.length).wrapping_add(sss.get_duration(state));
@@ -405,21 +405,21 @@ pub unsafe fn HTS_PStreamSet_create(
                 state = state.wrapping_add(1);
             }
             pst.msd_flag = HTS_calloc(
-                pss.total_frame,
+                pss.total_frame as u64,
                 ::core::mem::size_of::<HTS_Boolean>() as libc::c_ulong,
             ) as *mut HTS_Boolean;
-            state = 0 as libc::c_int as size_t;
-            frame = 0 as libc::c_int as size_t;
+            state = 0 as libc::c_int as usize;
+            frame = 0 as libc::c_int as usize;
             while state < sss.get_total_state() {
                 if sss.get_msd(i, state) > *msd_threshold.offset(i as isize) {
-                    j = 0 as libc::c_int as size_t;
+                    j = 0 as libc::c_int as usize;
                     while j < sss.get_duration(state) {
                         *(pst.msd_flag).offset(frame as isize) = 1 as libc::c_int as HTS_Boolean;
                         frame = frame.wrapping_add(1);
                         j = j.wrapping_add(1);
                     }
                 } else {
-                    j = 0 as libc::c_int as size_t;
+                    j = 0 as libc::c_int as usize;
                     while j < sss.get_duration(state) {
                         *(pst.msd_flag).offset(frame as isize) = 0 as libc::c_int as HTS_Boolean;
                         frame = frame.wrapping_add(1);
@@ -433,36 +433,38 @@ pub unsafe fn HTS_PStreamSet_create(
             pst.msd_flag = std::ptr::null_mut::<HTS_Boolean>();
         }
         pst.vector_length = sss.get_vector_length(i);
-        pst.width = (sss.get_window_max_width(i) * 2 as libc::c_int as size_t)
-            .wrapping_add(1 as libc::c_int as size_t);
+        pst.width = (sss.get_window_max_width(i) * 2 as libc::c_int as usize)
+            .wrapping_add(1 as libc::c_int as usize);
         pst.win_size = sss.get_window_size(i);
-        if pst.length > 0 as libc::c_int as size_t {
-            pst.sm.mean = HTS_alloc_matrix(pst.length, pst.vector_length * pst.win_size);
-            pst.sm.ivar = HTS_alloc_matrix(pst.length, pst.vector_length * pst.win_size);
+        if pst.length > 0 as libc::c_int as usize {
+            pst.sm.mean =
+                HTS_alloc_matrix(pst.length as u64, (pst.vector_length * pst.win_size) as u64);
+            pst.sm.ivar =
+                HTS_alloc_matrix(pst.length as u64, (pst.vector_length * pst.win_size) as u64);
             pst.sm.wum = HTS_calloc(
-                pst.length,
+                pst.length as u64,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
-            pst.sm.wuw = HTS_alloc_matrix(pst.length, pst.width);
+            pst.sm.wuw = HTS_alloc_matrix(pst.length as u64, pst.width as u64);
             pst.sm.g = HTS_calloc(
-                pst.length,
+                pst.length as u64,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
-            pst.par = HTS_alloc_matrix(pst.length, pst.vector_length);
+            pst.par = HTS_alloc_matrix(pst.length as u64, pst.vector_length as u64);
         }
         pst.win_l_width = HTS_calloc(
-            pst.win_size,
+            pst.win_size as u64,
             ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
         ) as *mut libc::c_int;
         pst.win_r_width = HTS_calloc(
-            pst.win_size,
+            pst.win_size as u64,
             ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
         ) as *mut libc::c_int;
         pst.win_coefficient = HTS_calloc(
-            pst.win_size,
+            pst.win_size as u64,
             ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
         ) as *mut *mut libc::c_double;
-        j = 0 as libc::c_int as size_t;
+        j = 0 as libc::c_int as usize;
         while j < pst.win_size {
             *(pst.win_l_width).offset(j as isize) = sss.get_window_left_width(i, j);
             *(pst.win_r_width).offset(j as isize) = sss.get_window_right_width(i, j);
@@ -472,13 +474,13 @@ pub unsafe fn HTS_PStreamSet_create(
                 let fresh0 = &mut (*(pst.win_coefficient).offset(j as isize));
                 *fresh0 = HTS_calloc(
                     (-(2 as libc::c_int) * *(pst.win_l_width).offset(j as isize) + 1 as libc::c_int)
-                        as size_t,
+                        as u64,
                     ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
                 ) as *mut libc::c_double;
             } else {
                 let fresh1 = &mut (*(pst.win_coefficient).offset(j as isize));
                 *fresh1 = HTS_calloc(
-                    (-(2 as libc::c_int) * *(pst.win_l_width).offset(j as isize)) as size_t,
+                    (-(2 as libc::c_int) * *(pst.win_l_width).offset(j as isize)) as u64,
                     ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
                 ) as *mut libc::c_double;
             }
@@ -492,16 +494,16 @@ pub unsafe fn HTS_PStreamSet_create(
             }
             j = j.wrapping_add(1);
         }
-        if sss.use_gv(i) != 0 {
+        if sss.use_gv(i) {
             pst.gv_mean = HTS_calloc(
-                pst.vector_length,
+                pst.vector_length as u64,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
             pst.gv_vari = HTS_calloc(
-                pst.vector_length,
+                pst.vector_length as u64,
                 ::core::mem::size_of::<libc::c_double>() as libc::c_ulong,
             ) as *mut libc::c_double;
-            j = 0 as libc::c_int as size_t;
+            j = 0 as libc::c_int as usize;
             while j < pst.vector_length {
                 *(pst.gv_mean).offset(j as isize) =
                     sss.get_gv_mean(i, j) * *gv_weight.offset(i as isize);
@@ -509,20 +511,21 @@ pub unsafe fn HTS_PStreamSet_create(
                 j = j.wrapping_add(1);
             }
             pst.gv_switch = HTS_calloc(
-                pst.length,
+                pst.length as u64,
                 ::core::mem::size_of::<HTS_Boolean>() as libc::c_ulong,
             ) as *mut HTS_Boolean;
-            if sss.is_msd(i) != 0 {
-                state = 0 as libc::c_int as size_t;
-                frame = 0 as libc::c_int as size_t;
-                msd_frame = 0 as libc::c_int as size_t;
+            if sss.is_msd(i) {
+                state = 0 as libc::c_int as usize;
+                frame = 0 as libc::c_int as usize;
+                msd_frame = 0 as libc::c_int as usize;
                 while state < sss.get_total_state() {
-                    j = 0 as libc::c_int as size_t;
+                    j = 0 as libc::c_int as usize;
                     while j < sss.get_duration(state) {
                         if *(pst.msd_flag).offset(frame as isize) != 0 {
                             let fresh3 = msd_frame;
                             msd_frame = msd_frame.wrapping_add(1);
-                            *(pst.gv_switch).offset(fresh3 as isize) = sss.get_gv_switch(i, state);
+                            *(pst.gv_switch).offset(fresh3 as isize) =
+                                sss.get_gv_switch(i, state) as i8;
                         }
                         j = j.wrapping_add(1);
                         frame = frame.wrapping_add(1);
@@ -530,21 +533,22 @@ pub unsafe fn HTS_PStreamSet_create(
                     state = state.wrapping_add(1);
                 }
             } else {
-                state = 0 as libc::c_int as size_t;
-                frame = 0 as libc::c_int as size_t;
+                state = 0 as libc::c_int as usize;
+                frame = 0 as libc::c_int as usize;
                 while state < sss.get_total_state() {
-                    j = 0 as libc::c_int as size_t;
+                    j = 0 as libc::c_int as usize;
                     while j < sss.get_duration(state) {
                         let fresh4 = frame;
                         frame = frame.wrapping_add(1);
-                        *(pst.gv_switch).offset(fresh4 as isize) = sss.get_gv_switch(i, state);
+                        *(pst.gv_switch).offset(fresh4 as isize) =
+                            sss.get_gv_switch(i, state) as i8;
                         j = j.wrapping_add(1);
                     }
                     state = state.wrapping_add(1);
                 }
             }
-            j = 0 as libc::c_int as size_t;
-            pst.gv_length = 0 as libc::c_int as size_t;
+            j = 0 as libc::c_int as usize;
+            pst.gv_length = 0 as libc::c_int as usize;
             while j < pst.length {
                 if *(pst.gv_switch).offset(j as isize) != 0 {
                     pst.gv_length = (pst.gv_length).wrapping_add(1);
@@ -554,19 +558,19 @@ pub unsafe fn HTS_PStreamSet_create(
             }
         } else {
             pst.gv_switch = std::ptr::null_mut::<HTS_Boolean>();
-            pst.gv_length = 0 as libc::c_int as size_t;
+            pst.gv_length = 0 as libc::c_int as usize;
             pst.gv_mean = std::ptr::null_mut::<libc::c_double>();
             pst.gv_vari = std::ptr::null_mut::<libc::c_double>();
         }
-        if sss.is_msd(i) != 0 {
-            state = 0 as libc::c_int as size_t;
-            frame = 0 as libc::c_int as size_t;
-            msd_frame = 0 as libc::c_int as size_t;
+        if sss.is_msd(i) {
+            state = 0 as libc::c_int as usize;
+            frame = 0 as libc::c_int as usize;
+            msd_frame = 0 as libc::c_int as usize;
             while state < sss.get_total_state() {
-                j = 0 as libc::c_int as size_t;
+                j = 0 as libc::c_int as usize;
                 while j < sss.get_duration(state) {
                     if *(pst.msd_flag).offset(frame as isize) != 0 {
-                        k = 0 as libc::c_int as size_t;
+                        k = 0 as libc::c_int as usize;
                         while k < pst.win_size {
                             not_bound = 1 as libc::c_int as HTS_Boolean;
                             shift = *(pst.win_l_width).offset(k as isize);
@@ -575,7 +579,7 @@ pub unsafe fn HTS_PStreamSet_create(
                                     || pss.total_frame as libc::c_int
                                         <= frame as libc::c_int + shift
                                     || *(pst.msd_flag)
-                                        .offset(frame.wrapping_add(shift as size_t) as isize)
+                                        .offset(frame.wrapping_add(shift as usize) as isize)
                                         == 0
                                 {
                                     not_bound = 0 as libc::c_int as HTS_Boolean;
@@ -584,13 +588,12 @@ pub unsafe fn HTS_PStreamSet_create(
                                     shift += 1;
                                 }
                             }
-                            l = 0 as libc::c_int as size_t;
+                            l = 0 as libc::c_int as usize;
                             while l < pst.vector_length {
                                 m = (pst.vector_length * k).wrapping_add(l);
                                 *(*(pst.sm.mean).offset(msd_frame as isize)).offset(m as isize) =
                                     sss.get_mean(i, state, m);
-                                if not_bound as libc::c_int != 0 || k == 0 as libc::c_int as size_t
-                                {
+                                if not_bound as libc::c_int != 0 || k == 0 as libc::c_int as usize {
                                     *(*(pst.sm.ivar).offset(msd_frame as isize))
                                         .offset(m as isize) = HTS_finv(sss.get_vari(i, state, m));
                                 } else {
@@ -609,12 +612,12 @@ pub unsafe fn HTS_PStreamSet_create(
                 state = state.wrapping_add(1);
             }
         } else {
-            state = 0 as libc::c_int as size_t;
-            frame = 0 as libc::c_int as size_t;
+            state = 0 as libc::c_int as usize;
+            frame = 0 as libc::c_int as usize;
             while state < sss.get_total_state() {
-                j = 0 as libc::c_int as size_t;
+                j = 0 as libc::c_int as usize;
                 while j < sss.get_duration(state) {
-                    k = 0 as libc::c_int as size_t;
+                    k = 0 as libc::c_int as usize;
                     while k < pst.win_size {
                         not_bound = 1 as libc::c_int as HTS_Boolean;
                         shift = *(pst.win_l_width).offset(k as isize);
@@ -628,12 +631,12 @@ pub unsafe fn HTS_PStreamSet_create(
                                 shift += 1;
                             }
                         }
-                        l = 0 as libc::c_int as size_t;
+                        l = 0 as libc::c_int as usize;
                         while l < pst.vector_length {
                             m = (pst.vector_length * k).wrapping_add(l);
                             *(*(pst.sm.mean).offset(frame as isize)).offset(m as isize) =
                                 sss.get_mean(i, state, m);
-                            if not_bound as libc::c_int != 0 || k == 0 as libc::c_int as size_t {
+                            if not_bound as libc::c_int != 0 || k == 0 as libc::c_int as usize {
                                 *(*(pst.sm.ivar).offset(frame as isize)).offset(m as isize) =
                                     HTS_finv(sss.get_vari(i, state, m));
                             } else {
@@ -656,26 +659,26 @@ pub unsafe fn HTS_PStreamSet_create(
     true
 }
 
-pub unsafe fn HTS_PStreamSet_get_nstream(mut pss: &mut HTS_PStreamSet) -> size_t {
-    pss.nstream
+pub unsafe fn HTS_PStreamSet_get_nstream(mut pss: &mut HTS_PStreamSet) -> u64 {
+    pss.nstream as u64
 }
 
 pub unsafe fn HTS_PStreamSet_get_vector_length(
     mut pss: &mut HTS_PStreamSet,
-    mut stream_index: size_t,
-) -> size_t {
-    (*(pss.pstream).offset(stream_index as isize)).vector_length
+    mut stream_index: u64,
+) -> u64 {
+    (*(pss.pstream).offset(stream_index as isize)).vector_length as u64
 }
 
-pub unsafe fn HTS_PStreamSet_get_total_frame(mut pss: &mut HTS_PStreamSet) -> size_t {
-    pss.total_frame
+pub unsafe fn HTS_PStreamSet_get_total_frame(mut pss: &mut HTS_PStreamSet) -> u64 {
+    pss.total_frame as u64
 }
 
 pub unsafe fn HTS_PStreamSet_get_parameter(
     mut pss: &mut HTS_PStreamSet,
-    mut stream_index: size_t,
-    mut frame_index: size_t,
-    mut vector_index: size_t,
+    mut stream_index: u64,
+    mut frame_index: u64,
+    mut vector_index: u64,
 ) -> libc::c_double {
     *(*((*(pss.pstream).offset(stream_index as isize)).par).offset(frame_index as isize))
         .offset(vector_index as isize)
@@ -683,23 +686,23 @@ pub unsafe fn HTS_PStreamSet_get_parameter(
 
 pub unsafe fn HTS_PStreamSet_get_parameter_vector(
     mut pss: &mut HTS_PStreamSet,
-    mut stream_index: size_t,
-    mut frame_index: size_t,
+    mut stream_index: u64,
+    mut frame_index: u64,
 ) -> *mut libc::c_double {
     *((*(pss.pstream).offset(stream_index as isize)).par).offset(frame_index as isize)
 }
 
 pub unsafe fn HTS_PStreamSet_get_msd_flag(
     mut pss: &mut HTS_PStreamSet,
-    mut stream_index: size_t,
-    mut frame_index: size_t,
+    mut stream_index: u64,
+    mut frame_index: u64,
 ) -> HTS_Boolean {
     *((*(pss.pstream).offset(stream_index as isize)).msd_flag).offset(frame_index as isize)
 }
 
 pub unsafe fn HTS_PStreamSet_is_msd(
     mut pss: &mut HTS_PStreamSet,
-    mut stream_index: size_t,
+    mut stream_index: u64,
 ) -> HTS_Boolean {
     (if !((*(pss.pstream).offset(stream_index as isize)).msd_flag).is_null() {
         1 as libc::c_int
@@ -709,11 +712,11 @@ pub unsafe fn HTS_PStreamSet_is_msd(
 }
 
 pub unsafe fn HTS_PStreamSet_clear(mut pss: &mut HTS_PStreamSet) {
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
+    let mut i: usize = 0;
+    let mut j: usize = 0;
     let mut pstream: *mut HTS_PStream = std::ptr::null_mut::<HTS_PStream>();
     if !(pss.pstream).is_null() {
-        i = 0 as libc::c_int as size_t;
+        i = 0 as libc::c_int as usize;
         while i < pss.nstream {
             pstream = &mut *(pss.pstream).offset(i as isize) as *mut HTS_PStream;
             if !((*pstream).sm.wum).is_null() {
@@ -723,22 +726,22 @@ pub unsafe fn HTS_PStreamSet_clear(mut pss: &mut HTS_PStreamSet) {
                 HTS_free((*pstream).sm.g as *mut libc::c_void);
             }
             if !((*pstream).sm.wuw).is_null() {
-                HTS_free_matrix((*pstream).sm.wuw, (*pstream).length);
+                HTS_free_matrix((*pstream).sm.wuw, (*pstream).length as u64);
             }
             if !((*pstream).sm.ivar).is_null() {
-                HTS_free_matrix((*pstream).sm.ivar, (*pstream).length);
+                HTS_free_matrix((*pstream).sm.ivar, (*pstream).length as u64);
             }
             if !((*pstream).sm.mean).is_null() {
-                HTS_free_matrix((*pstream).sm.mean, (*pstream).length);
+                HTS_free_matrix((*pstream).sm.mean, (*pstream).length as u64);
             }
             if !((*pstream).par).is_null() {
-                HTS_free_matrix((*pstream).par, (*pstream).length);
+                HTS_free_matrix((*pstream).par, (*pstream).length as u64);
             }
             if !((*pstream).msd_flag).is_null() {
                 HTS_free((*pstream).msd_flag as *mut libc::c_void);
             }
             if !((*pstream).win_coefficient).is_null() {
-                j = 0 as libc::c_int as size_t;
+                j = 0 as libc::c_int as usize;
                 while j < (*pstream).win_size {
                     let fresh5 = &mut (*((*pstream).win_coefficient).offset(j as isize));
                     *fresh5 =

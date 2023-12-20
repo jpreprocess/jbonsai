@@ -239,91 +239,91 @@ impl SStreamSet {
         duration
     }
 
-    pub fn get_nstream(&self) -> u64 {
-        self.ms.get_nstream() as u64
+    pub fn get_nstream(&self) -> usize {
+        self.ms.get_nstream()
     }
-    pub fn get_vector_length(&self, stream_index: u64) -> u64 {
-        self.ms.get_vector_length(stream_index as usize) as u64
+    pub fn get_vector_length(&self, stream_index: usize) -> usize {
+        self.ms.get_vector_length(stream_index)
     }
-    pub fn is_msd(&self, stream_index: u64) -> i8 {
-        self.ms.is_msd(stream_index as usize) as i8
+    pub fn is_msd(&self, stream_index: usize) -> bool {
+        self.ms.is_msd(stream_index)
     }
-    pub fn get_total_state(&self) -> u64 {
-        self.total_state as u64
+    pub fn get_total_state(&self) -> usize {
+        self.total_state
     }
-    pub fn get_total_frame(&self) -> u64 {
-        self.total_frame as u64
+    pub fn get_total_frame(&self) -> usize {
+        self.total_frame
     }
-    pub fn get_msd(&self, stream_index: u64, state_index: u64) -> f64 {
-        self.sstreams[stream_index as usize].params[state_index as usize]
+    pub fn get_msd(&self, stream_index: usize, state_index: usize) -> f64 {
+        self.sstreams[stream_index].params[state_index]
             .msd
             .unwrap()
     }
-    pub fn get_window_size(&self, stream_index: u64) -> u64 {
-        self.ms.get_window_size(stream_index as usize) as u64
+    pub fn get_window_size(&self, stream_index: usize) -> usize {
+        self.ms.get_window_size(stream_index)
     }
-    pub fn get_window_left_width(&self, stream_index: u64, window_index: u64) -> i32 {
+    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> i32 {
         self.ms
-            .get_window_left_width(stream_index as usize, window_index as usize) as i32
+            .get_window_left_width(stream_index, window_index) as i32
     }
-    pub fn get_window_right_width(&self, stream_index: u64, window_index: u64) -> i32 {
+    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> i32 {
         self.ms
-            .get_window_right_width(stream_index as usize, window_index as usize) as i32
+            .get_window_right_width(stream_index, window_index) as i32
     }
     pub fn get_window_coefficient(
         &self,
-        stream_index: u64,
-        window_index: u64,
+        stream_index: usize,
+        window_index: usize,
         coefficient_index: i32,
     ) -> f64 {
         self.ms.get_window_coefficient(
-            stream_index as usize,
-            window_index as usize,
+            stream_index,
+            window_index,
             coefficient_index as isize,
         )
     }
-    pub fn get_window_max_width(&self, stream_index: u64) -> u64 {
-        self.ms.get_window_max_width(stream_index as usize) as u64
+    pub fn get_window_max_width(&self, stream_index: usize) -> usize {
+        self.ms.get_window_max_width(stream_index)
     }
-    pub fn use_gv(&self, stream_index: u64) -> i8 {
-        self.sstreams[stream_index as usize].gv_params.is_some() as i8
+    pub fn use_gv(&self, stream_index: usize) -> bool {
+        self.sstreams[stream_index].gv_params.is_some()
     }
-    pub fn get_duration(&self, state_index: u64) -> u64 {
-        self.duration[state_index as usize] as u64
+    pub fn get_duration(&self, state_index: usize) -> usize {
+        self.duration[state_index]
     }
-    pub fn get_mean(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
-        self.sstreams[stream_index as usize].params[state_index as usize].parameters
-            [vector_index as usize]
+    pub fn get_mean(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
+        self.sstreams[stream_index].params[state_index].parameters
+            [vector_index]
             .0
     }
-    pub fn get_vari(&self, stream_index: u64, state_index: u64, vector_index: u64) -> f64 {
-        self.sstreams[stream_index as usize].params[state_index as usize].parameters
-            [vector_index as usize]
+    pub fn get_vari(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
+        self.sstreams[stream_index].params[state_index].parameters
+            [vector_index]
             .1
     }
-    pub fn get_gv_mean(&self, stream_index: u64, vector_index: u64) -> f64 {
-        self.sstreams[stream_index as usize]
+    pub fn get_gv_mean(&self, stream_index: usize, vector_index: usize) -> f64 {
+        self.sstreams[stream_index]
             .gv_params
             .as_ref()
             .unwrap()
-            .parameters[vector_index as usize]
+            .parameters[vector_index]
             .0
     }
-    pub fn get_gv_vari(&self, stream_index: u64, vector_index: u64) -> f64 {
-        self.sstreams[stream_index as usize]
+    pub fn get_gv_vari(&self, stream_index: usize, vector_index: usize) -> f64 {
+        self.sstreams[stream_index]
             .gv_params
             .as_ref()
             .unwrap()
-            .parameters[vector_index as usize]
+            .parameters[vector_index]
             .1
     }
-    pub fn get_gv_switch(&self, stream_index: u64, state_index: u64) -> i8 {
-        self.sstreams[stream_index as usize].gv_switch[state_index as usize] as i8
+    pub fn get_gv_switch(&self, stream_index: usize, state_index: usize) -> bool {
+        self.sstreams[stream_index].gv_switch[state_index]
     }
 
-    pub fn set_mean(&mut self, stream_index: u64, state_index: u64, vector_index: u64, value: f64) {
-        self.sstreams[stream_index as usize].params[state_index as usize].parameters
-            [vector_index as usize]
+    pub fn set_mean(&mut self, stream_index: usize, state_index: usize, vector_index: usize, value: f64) {
+        self.sstreams[stream_index].params[state_index].parameters
+            [vector_index]
             .0 = value;
     }
 }

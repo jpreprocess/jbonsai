@@ -296,7 +296,7 @@ pub fn HTS_Engine_get_gv_interpolation_weight(
 }
 
 pub fn HTS_Engine_get_total_state(engine: &mut HTS_Engine) -> size_t {
-    engine.sss.as_ref().unwrap().get_total_state()
+    engine.sss.as_ref().unwrap().get_total_state() as u64
 }
 
 pub fn HTS_Engine_set_state_mean(
@@ -310,7 +310,7 @@ pub fn HTS_Engine_set_state_mean(
         .sss
         .as_mut()
         .unwrap()
-        .set_mean(stream_index, state_index, vector_index, f);
+        .set_mean(stream_index as usize, state_index as usize, vector_index as usize, f);
 }
 
 pub fn HTS_Engine_get_state_mean(
@@ -323,14 +323,14 @@ pub fn HTS_Engine_get_state_mean(
         .sss
         .as_ref()
         .unwrap()
-        .get_mean(stream_index, state_index, vector_index)
+        .get_mean(stream_index as usize, state_index as usize, vector_index as usize)
 }
 
 pub fn HTS_Engine_get_state_duration(
     engine: &mut HTS_Engine,
     state_index: size_t,
 ) -> size_t {
-    engine.sss.as_ref().unwrap().get_duration(state_index)
+    engine.sss.as_ref().unwrap().get_duration(state_index as usize) as u64
 }
 
 pub fn HTS_Engine_get_nvoices(engine: &mut HTS_Engine) -> usize {
