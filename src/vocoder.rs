@@ -99,7 +99,7 @@ impl Vocoder {
                 self.c = cepstrum.mc2b();
             } else {
                 let lsp = Lsp::new(spectrum, alpha, self);
-                let b = lsp.mgc().mc2b();
+                let b = lsp.lsp2mgc().mc2b();
                 self.c = gnorm(&b, self.gamma);
                 for i in 1..self.c.len() {
                     self.c[i] *= self.gamma;
@@ -113,9 +113,9 @@ impl Vocoder {
             cepstrum.mc2b()
         } else {
             let mut lsp = Lsp::new(spectrum, alpha, self);
-            lsp.postfilter(beta);
-            lsp.stabilize();
-            let b = lsp.mgc().mc2b();
+            lsp.postfilter_lsp(beta);
+            lsp.check_lsp_stability();
+            let b = lsp.lsp2mgc().mc2b();
             let cc = gnorm(&b, self.gamma);
             iter::once(cc[0])
                 .chain(cc[1..].iter().map(|x| x * self.gamma))
@@ -398,7 +398,7 @@ impl Lsp {
 
     /// convert self to Linear Prediction Coding
     /// lpc.len() == lsp.len() + 1
-    fn lpc(&self) -> Vec<f64> {
+    fn lsp2lpc(&self) -> Vec<f64> {
         let m = self.lsp.len();
         let (mh1, mh2) = if m % 2 == 0 {
             (m / 2, m / 2)
@@ -461,8 +461,8 @@ impl Lsp {
     }
 
     /// calculate frame energy
-    fn en(&self) -> f64 {
-        let mut lpc = self.lpc();
+    fn lsp2en(&self) -> f64 {
+        let mut lpc = self.lsp2lpc();
         if self.use_log_gain {
             lpc[0] = self.lsp[0].exp();
         } else {
@@ -478,8 +478,8 @@ impl Lsp {
     }
 
     /// mgc.len() == lsp.len()
-    fn mgc(&self) -> Cepstrum {
-        let mut a = self.lpc();
+    fn lsp2mgc(&self) -> Cepstrum {
+        let mut a = self.lsp2lpc();
         if self.use_log_gain {
             a[0] = self.lsp[0].exp();
         } else {
@@ -492,10 +492,10 @@ impl Lsp {
         cepstrum.mgc2mgc(self.lsp.len() - 1, self.alpha, self.gamma)
     }
 
-    fn postfilter(&mut self, beta: f64) {
+    fn postfilter_lsp(&mut self, beta: f64) {
         if beta > 0.0 && self.lsp.len() > 2 {
             let mut buf = vec![0.0; self.lsp.len()];
-            let en1 = self.en();
+            let en1 = self.lsp2en();
             for i in 0..self.lsp.len() {
                 if i > 1 && i < self.lsp.len() - 1 {
                     let d1 = beta * (self.lsp[i + 1] - self.lsp[i]);
@@ -510,7 +510,7 @@ impl Lsp {
             }
             self.lsp.copy_from_slice(&buf);
 
-            let en2 = self.en();
+            let en2 = self.lsp2en();
             if en1 != en2 {
                 if self.use_log_gain {
                     self.lsp[0] += 0.5 * (en1 / en2).ln();
@@ -521,7 +521,7 @@ impl Lsp {
         }
     }
 
-    fn stabilize(&mut self) {
+    fn check_lsp_stability(&mut self) {
         let min = 0.25 * PI / self.lsp.len() as f64;
         let last = self.lsp.len() - 1;
         for _ in 0..4 {
