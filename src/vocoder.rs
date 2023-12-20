@@ -398,7 +398,7 @@ impl Lsp {
 
     /// convert self to Linear Prediction Coding
     /// lpc.len() == lsp.len() + 1
-    fn lsp2lpc(&self) -> Vec<f64> {
+    fn lsp2lpc(&self) -> Cepstrum {
         let m = self.lsp.len();
         let (mh1, mh2) = if m % 2 == 0 {
             (m / 2, m / 2)
@@ -424,7 +424,11 @@ impl Lsp {
         let mut xff = 0.0;
         let mut xf = 0.0;
 
-        let mut lpc = vec![0.0; m + 1];
+        let mut cepstrum = Cepstrum {
+            c: vec![0.0; m + 1],
+            alpha: self.alpha,
+            gamma: self.gamma,
+        };
         for k in 0..=m {
             let xx = if k == 0 { 1.0 } else { 0.0 };
             if m % 2 == 1 {
@@ -448,48 +452,36 @@ impl Lsp {
                 b1[i] = b0[i];
             }
             if k > 0 {
-                lpc[k - 1] = -0.5 * (a0[mh1] + b0[mh2]);
+                cepstrum.c[k - 1] = -0.5 * (a0[mh1] + b0[mh2]);
             }
         }
 
         for i in (0..m).rev() {
-            lpc[i + 1] = -lpc[i];
+            cepstrum.c[i + 1] = -cepstrum.c[i];
         }
-        lpc[0] = 1.0;
+        cepstrum.c[0] = 1.0;
 
-        lpc
+        cepstrum
+    }
+
+    // mgc.len() == lsp.len()
+    fn lsp2mgc(&self) -> Cepstrum {
+        let mut lpc = self.lsp2lpc();
+        if self.use_log_gain {
+            lpc.c[0] = self.lsp[0].exp();
+        } else {
+            lpc.c[0] = self.lsp[0];
+        }
+        let mut lpc = lpc.ignorm();
+        for i in 1..lpc.c.len() {
+            lpc.c[i] *= -(self.stage as f64);
+        }
+        lpc.mgc2mgc(self.lsp.len() - 1, self.alpha, self.gamma)
     }
 
     /// calculate frame energy
     fn lsp2en(&self) -> f64 {
-        let mut lpc = self.lsp2lpc();
-        if self.use_log_gain {
-            lpc[0] = self.lsp[0].exp();
-        } else {
-            lpc[0] = self.lsp[0];
-        }
-        let mut cepstrum = Cepstrum::new(&lpc, self.alpha, self.gamma).ignorm();
-        for i in 1..self.lsp.len() {
-            cepstrum.c[i] *= -(self.stage as f64);
-        }
-
-        let cepstrum = cepstrum.mgc2mgc(576 - 1, 0.0, 1.0);
-        cepstrum.c.iter().map(|x| x * x).sum()
-    }
-
-    /// mgc.len() == lsp.len()
-    fn lsp2mgc(&self) -> Cepstrum {
-        let mut a = self.lsp2lpc();
-        if self.use_log_gain {
-            a[0] = self.lsp[0].exp();
-        } else {
-            a[0] = self.lsp[0];
-        }
-        let mut cepstrum = Cepstrum::new(&a, self.alpha, self.gamma).ignorm();
-        for i in 1..cepstrum.c.len() {
-            cepstrum.c[i] *= -(self.stage as f64);
-        }
-        cepstrum.mgc2mgc(self.lsp.len() - 1, self.alpha, self.gamma)
+        self.lsp2mgc().c.iter().map(|x| x * x).sum()
     }
 
     fn postfilter_lsp(&mut self, beta: f64) {
