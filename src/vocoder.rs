@@ -95,11 +95,11 @@ impl Vocoder {
         };
         if self.excitation.is_none() {
             if self.stage == 0 {
-                self.c = mc2b(spectrum, alpha);
+                let cepstrum = Cepstrum::new(spectrum, alpha, self.gamma);
+                self.c = cepstrum.mc2b();
             } else {
-                let lsp = Lsp::new(spectrum, alpha, beta, self);
-                let mgc = lsp.mgc();
-                let b = mc2b(&mgc, alpha);
+                let lsp = Lsp::new(spectrum, alpha, self);
+                let b = lsp.mgc().mc2b();
                 self.c = gnorm(&b, self.gamma);
                 for i in 1..self.c.len() {
                     self.c[i] *= self.gamma;
@@ -108,14 +108,14 @@ impl Vocoder {
         }
 
         let cc = if self.stage == 0 {
-            postfilter_mcp(spectrum, alpha, beta);
-            mc2b(spectrum, alpha)
+            let mut cepstrum = Cepstrum::new(spectrum, alpha, self.gamma);
+            cepstrum.postfilter_mcp(beta);
+            cepstrum.mc2b()
         } else {
-            let mut lsp = Lsp::new(spectrum, alpha, beta, self);
-            lsp.postfilter();
+            let mut lsp = Lsp::new(spectrum, alpha, self);
+            lsp.postfilter(beta);
             lsp.stabilize();
-            let mgc = lsp.mgc();
-            let b = mc2b(&mgc, alpha);
+            let b = lsp.mgc().mc2b();
             let cc = gnorm(&b, self.gamma);
             iter::once(cc[0])
                 .chain(cc[1..].iter().map(|x| x * self.gamma))
@@ -376,21 +376,20 @@ impl Random {
 }
 
 /// Line Spectral Pairs
-struct Lsp<'a> {
-    lsp: &'a mut [f64],
+#[derive(Debug, Clone)]
+struct Lsp {
+    lsp: Vec<f64>,
     alpha: f64,
-    beta: f64,
     use_log_gain: bool,
     stage: usize,
     gamma: f64,
 }
 
-impl<'a> Lsp<'a> {
-    fn new(lsp: &'a mut [f64], alpha: f64, beta: f64, vocoder: &Vocoder) -> Self {
+impl Lsp {
+    fn new(lsp: &[f64], alpha: f64, vocoder: &Vocoder) -> Self {
         Self {
-            lsp,
+            lsp: lsp.to_vec(),
             alpha,
-            beta,
             use_log_gain: vocoder.use_log_gain,
             stage: vocoder.stage,
             gamma: vocoder.gamma,
@@ -469,45 +468,38 @@ impl<'a> Lsp<'a> {
         } else {
             lpc[0] = self.lsp[0];
         }
-        let mut c2 = ignorm(&lpc, self.gamma);
+        let mut cepstrum = Cepstrum::new(&lpc, self.alpha, self.gamma).ignorm();
         for i in 1..self.lsp.len() {
-            c2[i] *= -(self.stage as f64);
+            cepstrum.c[i] *= -(self.stage as f64);
         }
 
-        let c2 = mgc2mgc(&c2, self.alpha, self.gamma, 576 - 1, 0.0, 1.0);
-        c2.iter().map(|x| x * x).sum()
+        let cepstrum = cepstrum.mgc2mgc(576 - 1, 0.0, 1.0);
+        cepstrum.c.iter().map(|x| x * x).sum()
     }
 
     /// mgc.len() == lsp.len()
-    fn mgc(&self) -> Vec<f64> {
+    fn mgc(&self) -> Cepstrum {
         let mut a = self.lpc();
         if self.use_log_gain {
             a[0] = self.lsp[0].exp();
         } else {
             a[0] = self.lsp[0];
         }
-        let mut c2 = ignorm(&a, self.gamma);
-        for c2 in &mut c2[1..] {
-            *c2 *= -(self.stage as f64);
+        let mut cepstrum = Cepstrum::new(&a, self.alpha, self.gamma).ignorm();
+        for i in 1..cepstrum.c.len() {
+            cepstrum.c[i] *= -(self.stage as f64);
         }
-        mgc2mgc(
-            &c2,
-            self.alpha,
-            self.gamma,
-            self.lsp.len() - 1,
-            self.alpha,
-            self.gamma,
-        )
+        cepstrum.mgc2mgc(self.lsp.len() - 1, self.alpha, self.gamma)
     }
 
-    fn postfilter(&mut self) {
-        if self.beta > 0.0 && self.lsp.len() > 2 {
+    fn postfilter(&mut self, beta: f64) {
+        if beta > 0.0 && self.lsp.len() > 2 {
             let mut buf = vec![0.0; self.lsp.len()];
             let en1 = self.en();
             for i in 0..self.lsp.len() {
                 if i > 1 && i < self.lsp.len() - 1 {
-                    let d1 = self.beta * (self.lsp[i + 1] - self.lsp[i]);
-                    let d2 = self.beta * (self.lsp[i] - self.lsp[i - 1]);
+                    let d1 = beta * (self.lsp[i + 1] - self.lsp[i]);
+                    let d2 = beta * (self.lsp[i] - self.lsp[i - 1]);
                     buf[i] = self.lsp[i - 1]
                         + d2
                         + (d2 * d2 * ((self.lsp[i + 1] - self.lsp[i - 1]) - (d1 + d2)))
@@ -557,114 +549,188 @@ impl<'a> Lsp<'a> {
     }
 }
 
-/// c2 went to return value
-/// c2.len() == m2 + 1
-fn freqt(mc: &[f64], m2: isize, alpha: f64) -> Vec<f64> {
-    assert!(m2 + 1 >= 0);
-    let len = (m2 + 1) as usize;
-    let mut f = vec![0.0; len];
-    let mut c = vec![0.0; len];
-    let b = 1.0 - alpha * alpha;
+#[derive(Debug, Clone)]
+struct Cepstrum {
+    c: Vec<f64>,
+    alpha: f64,
+    gamma: f64,
+}
 
-    for i in 0..=mc.len() {
-        if 0 <= m2 {
-            f[0] = c[0];
-            c[0] = mc[i] + alpha * c[0];
-        }
-        if 1 <= m2 {
-            f[1] = c[1];
-            c[1] = b * f[0] + alpha * c[1];
-        }
-        for j in 2..len {
-            f[j] = c[j];
-            c[j] = f[j - 1] + alpha * (c[j] - c[j - 1]);
+impl Cepstrum {
+    fn new(c: &[f64], alpha: f64, gamma: f64) -> Self {
+        Self {
+            c: c.to_vec(),
+            alpha,
+            gamma,
         }
     }
 
-    c
-}
-
-/// c2 went to return value
-/// c2.len() == m2 + 1
-fn gc2gc(gc1: &[f64], gamma1: f64, m2: usize, gamma2: f64) -> Vec<f64> {
-    let mut gc2 = vec![0.0; m2 + 1];
-    gc2[0] = gc1[0];
-
-    for i in 1..=m2 {
-        let mut ss1 = 0.0;
-        let mut ss2 = 0.0;
-        for k in 1..gc1.len().min(i) {
-            let mk = i - k;
-            let cc = gc1[k] * gc2[mk];
-            ss1 += mk as f64 * cc;
-            ss2 += k as f64 * cc;
-        }
-        if i < gc1.len() {
-            gc2[i] = gc1[i] + (gamma2 * ss2 - gamma1 * ss1) / (i as f64);
+    fn mc2b(&self) -> Vec<f64> {
+        if self.alpha != 0.0 {
+            let mut b = vec![0.0; self.c.len()];
+            let last = self.c.len() - 1;
+            b[last] = self.c[last];
+            for i in (0..last).rev() {
+                b[i] = self.c[i] - self.alpha * b[i + 1];
+            }
+            b
         } else {
-            gc2[i] = (gamma2 * ss2 - gamma1 * ss1) / (i as f64);
+            self.c.to_vec()
         }
     }
 
-    gc2
-}
+    fn gnorm(&self) -> Self {
+        let c = if self.gamma != 0.0 {
+            let k = 1.0 + self.gamma * self.c[0];
+            iter::once(k.powf(1.0 / self.gamma))
+                .chain(self.c[1..].iter().map(|x| x / k))
+                .collect()
+        } else {
+            iter::once(self.c[0].exp())
+                .chain(self.c[1..].iter().cloned())
+                .collect()
+        };
+        Self {
+            c,
+            alpha: self.alpha,
+            gamma: self.gamma,
+        }
+    }
 
-fn postfilter_mcp(mcp: &mut [f64], alpha: f64, beta: f64) {
-    if beta > 0.0 && mcp.len() > 2 {
-        let mut b = mc2b(&mcp, alpha);
-        let e1 = b2en(&b, alpha);
+    fn ignorm(&self) -> Self {
+        let c = if self.gamma != 0.0 {
+            let k = self.c[0].powf(self.gamma);
+            iter::once((k - 1.0) / self.gamma)
+                .chain(self.c[1..].iter().map(|x| x * k))
+                .collect()
+        } else {
+            iter::once(self.c[0].ln())
+                .chain(self.c[1..].iter().cloned())
+                .collect()
+        };
+        Self {
+            c,
+            alpha: self.alpha,
+            gamma: self.gamma,
+        }
+    }
 
-        b[1] -= beta * alpha * b[2];
-        for k in 2..mcp.len() {
-            b[k] *= 1.0 + beta;
+    fn postfilter_mcp(&mut self, beta: f64) {
+        if beta > 0.0 && self.c.len() > 2 {
+            let mut b = self.mc2b();
+            let e1 = b2en(&b, self.alpha);
+
+            b[1] -= beta * self.alpha * b[2];
+            for k in 2..self.c.len() {
+                b[k] *= 1.0 + beta;
+            }
+
+            let e2 = b2en(&b, self.alpha);
+            b[0] += (e1 / e2).ln() / 2.0;
+            let mc = b2mc(&b, self.alpha);
+            self.c.copy_from_slice(&mc);
+        }
+    }
+
+    fn freqt(&self, m2: usize, alpha: f64) -> Self {
+        let aa = 1.0 - alpha * alpha;
+
+        let mut cepstrum = Self {
+            c: vec![0.0; m2 + 1],
+            alpha: self.alpha,
+            gamma: self.gamma,
+        };
+        let mut f = vec![0.0; cepstrum.c.len()];
+
+        for i in 0..=self.c.len() {
+            f[0] = cepstrum.c[0];
+            cepstrum.c[0] = self.c[i] + alpha * cepstrum.c[0];
+            if 1 <= m2 {
+                f[1] = cepstrum.c[1];
+                cepstrum.c[1] = aa * f[0] + alpha * cepstrum.c[1];
+            }
+            for j in 2..cepstrum.c.len() {
+                f[j] = cepstrum.c[j];
+                cepstrum.c[j] = f[j - 1] + alpha * (cepstrum.c[j] - cepstrum.c[j - 1]);
+            }
         }
 
-        let e2 = b2en(&b, alpha);
-        b[0] += (e1 / e2).ln() / 2.0;
-        let mc = b2mc(&b, alpha);
-        mcp.copy_from_slice(&mc);
+        cepstrum
+    }
+
+    fn gc2gc(&self, m2: usize, gamma: f64) -> Self {
+        let mut cepstrum = Self {
+            c: vec![0.0; m2 + 1],
+            alpha: self.alpha,
+            gamma,
+        };
+        cepstrum.c[0] = self.c[0];
+
+        for i in 1..=m2 {
+            let mut ss1 = 0.0;
+            let mut ss2 = 0.0;
+            for k in 1..self.c.len().min(i) {
+                let mk = i - k;
+                let cc = self.c[k] * cepstrum.c[mk];
+                ss1 += mk as f64 * cc;
+                ss2 += k as f64 * cc;
+            }
+            if i < self.c.len() {
+                cepstrum.c[i] = self.c[i] + (cepstrum.gamma * ss2 - self.gamma * ss1) / (i as f64);
+            } else {
+                cepstrum.c[i] = (cepstrum.gamma * ss2 - self.gamma * ss1) / (i as f64);
+            }
+        }
+
+        cepstrum
+    }
+
+    fn mgc2mgc(&self, m2: usize, alpha: f64, gamma: f64) -> Self {
+        if self.alpha == alpha {
+            self.gnorm().gc2gc(m2, gamma).ignorm()
+        } else {
+            let alpha = (alpha - self.alpha) / (1.0 - self.alpha * alpha);
+            self.freqt(m2, alpha).gnorm().gc2gc(m2, gamma).ignorm()
+        }
+    }
+
+    fn c2ir(&self, len: usize) -> Vec<f64> {
+        let mut ir = vec![0.0; len];
+        ir[0] = self.c[0].exp();
+        for n in 1..len {
+            let mut d = 0.0;
+            for k in 1..self.c.len().min(n + 1) {
+                d += k as f64 * self.c[k] * ir[n - k];
+            }
+            ir[n] = d / n as f64;
+        }
+        ir
     }
 }
 
-/// b went to return value
-/// b.len() == mc.len()
-fn mc2b(mc: &[f64], alpha: f64) -> Vec<f64> {
-    if alpha != 0.0 {
-        let mut b = vec![0.0; mc.len()];
-        let last = mc.len() - 1;
-        b[last] = mc[last];
-        for i in (0..last).rev() {
-            b[i] = mc[i] - alpha * b[i + 1];
-        }
-        b
-    } else {
-        mc.to_vec()
+impl Gain for Cepstrum {
+    fn gamma(&self) -> f64 {
+        self.gamma
+    }
+
+    fn slice(&self) -> &[f64] {
+        &self.c
+    }
+
+    fn slice_mut(&mut self) -> &mut [f64] {
+        &mut self.c
     }
 }
 
 fn b2en(b: &[f64], alpha: f64) -> f64 {
-    let mc = b2mc(b, alpha);
-    let c = freqt(&mc, 576 - 1, -alpha);
-    let ir = c2ir(&c, 576);
-
+    let c = b2mc(b, alpha);
+    let c = Cepstrum {
+        c,
+        alpha,
+        gamma: 0.0,
+    };
+    let ir = c.freqt(576 - 1, -alpha).c2ir(576);
     ir.iter().map(|x| x * x).sum()
-}
-
-/// c2 went to return value
-/// c1.len() == _m1 + 1
-/// c2.len() == m2 + 1
-fn mgc2mgc(mgc: &[f64], alpha1: f64, gamma1: f64, m2: usize, alpha2: f64, gamma2: f64) -> Vec<f64> {
-    if alpha1 == alpha2 {
-        let gc1 = gnorm(mgc, gamma1);
-        let gc2 = gc2gc(&gc1, gamma1, m2, gamma2);
-        ignorm(&gc2, gamma2)
-    } else {
-        let alpha = (alpha2 - alpha1) / (1.0 - alpha1 * alpha2);
-        let c1 = freqt(mgc, m2 as isize, alpha);
-        let gc1 = gnorm(&c1, gamma1);
-        let gc2 = gc2gc(&gc1, gamma1, m2, gamma2);
-        ignorm(&gc2, gamma2)
-    }
 }
 
 /// mc went to return value
@@ -679,49 +745,82 @@ fn b2mc(b: &[f64], alpha: f64) -> Vec<f64> {
     mc
 }
 
-/// h went to return value
-/// h.len() == leng
-fn c2ir(c: &[f64], leng: usize) -> Vec<f64> {
-    let mut ir = vec![0.0; leng];
-    ir[0] = c[0].exp();
-    for n in 1..leng {
-        let mut d = 0.0;
-        for k in 1..c.len().min(n + 1) {
-            d += k as f64 * c[k] * ir[n - k];
+trait Gain: Clone {
+    fn gamma(&self) -> f64;
+    fn slice(&self) -> &[f64];
+    fn slice_mut(&mut self) -> &mut [f64];
+
+    fn gnorm(&self) -> Self {
+        let mut cloned = self.clone();
+        let source = self.slice();
+        let target = cloned.slice_mut();
+
+        if self.gamma() != 0.0 {
+            let k = 1.0 + self.gamma() * source[0];
+            target[0] = k.powf(1.0 / self.gamma());
+            for i in 1..source.len() {
+                target[i] = source[i] / k;
+            }
+        } else {
+            target[0] = source[0].exp();
+            for i in 1..source.len() {
+                target[i] = source[i];
+            }
+        };
+
+        cloned
+    }
+
+    fn ignorm(&self) -> Self {
+        let mut cloned = self.clone();
+        let source = self.slice();
+        let target = cloned.slice_mut();
+
+        if self.gamma() != 0.0 {
+            let k = source[0].powf(self.gamma());
+            target[0] = (k - 1.0) / self.gamma();
+            for i in 1..source.len() {
+                target[i] = source[i] * k;
+            }
+        } else {
+            target[0] = source[0].ln();
+            for i in 1..source.len() {
+                target[i] = source[i];
+            }
+        };
+
+        cloned
+    }
+}
+
+// temporary
+fn gnorm(b: &[f64], gamma: f64) -> Vec<f64> {
+    #[derive(Debug, Clone)]
+    struct B {
+        b: Vec<f64>,
+        gamma: f64,
+    }
+
+    impl Gain for B {
+        fn gamma(&self) -> f64 {
+            self.gamma
         }
-        ir[n] = d / n as f64;
-    }
-    ir
-}
 
-/// c2 went to return value
-/// c2.len() == c1.len()
-fn ignorm(c1: &[f64], gamma: f64) -> Vec<f64> {
-    if gamma != 0.0 {
-        let k = c1[0].powf(gamma);
-        iter::once((k - 1.0) / gamma)
-            .chain(c1[1..].iter().map(|x| x * k))
-            .collect()
-    } else {
-        iter::once(c1[0].ln())
-            .chain(c1[1..].iter().cloned())
-            .collect()
-    }
-}
+        fn slice(&self) -> &[f64] {
+            &self.b
+        }
 
-/// c2 went to return value
-/// c2.len() == c1.len()
-fn gnorm(c1: &[f64], gamma: f64) -> Vec<f64> {
-    if gamma != 0.0 {
-        let k = 1.0 + gamma * c1[0];
-        iter::once(k.powf(1.0 / gamma))
-            .chain(c1[1..].iter().map(|x| x / k))
-            .collect()
-    } else {
-        iter::once(c1[0].exp())
-            .chain(c1[1..].iter().cloned())
-            .collect()
+        fn slice_mut(&mut self) -> &mut [f64] {
+            &mut self.b
+        }
     }
+
+    B {
+        b: b.to_vec(),
+        gamma,
+    }
+    .gnorm()
+    .b
 }
 
 #[derive(Debug)]
