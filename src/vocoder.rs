@@ -1,4 +1,4 @@
-use std::{f64::consts::PI, iter};
+use std::f64::consts::PI;
 
 use crate::util::{MAX_F0, MAX_LF0, MIN_F0, MIN_LF0};
 
@@ -36,7 +36,7 @@ pub struct Vocoder {
     /// is_first := excitation.is_none()
     excitation: Option<Excitation>,
 
-    c: Vec<f64>,
+    c: Coefficients,
     d1: Vec<f64>,
 }
 
@@ -62,7 +62,10 @@ impl Vocoder {
             rate,
             excitation: None,
 
-            c: vec![0.0; c_len],
+            c: Coefficients {
+                b: Vec::new(),
+                gamma,
+            },
             d1: vec![0.0; d1_len],
         }
     }
@@ -81,9 +84,6 @@ impl Vocoder {
         volume: f64,
         rawdata: &mut [f64],
     ) {
-        debug_assert_eq!(self.c.len(), spectrum.len());
-        debug_assert_eq!(self.d1.len(), Self::d1_len(self.stage, spectrum.len()));
-
         let p = if lf0 == -1.0e+10 {
             0.0
         } else if lf0 <= MIN_LF0 {
@@ -99,15 +99,14 @@ impl Vocoder {
                 self.c = cepstrum.mc2b();
             } else {
                 let lsp = Lsp::new(spectrum, alpha, self);
-                let b = lsp.lsp2mgc().mc2b();
-                self.c = gnorm(&b, self.gamma);
-                for i in 1..self.c.len() {
-                    self.c[i] *= self.gamma;
+                self.c = lsp.lsp2mgc().mc2b().gnorm();
+                for i in 1..self.c.b.len() {
+                    self.c.b[i] *= self.gamma;
                 }
             }
         }
 
-        let cc = if self.stage == 0 {
+        let coefficients = if self.stage == 0 {
             let mut cepstrum = Cepstrum::new(spectrum, alpha, self.gamma);
             cepstrum.postfilter_mcp(beta);
             cepstrum.mc2b()
@@ -115,15 +114,16 @@ impl Vocoder {
             let mut lsp = Lsp::new(spectrum, alpha, self);
             lsp.postfilter_lsp(beta);
             lsp.check_lsp_stability();
-            let b = lsp.lsp2mgc().mc2b();
-            let cc = gnorm(&b, self.gamma);
-            iter::once(cc[0])
-                .chain(cc[1..].iter().map(|x| x * self.gamma))
-                .collect()
+            let mut coefficients = lsp.lsp2mgc().mc2b().gnorm();
+            for i in 1..coefficients.b.len() {
+                coefficients.b[i] *= self.gamma;
+            }
+            coefficients
         };
-        let cinc: Vec<_> = cc
+        let cinc: Vec<_> = coefficients
+            .b
             .iter()
-            .zip(&self.c)
+            .zip(&self.c.b)
             .map(|(cc, c)| (cc - c) / self.fperiod as f64)
             .collect();
 
@@ -135,25 +135,25 @@ impl Vocoder {
             let mut x = excitation.get(lpf);
             if self.stage == 0 {
                 if x != 0.0 {
-                    x *= self.c[0].exp();
+                    x *= self.c.b[0].exp();
                 }
-                let mlsa = Mlsa::new(&self.c, alpha, 5);
+                let mlsa = Mlsa::new(&self.c.b, alpha, 5);
                 mlsa.df(&mut x, &mut self.d1)
             } else {
-                x *= self.c[0];
-                let mglsa = Mglsa::new(&self.c, alpha, self.stage);
+                x *= self.c.b[0];
+                let mglsa = Mglsa::new(&self.c.b, alpha, self.stage);
                 mglsa.df(&mut x, &mut self.d1)
             }
             x *= volume;
 
             rawdata[j] = x;
-            for i in 0..self.c.len() {
-                self.c[i] += cinc[i];
+            for i in 0..self.c.b.len() {
+                self.c.b[i] += cinc[i];
             }
         }
 
         excitation.end(p);
-        self.c.copy_from_slice(&cc);
+        self.c = coefficients;
     }
 }
 
@@ -557,70 +557,34 @@ impl Cepstrum {
         }
     }
 
-    fn mc2b(&self) -> Vec<f64> {
+    fn mc2b(&self) -> Coefficients {
+        let mut coefficients = Coefficients {
+            b: self.c.clone(),
+            gamma: self.gamma,
+        };
         if self.alpha != 0.0 {
-            let mut b = vec![0.0; self.c.len()];
             let last = self.c.len() - 1;
-            b[last] = self.c[last];
+            coefficients.b[last] = self.c[last];
             for i in (0..last).rev() {
-                b[i] = self.c[i] - self.alpha * b[i + 1];
+                coefficients.b[i] = self.c[i] - self.alpha * coefficients.b[i + 1];
             }
-            b
-        } else {
-            self.c.to_vec()
         }
-    }
-
-    fn gnorm(&self) -> Self {
-        let c = if self.gamma != 0.0 {
-            let k = 1.0 + self.gamma * self.c[0];
-            iter::once(k.powf(1.0 / self.gamma))
-                .chain(self.c[1..].iter().map(|x| x / k))
-                .collect()
-        } else {
-            iter::once(self.c[0].exp())
-                .chain(self.c[1..].iter().cloned())
-                .collect()
-        };
-        Self {
-            c,
-            alpha: self.alpha,
-            gamma: self.gamma,
-        }
-    }
-
-    fn ignorm(&self) -> Self {
-        let c = if self.gamma != 0.0 {
-            let k = self.c[0].powf(self.gamma);
-            iter::once((k - 1.0) / self.gamma)
-                .chain(self.c[1..].iter().map(|x| x * k))
-                .collect()
-        } else {
-            iter::once(self.c[0].ln())
-                .chain(self.c[1..].iter().cloned())
-                .collect()
-        };
-        Self {
-            c,
-            alpha: self.alpha,
-            gamma: self.gamma,
-        }
+        coefficients
     }
 
     fn postfilter_mcp(&mut self, beta: f64) {
         if beta > 0.0 && self.c.len() > 2 {
-            let mut b = self.mc2b();
-            let e1 = b2en(&b, self.alpha);
+            let mut coefficients = self.mc2b();
+            let e1 = coefficients.b2en(self.alpha);
 
-            b[1] -= beta * self.alpha * b[2];
+            coefficients.b[1] -= beta * self.alpha * coefficients.b[2];
             for k in 2..self.c.len() {
-                b[k] *= 1.0 + beta;
+                coefficients.b[k] *= 1.0 + beta;
             }
 
-            let e2 = b2en(&b, self.alpha);
-            b[0] += (e1 / e2).ln() / 2.0;
-            let mc = b2mc(&b, self.alpha);
-            self.c.copy_from_slice(&mc);
+            let e2 = coefficients.b2en(self.alpha);
+            coefficients.b[0] += (e1 / e2).ln() / 2.0;
+            *self = coefficients.b2mc(self.alpha);
         }
     }
 
@@ -700,6 +664,47 @@ impl Cepstrum {
     }
 }
 
+#[derive(Debug, Clone)]
+struct Coefficients {
+    b: Vec<f64>,
+    gamma: f64,
+}
+
+impl Coefficients {
+    fn b2mc(&self, alpha: f64) -> Cepstrum {
+        let mut cepstrum = Cepstrum {
+            c: vec![0.0; self.b.len()],
+            alpha,
+            gamma: self.gamma,
+        };
+        let last = self.b.len() - 1;
+        cepstrum.c[last] = self.b[last];
+        for i in (0..last).rev() {
+            cepstrum.c[i] = self.b[i] + alpha * self.b[i + 1];
+        }
+        cepstrum
+    }
+
+    fn b2en(&self, alpha: f64) -> f64 {
+        let ir = self.b2mc(alpha).freqt(576 - 1, -alpha).c2ir(576);
+        ir.iter().map(|x| x * x).sum()
+    }
+}
+
+impl Gain for Coefficients {
+    fn gamma(&self) -> f64 {
+        self.gamma
+    }
+
+    fn slice(&self) -> &[f64] {
+        &self.b
+    }
+
+    fn slice_mut(&mut self) -> &mut [f64] {
+        &mut self.b
+    }
+}
+
 impl Gain for Cepstrum {
     fn gamma(&self) -> f64 {
         self.gamma
@@ -712,29 +717,6 @@ impl Gain for Cepstrum {
     fn slice_mut(&mut self) -> &mut [f64] {
         &mut self.c
     }
-}
-
-fn b2en(b: &[f64], alpha: f64) -> f64 {
-    let c = b2mc(b, alpha);
-    let c = Cepstrum {
-        c,
-        alpha,
-        gamma: 0.0,
-    };
-    let ir = c.freqt(576 - 1, -alpha).c2ir(576);
-    ir.iter().map(|x| x * x).sum()
-}
-
-/// mc went to return value
-/// mc.len() == b.len()
-fn b2mc(b: &[f64], alpha: f64) -> Vec<f64> {
-    let mut mc = vec![0.0; b.len()];
-    let last = b.len() - 1;
-    mc[last] = b[last];
-    for i in (0..last).rev() {
-        mc[i] = b[i] + alpha * b[i + 1];
-    }
-    mc
 }
 
 trait Gain: Clone {
@@ -783,36 +765,6 @@ trait Gain: Clone {
 
         cloned
     }
-}
-
-// temporary
-fn gnorm(b: &[f64], gamma: f64) -> Vec<f64> {
-    #[derive(Debug, Clone)]
-    struct B {
-        b: Vec<f64>,
-        gamma: f64,
-    }
-
-    impl Gain for B {
-        fn gamma(&self) -> f64 {
-            self.gamma
-        }
-
-        fn slice(&self) -> &[f64] {
-            &self.b
-        }
-
-        fn slice_mut(&mut self) -> &mut [f64] {
-            &mut self.b
-        }
-    }
-
-    B {
-        b: b.to_vec(),
-        gamma,
-    }
-    .gnorm()
-    .b
 }
 
 #[derive(Debug)]
