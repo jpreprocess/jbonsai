@@ -7,6 +7,8 @@ mod HTS_pstream;
 mod HTS_sstream;
 mod HTS_vocoder;
 
+mod vocoder;
+
 mod util;
 
 pub use HTS_engine::*;
