@@ -97,7 +97,8 @@ impl Vocoder {
             if self.stage == 0 {
                 self.c = mc2b(spectrum, alpha);
             } else {
-                let mgc = lsp2mgc(spectrum, alpha, self.use_log_gain, self.stage, self.gamma);
+                let lsp = Lsp::new(spectrum, alpha, beta, self);
+                let mgc = lsp.mgc();
                 let b = mc2b(&mgc, alpha);
                 self.c = gnorm(&b, self.gamma);
                 for i in 1..self.c.len() {
@@ -105,25 +106,15 @@ impl Vocoder {
                 }
             }
         }
-        let excitation = self
-            .excitation
-            .get_or_insert_with(|| Excitation::new(p, nlpf));
-        excitation.start(p, self.fperiod);
 
         let cc = if self.stage == 0 {
             postfilter_mcp(spectrum, alpha, beta);
             mc2b(spectrum, alpha)
         } else {
-            postfilter_lsp(
-                spectrum,
-                alpha,
-                beta,
-                self.use_log_gain,
-                self.stage,
-                self.gamma,
-            );
-            check_lsp_stability(spectrum);
-            let mgc = lsp2mgc(spectrum, alpha, self.use_log_gain, self.stage, self.gamma);
+            let mut lsp = Lsp::new(spectrum, alpha, beta, self);
+            lsp.postfilter();
+            lsp.stabilize();
+            let mgc = lsp.mgc();
             let b = mc2b(&mgc, alpha);
             let cc = gnorm(&b, self.gamma);
             iter::once(cc[0])
@@ -135,6 +126,11 @@ impl Vocoder {
             .zip(&self.c)
             .map(|(cc, c)| (cc - c) / self.fperiod as f64)
             .collect();
+
+        let excitation = self
+            .excitation
+            .get_or_insert_with(|| Excitation::new(p, nlpf));
+        excitation.start(p, self.fperiod);
         for j in 0..self.fperiod {
             let mut x = excitation.get(lpf);
             if self.stage == 0 {
@@ -379,159 +375,184 @@ impl Random {
     }
 }
 
-/// a went to return value
-/// lpc.len() == lsp.len() + 1
-fn lsp2lpc(lsp: &[f64]) -> Vec<f64> {
-    let m = lsp.len();
-    let (mh1, mh2) = if m % 2 == 0 {
-        (m / 2, m / 2)
-    } else {
-        ((m + 1) / 2, (m - 1) / 2)
-    };
-
-    let p: Vec<_> = lsp.iter().step_by(2).map(|x| -2.0 * x.cos()).collect();
-    let q: Vec<_> = lsp
-        .iter()
-        .skip(1)
-        .step_by(2)
-        .map(|x| -2.0 * x.cos())
-        .collect();
-    let mut a0 = vec![0.0; mh1 + 1];
-    let mut a1 = vec![0.0; mh1 + 1];
-    let mut a2 = vec![0.0; mh1 + 1];
-    let mut b0 = vec![0.0; mh2 + 1];
-    let mut b1 = vec![0.0; mh2 + 1];
-    let mut b2 = vec![0.0; mh2 + 1];
-
-    let mut xff = 0.0;
-    let mut xf = 0.0;
-
-    let mut lpc = vec![0.0; m + 1];
-    for k in 0..=m {
-        let xx = if k == 0 { 1.0 } else { 0.0 };
-        if m % 2 == 1 {
-            a0[0] = xx;
-            b0[0] = xx - xff;
-            xff = xf;
-            xf = xx;
-        } else {
-            a0[0] = xx + xf;
-            b0[0] = xx - xf;
-            xf = xx;
-        }
-        for i in 0..mh1 {
-            a0[i + 1] = a0[i] + p[i] * a1[i] + a2[i];
-            a2[i] = a1[i];
-            a1[i] = a0[i];
-        }
-        for i in 0..mh2 {
-            b0[i + 1] = b0[i] + q[i] * b1[i] + b2[i];
-            b2[i] = b1[i];
-            b1[i] = b0[i];
-        }
-        if k > 0 {
-            lpc[k - 1] = -0.5 * (a0[mh1] + b0[mh2]);
-        }
-    }
-
-    for i in (0..m).rev() {
-        lpc[i + 1] = -lpc[i];
-    }
-    lpc[0] = 1.0;
-
-    lpc
-}
-
-fn lsp2en(lsp: &[f64], alpha: f64, use_log_gain: bool, stage: usize, gamma: f64) -> f64 {
-    let mut lpc = lsp2lpc(&lsp[1..]);
-    if use_log_gain {
-        lpc[0] = lsp[0].exp();
-    } else {
-        lpc[0] = lsp[0];
-    }
-    let mut c2 = ignorm(&lpc, gamma);
-    for i in 1..lsp.len() {
-        c2[i] *= -(stage as f64);
-    }
-
-    let c2 = mgc2mgc(&c2, alpha, gamma, 576 - 1, 0.0, 1.0);
-    c2.iter().map(|x| x * x).sum()
-}
-
-/// mgc went to return value
-/// mgc.len() == lsp.len()
-fn lsp2mgc(lsp: &[f64], alpha: f64, use_log_gain: bool, stage: usize, gamma: f64) -> Vec<f64> {
-    let mut a = lsp2lpc(&lsp[1..]);
-    if use_log_gain {
-        a[0] = lsp[0].exp();
-    } else {
-        a[0] = lsp[0];
-    }
-    let mut c2 = ignorm(&a, gamma);
-    for c2 in &mut c2[1..] {
-        *c2 *= -(stage as f64);
-    }
-    mgc2mgc(&c2, alpha, gamma, lsp.len() - 1, alpha, gamma)
-}
-
-fn postfilter_lsp(
-    lsp: &mut [f64],
+/// Line Spectral Pairs
+struct Lsp<'a> {
+    lsp: &'a mut [f64],
     alpha: f64,
     beta: f64,
     use_log_gain: bool,
     stage: usize,
     gamma: f64,
-) {
-    if beta > 0.0 && lsp.len() > 2 {
-        let mut buf = vec![0.0; lsp.len()];
-        let en1 = lsp2en(&lsp, alpha, use_log_gain, stage, gamma);
-        for i in 0..lsp.len() {
-            if i > 1 && i < lsp.len() - 1 {
-                let d1 = beta * (lsp[i + 1] - lsp[i]);
-                let d2 = beta * (lsp[i] - lsp[i - 1]);
-                buf[i] = lsp[i - 1]
-                    + d2
-                    + (d2 * d2 * ((lsp[i + 1] - lsp[i - 1]) - (d1 + d2))) / ((d2 * d2) + (d1 * d1));
+}
+
+impl<'a> Lsp<'a> {
+    fn new(lsp: &'a mut [f64], alpha: f64, beta: f64, vocoder: &Vocoder) -> Self {
+        Self {
+            lsp,
+            alpha,
+            beta,
+            use_log_gain: vocoder.use_log_gain,
+            stage: vocoder.stage,
+            gamma: vocoder.gamma,
+        }
+    }
+
+    /// convert self to Linear Prediction Coding
+    /// lpc.len() == lsp.len() + 1
+    fn lpc(&self) -> Vec<f64> {
+        let m = self.lsp.len();
+        let (mh1, mh2) = if m % 2 == 0 {
+            (m / 2, m / 2)
+        } else {
+            ((m + 1) / 2, (m - 1) / 2)
+        };
+
+        let p: Vec<_> = self.lsp.iter().step_by(2).map(|x| -2.0 * x.cos()).collect();
+        let q: Vec<_> = self
+            .lsp
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .map(|x| -2.0 * x.cos())
+            .collect();
+        let mut a0 = vec![0.0; mh1 + 1];
+        let mut a1 = vec![0.0; mh1 + 1];
+        let mut a2 = vec![0.0; mh1 + 1];
+        let mut b0 = vec![0.0; mh2 + 1];
+        let mut b1 = vec![0.0; mh2 + 1];
+        let mut b2 = vec![0.0; mh2 + 1];
+
+        let mut xff = 0.0;
+        let mut xf = 0.0;
+
+        let mut lpc = vec![0.0; m + 1];
+        for k in 0..=m {
+            let xx = if k == 0 { 1.0 } else { 0.0 };
+            if m % 2 == 1 {
+                a0[0] = xx;
+                b0[0] = xx - xff;
+                xff = xf;
+                xf = xx;
             } else {
-                buf[i] = lsp[i];
+                a0[0] = xx + xf;
+                b0[0] = xx - xf;
+                xf = xx;
+            }
+            for i in 0..mh1 {
+                a0[i + 1] = a0[i] + p[i] * a1[i] + a2[i];
+                a2[i] = a1[i];
+                a1[i] = a0[i];
+            }
+            for i in 0..mh2 {
+                b0[i + 1] = b0[i] + q[i] * b1[i] + b2[i];
+                b2[i] = b1[i];
+                b1[i] = b0[i];
+            }
+            if k > 0 {
+                lpc[k - 1] = -0.5 * (a0[mh1] + b0[mh2]);
             }
         }
-        lsp.copy_from_slice(&buf);
 
-        let en2 = lsp2en(&lsp, alpha, use_log_gain, stage, gamma);
-        if en1 != en2 {
-            if use_log_gain {
-                lsp[0] += 0.5 * (en1 / en2).ln();
-            } else {
-                lsp[0] *= (en1 / en2).sqrt();
+        for i in (0..m).rev() {
+            lpc[i + 1] = -lpc[i];
+        }
+        lpc[0] = 1.0;
+
+        lpc
+    }
+
+    /// calculate frame energy
+    fn en(&self) -> f64 {
+        let mut lpc = self.lpc();
+        if self.use_log_gain {
+            lpc[0] = self.lsp[0].exp();
+        } else {
+            lpc[0] = self.lsp[0];
+        }
+        let mut c2 = ignorm(&lpc, self.gamma);
+        for i in 1..self.lsp.len() {
+            c2[i] *= -(self.stage as f64);
+        }
+
+        let c2 = mgc2mgc(&c2, self.alpha, self.gamma, 576 - 1, 0.0, 1.0);
+        c2.iter().map(|x| x * x).sum()
+    }
+
+    /// mgc.len() == lsp.len()
+    fn mgc(&self) -> Vec<f64> {
+        let mut a = self.lpc();
+        if self.use_log_gain {
+            a[0] = self.lsp[0].exp();
+        } else {
+            a[0] = self.lsp[0];
+        }
+        let mut c2 = ignorm(&a, self.gamma);
+        for c2 in &mut c2[1..] {
+            *c2 *= -(self.stage as f64);
+        }
+        mgc2mgc(
+            &c2,
+            self.alpha,
+            self.gamma,
+            self.lsp.len() - 1,
+            self.alpha,
+            self.gamma,
+        )
+    }
+
+    fn postfilter(&mut self) {
+        if self.beta > 0.0 && self.lsp.len() > 2 {
+            let mut buf = vec![0.0; self.lsp.len()];
+            let en1 = self.en();
+            for i in 0..self.lsp.len() {
+                if i > 1 && i < self.lsp.len() - 1 {
+                    let d1 = self.beta * (self.lsp[i + 1] - self.lsp[i]);
+                    let d2 = self.beta * (self.lsp[i] - self.lsp[i - 1]);
+                    buf[i] = self.lsp[i - 1]
+                        + d2
+                        + (d2 * d2 * ((self.lsp[i + 1] - self.lsp[i - 1]) - (d1 + d2)))
+                            / ((d2 * d2) + (d1 * d1));
+                } else {
+                    buf[i] = self.lsp[i];
+                }
+            }
+            self.lsp.copy_from_slice(&buf);
+
+            let en2 = self.en();
+            if en1 != en2 {
+                if self.use_log_gain {
+                    self.lsp[0] += 0.5 * (en1 / en2).ln();
+                } else {
+                    self.lsp[0] *= (en1 / en2).sqrt();
+                }
             }
         }
     }
-}
 
-fn check_lsp_stability(lsp: &mut [f64]) {
-    let min = 0.25 * PI / lsp.len() as f64;
-    let last = lsp.len() - 1;
-    for _ in 0..4 {
-        let mut find = false;
-        for j in 1..last {
-            let tmp = lsp[j + 1] - lsp[j];
-            if tmp < min {
-                lsp[j] -= 0.5 * (min - tmp);
-                lsp[j + 1] += 0.5 * (min - tmp);
+    fn stabilize(&mut self) {
+        let min = 0.25 * PI / self.lsp.len() as f64;
+        let last = self.lsp.len() - 1;
+        for _ in 0..4 {
+            let mut find = false;
+            for j in 1..last {
+                let tmp = self.lsp[j + 1] - self.lsp[j];
+                if tmp < min {
+                    self.lsp[j] -= 0.5 * (min - tmp);
+                    self.lsp[j + 1] += 0.5 * (min - tmp);
+                    find = true;
+                }
+            }
+            if self.lsp[1] < min {
+                self.lsp[1] = min;
                 find = true;
             }
-        }
-        if lsp[1] < min {
-            lsp[1] = min;
-            find = true;
-        }
-        if lsp[last] > PI - min {
-            lsp[last] = PI - min;
-            find = true;
-        }
-        if !find {
-            break;
+            if self.lsp[last] > PI - min {
+                self.lsp[last] = PI - min;
+                find = true;
+            }
+            if !find {
+                break;
+            }
         }
     }
 }
