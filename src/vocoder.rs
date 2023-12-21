@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use crate::util::{MAX_F0, MAX_LF0, MIN_F0, MIN_LF0};
 
-const HTS_PADE: [f64; 21] = [
+const PADE: [f64; 21] = [
     1.00000000000f64,
     1.00000000000f64,
     0.00000000000f64,
@@ -783,7 +783,7 @@ impl<'a> Mlsa<'a> {
             alpha,
             pd,
             aa: 1.0 - alpha * alpha,
-            ppade: &HTS_PADE[(pd * (pd + 1) / 2)..],
+            ppade: &PADE[(pd * (pd + 1) / 2)..],
         }
     }
 
