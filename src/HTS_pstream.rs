@@ -8,21 +8,12 @@
     unused_mut
 )]
 use crate::sstream::SStreamSet;
-use crate::{util::*, HTS_SMatrices, HTS_SStreamSet, HTS_error};
+use crate::{util::*, HTS_SMatrices, HTS_error};
 extern "C" {
     fn sqrt(_: libc::c_double) -> libc::c_double;
 }
 
-use crate::{
-    HTS_SStreamSet_get_duration, HTS_SStreamSet_get_gv_mean, HTS_SStreamSet_get_gv_switch,
-    HTS_SStreamSet_get_gv_vari, HTS_SStreamSet_get_mean, HTS_SStreamSet_get_msd,
-    HTS_SStreamSet_get_nstream, HTS_SStreamSet_get_total_frame, HTS_SStreamSet_get_total_state,
-    HTS_SStreamSet_get_vari, HTS_SStreamSet_get_vector_length,
-    HTS_SStreamSet_get_window_coefficient, HTS_SStreamSet_get_window_left_width,
-    HTS_SStreamSet_get_window_max_width, HTS_SStreamSet_get_window_right_width,
-    HTS_SStreamSet_get_window_size, HTS_SStreamSet_is_msd, HTS_SStreamSet_use_gv, HTS_alloc_matrix,
-    HTS_calloc, HTS_free, HTS_free_matrix,
-};
+use crate::{HTS_alloc_matrix, HTS_calloc, HTS_free, HTS_free_matrix};
 
 #[derive(Clone)]
 pub struct HTS_PStream {

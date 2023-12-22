@@ -136,17 +136,17 @@ impl ModelSet {
             .len()
     }
     /// Get left width of dynamic window
-    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> i32 {
+    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
         // TODO: check implementation
         let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
-            .len() as i32;
+            .len() as isize;
         -fsize / 2
     }
     /// Get right width of dynamic window
-    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> i32 {
+    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
         // TODO: check implementation
         let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
-            .len() as i32;
+            .len() as isize;
         if fsize % 2 == 0 {
             fsize / 2 - 1
         } else {
