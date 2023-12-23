@@ -49,7 +49,7 @@ impl PStreamSet {
                 let parameters: Vec<Vec<(f64, f64)>> = (0..sss.get_window_size(i))
                     .into_iter()
                     .map(|window_index| {
-                        let m = sss.get_duration(i) * window_index + vector_index;
+                        let m = sss.get_vector_length(i) * window_index + vector_index;
 
                         (0..sss.get_total_state())
                             .into_iter()

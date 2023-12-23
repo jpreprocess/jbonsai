@@ -5,6 +5,7 @@ const W2: f64 = 1.0;
 
 #[derive(Debug, Clone)]
 pub struct MlpgMatrix {
+    win_size: usize,
     length: usize,
     width: usize,
     wuw: Vec<Vec<f64>>,
@@ -14,6 +15,7 @@ pub struct MlpgMatrix {
 impl MlpgMatrix {
     pub fn new() -> Self {
         Self {
+            win_size: 0,
             length: 0,
             width: 0,
             wuw: Vec::new(),
@@ -27,6 +29,7 @@ impl MlpgMatrix {
         stream_index: usize,
         parameters: Vec<Vec<(f64, f64)>>,
     ) {
+        self.win_size = sss.get_window_size(stream_index);
         self.length = parameters.len();
         self.width = parameters[0].len();
 
@@ -37,7 +40,7 @@ impl MlpgMatrix {
             self.wuw.push(vec![0.; self.width]);
             self.wum.push(0.);
 
-            for i in 0..sss.get_window_size(stream_index) {
+            for i in 0..self.win_size {
                 for shift in sss.get_window_left_width(stream_index, i)
                     ..sss.get_window_right_width(stream_index, i) + 1
                 {
@@ -82,7 +85,7 @@ impl MlpgMatrix {
                 self.wuw[t][0] -= self.wuw[t - i][i] * self.wuw[t - i][i] * self.wuw[t - i][0];
             }
             for i in 1..self.width {
-                for j in 1..self.width.min(t + 1) {
+                for j in 1..(self.width - i).min(t + 1) {
                     self.wuw[t][i] -=
                         self.wuw[t - j][j] * self.wuw[t - j][i + j] * self.wuw[t - j][0];
                 }
@@ -103,8 +106,7 @@ impl MlpgMatrix {
 
         let mut par = vec![0.; self.length];
         // backward
-        for rev in 0..self.length {
-            let t = self.length - 1 - rev;
+        for t in (0..self.length).rev() {
             par[t] = g[t] / self.wuw[t][0];
             for i in 1..self.width.min(self.length - t) {
                 par[t] -= self.wuw[t][i] * par[t + 1];
@@ -126,7 +128,7 @@ pub struct MlpgGlobalVariance<'a> {
 
 impl<'a> MlpgGlobalVariance<'a> {
     pub fn new(mtx: MlpgMatrix, par: Vec<f64>, gv_switch: &'a [bool]) -> Self {
-        let gv_length = gv_switch.iter().map(|b| *b as usize).sum::<usize>();
+        let gv_length = gv_switch.iter().filter(|b| **b).count();
         Self {
             par,
             gv_switch,
@@ -170,22 +172,22 @@ impl<'a> MlpgGlobalVariance<'a> {
             .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
     }
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
-        let mut g = vec![0.; self.gv_switch.len()];
-        for t in 0..self.gv_switch.len() {
+        let mut g = vec![0.; self.mtx.length];
+        for t in 0..self.mtx.length {
             g[t] = self.mtx.wuw[t][0] * self.par[t];
             for i in 1..self.mtx.width {
-                if t + i < self.gv_switch.len() {
+                if t + i < self.mtx.length {
                     g[t] += self.mtx.wuw[t][i] * self.par[t + i];
                 }
-                if t + 1 < i {
+                if t + 1 > i {
                     g[t] += self.mtx.wuw[t - i][i] * self.par[t - i];
                 }
             }
         }
 
-        let w = 1.0 / ((self.mtx.width * self.gv_switch.len()) as f64);
+        let w = 1.0 / ((self.mtx.win_size * self.mtx.length) as f64);
         let mut hmmobj = 0.;
-        for t in 0..self.gv_switch.len() {
+        for t in 0..self.mtx.length {
             hmmobj += W1 * w * self.par[t] * (self.mtx.wum[t] - 0.5 * g[t]);
         }
 
@@ -200,10 +202,10 @@ impl<'a> MlpgGlobalVariance<'a> {
         gv_mean: f64,
         gv_vari: f64,
     ) {
-        let length = self.gv_switch.len();
+        let length = self.mtx.length;
 
-        let w = 1.0 / ((self.mtx.width * length) as f64);
-        let dv = -2.0 * gv_vari * (vari - gv_mean) / self.gv_switch.len() as f64;
+        let w = 1.0 / ((self.mtx.win_size * length) as f64);
+        let dv = -2.0 * gv_vari * (vari - gv_mean) / self.mtx.length as f64;
         for t in 0..length {
             let h = -W1 * w * self.mtx.wuw[t][0]
                 - W2 * 2.0 / (length * length) as f64
