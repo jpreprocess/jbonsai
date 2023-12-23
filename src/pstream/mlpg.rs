@@ -30,8 +30,8 @@ impl MlpgMatrix {
         parameters: Vec<Vec<(f64, f64)>>,
     ) {
         self.win_size = sss.get_window_size(stream_index);
-        self.length = parameters.len();
-        self.width = parameters[0].len();
+        self.length = parameters[0].len();
+        self.width = sss.get_window_max_width(stream_index) * 2 + 1;
 
         self.wuw = Vec::new();
         self.wum = Vec::new();
@@ -44,7 +44,7 @@ impl MlpgMatrix {
                 for shift in sss.get_window_left_width(stream_index, i)
                     ..sss.get_window_right_width(stream_index, i) + 1
                 {
-                    let idx = (t as isize) + (shift as isize);
+                    let idx = (t as isize) + shift;
                     if idx < 0 || idx >= self.length as isize {
                         continue;
                     }

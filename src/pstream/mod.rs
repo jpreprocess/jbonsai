@@ -79,7 +79,7 @@ impl PStreamSet {
                                     } else if vari.abs() < 1e-19 {
                                         1e38
                                     } else {
-                                        vari
+                                        1.0 / vari
                                     }
                                 } else {
                                     0.0
