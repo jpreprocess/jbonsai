@@ -137,7 +137,7 @@ impl PStreamSet {
         let mut result_right = vec![0; total_frame];
         let mut right = total_frame - 1;
         for frame in (0..total_frame).rev() {
-            result_right[frame] = result_right[frame].min(right - frame);
+            result_right[frame] = right - frame;
 
             if matches!(msd_flag, Some(ref msd_flag) if !msd_flag[frame]) {
                 // MSD is enabled and current position is non-MSD
@@ -149,5 +149,33 @@ impl PStreamSet {
         }
 
         (result_left, result_right)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PStreamSet;
+
+    #[test]
+    fn msd_boundary_distances() {
+        assert_eq!(
+            PStreamSet::msd_boundary_distances(10, &None),
+            (
+                vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+            )
+        );
+        assert_eq!(
+            PStreamSet::msd_boundary_distances(
+                10,
+                &Some(vec![
+                    true, true, true, false, false, true, true, true, true, true
+                ])
+            ),
+            (
+                vec![0, 1, 2, 3, 0, 0, 1, 2, 3, 4],
+                vec![2, 1, 0, 0, 5, 4, 3, 2, 1, 0]
+            )
+        );
     }
 }
