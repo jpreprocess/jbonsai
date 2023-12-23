@@ -54,7 +54,7 @@ impl PStreamSet {
                         (0..sss.get_total_state())
                             .into_iter()
                             // iterate over frames
-                            .flat_map(|state| (0..sss.get_duration(state)).map(move |j| state))
+                            .flat_map(|state| vec![state].repeat(sss.get_duration(state)))
                             // add frame index
                             .enumerate()
                             // filter by msd
