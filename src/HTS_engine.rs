@@ -4,16 +4,11 @@ use libc::FILE;
 
 use crate::label::Label;
 use crate::model::ModelSet;
+use crate::pstream::PStreamSet;
 use crate::sstream::SStreamSet;
-use crate::{util::*, HTS_GStreamSet, HTS_Label, HTS_ModelSet, HTS_PStreamSet, HTS_SStreamSet};
+use crate::{util::*, HTS_GStreamSet};
 
 extern "C" {
-    fn atof(__nptr: *const libc::c_char) -> f64;
-    fn atoi(__nptr: *const libc::c_char) -> libc::c_int;
-    fn strstr(_: *const libc::c_char, _: *const libc::c_char) -> *mut libc::c_char;
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    fn exp(_: f64) -> f64;
-    fn log(_: f64) -> f64;
     fn fprintf(_: *mut FILE, _: *const libc::c_char, _: ...) -> libc::c_int;
     fn fwrite(
         _: *const libc::c_void,
@@ -26,19 +21,7 @@ extern "C" {
 use crate::{
     HTS_GStreamSet_clear, HTS_GStreamSet_create, HTS_GStreamSet_get_parameter,
     HTS_GStreamSet_get_speech, HTS_GStreamSet_get_total_frame, HTS_GStreamSet_get_total_nsamples,
-    HTS_GStreamSet_get_vector_length, HTS_GStreamSet_initialize, HTS_Label_clear,
-    HTS_Label_get_size, HTS_Label_get_string, HTS_Label_initialize, HTS_Label_load_from_fn,
-    HTS_Label_load_from_strings, HTS_ModelSet_clear, HTS_ModelSet_get_duration_index,
-    HTS_ModelSet_get_fperiod, HTS_ModelSet_get_fullcontext_label_format,
-    HTS_ModelSet_get_fullcontext_label_version, HTS_ModelSet_get_nstate, HTS_ModelSet_get_nstream,
-    HTS_ModelSet_get_nvoices, HTS_ModelSet_get_option, HTS_ModelSet_get_parameter_index,
-    HTS_ModelSet_get_sampling_frequency, HTS_ModelSet_get_vector_length,
-    HTS_ModelSet_get_window_size, HTS_ModelSet_initialize, HTS_ModelSet_is_msd, HTS_ModelSet_load,
-    HTS_ModelSet_use_gv, HTS_PStreamSet_clear, HTS_PStreamSet_create,
-    HTS_PStreamSet_get_total_frame, HTS_PStreamSet_initialize, HTS_SStreamSet_clear,
-    HTS_SStreamSet_create, HTS_SStreamSet_get_duration, HTS_SStreamSet_get_mean,
-    HTS_SStreamSet_get_msd, HTS_SStreamSet_get_total_state, HTS_SStreamSet_initialize,
-    HTS_SStreamSet_set_mean, HTS_calloc, HTS_free, HTS_fwrite_little_endian,
+    HTS_GStreamSet_get_vector_length, HTS_GStreamSet_initialize, HTS_fwrite_little_endian,
 };
 
 #[derive(Clone)]
@@ -67,7 +50,7 @@ pub struct HTS_Engine {
     pub ms: Rc<ModelSet>,
     pub label: Option<Label>,
     pub sss: Option<SStreamSet>,
-    pub pss: HTS_PStreamSet,
+    pub pss: Option<PStreamSet>,
     pub gss: HTS_GStreamSet,
 }
 
@@ -135,7 +118,7 @@ pub fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
         ms: Rc::new(ms),
         label: None,
         sss: None,
-        pss: HTS_PStreamSet_initialize(),
+        pss: None,
         gss: HTS_GStreamSet_initialize(),
     }
 }
@@ -296,7 +279,7 @@ pub fn HTS_Engine_get_gv_interpolation_weight(
 }
 
 pub fn HTS_Engine_get_total_state(engine: &mut HTS_Engine) -> size_t {
-    engine.sss.as_ref().unwrap().get_total_state()
+    engine.sss.as_ref().unwrap().get_total_state() as u64
 }
 
 pub fn HTS_Engine_set_state_mean(
@@ -306,11 +289,12 @@ pub fn HTS_Engine_set_state_mean(
     vector_index: size_t,
     f: f64,
 ) {
-    engine
-        .sss
-        .as_mut()
-        .unwrap()
-        .set_mean(stream_index, state_index, vector_index, f);
+    engine.sss.as_mut().unwrap().set_mean(
+        stream_index as usize,
+        state_index as usize,
+        vector_index as usize,
+        f,
+    );
 }
 
 pub fn HTS_Engine_get_state_mean(
@@ -319,18 +303,19 @@ pub fn HTS_Engine_get_state_mean(
     state_index: size_t,
     vector_index: size_t,
 ) -> f64 {
+    engine.sss.as_ref().unwrap().get_mean(
+        stream_index as usize,
+        state_index as usize,
+        vector_index as usize,
+    )
+}
+
+pub fn HTS_Engine_get_state_duration(engine: &mut HTS_Engine, state_index: size_t) -> size_t {
     engine
         .sss
         .as_ref()
         .unwrap()
-        .get_mean(stream_index, state_index, vector_index)
-}
-
-pub fn HTS_Engine_get_state_duration(
-    engine: &mut HTS_Engine,
-    state_index: size_t,
-) -> size_t {
-    engine.sss.as_ref().unwrap().get_duration(state_index)
+        .get_duration(state_index as usize) as u64
 }
 
 pub fn HTS_Engine_get_nvoices(engine: &mut HTS_Engine) -> usize {
@@ -450,18 +435,18 @@ pub unsafe fn HTS_Engine_generate_state_sequence_from_strings(
 }
 
 pub unsafe fn HTS_Engine_generate_parameter_sequence(engine: &mut HTS_Engine) -> bool {
-    HTS_PStreamSet_create(
-        &mut engine.pss,
+    engine.pss = Some(PStreamSet::create(
         engine.sss.as_ref().unwrap(),
-        engine.condition.msd_threshold.as_mut_ptr(),
-        engine.condition.gv_weight.as_mut_ptr(),
-    )
+        &engine.condition.msd_threshold,
+        &engine.condition.gv_weight,
+    ));
+    true
 }
 
 pub unsafe fn HTS_Engine_generate_sample_sequence(engine: &mut HTS_Engine) -> bool {
     HTS_GStreamSet_create(
         &mut engine.gss,
-        &mut engine.pss,
+        engine.pss.as_ref().unwrap(),
         engine.condition.stage as u64,
         engine.condition.use_log_gain,
         engine.condition.sampling_frequency as u64,
@@ -1129,7 +1114,6 @@ pub unsafe fn HTS_Engine_save_riff(engine: &mut HTS_Engine, fp: *mut FILE) {
 
 pub unsafe fn HTS_Engine_refresh(engine: &mut HTS_Engine) {
     HTS_GStreamSet_clear(&mut engine.gss);
-    HTS_PStreamSet_clear(&mut engine.pss);
     engine.sss = None;
     engine.label = None;
     engine.condition.stop = false;

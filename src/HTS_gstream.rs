@@ -1,12 +1,9 @@
+use crate::pstream::PStreamSet;
+use crate::vocoder::Vocoder;
+use crate::{util::*, HTS_error};
 use std::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
 
-use crate::{util::*, vocoder::Vocoder, HTS_PStreamSet, HTS_error};
-
-use crate::{
-    HTS_PStreamSet_get_msd_flag, HTS_PStreamSet_get_nstream, HTS_PStreamSet_get_parameter,
-    HTS_PStreamSet_get_total_frame, HTS_PStreamSet_get_vector_length, HTS_PStreamSet_is_msd,
-    HTS_calloc, HTS_free,
-};
+use crate::{HTS_calloc, HTS_free};
 
 #[derive(Clone)]
 pub struct HTS_GStream {
@@ -35,7 +32,7 @@ pub fn HTS_GStreamSet_initialize() -> HTS_GStreamSet {
 
 pub unsafe fn HTS_GStreamSet_create(
     gss: &mut HTS_GStreamSet,
-    pss: &mut HTS_PStreamSet,
+    pss: &PStreamSet,
     stage: size_t,
     use_log_gain: bool,
     sampling_rate: size_t,
@@ -59,8 +56,8 @@ pub unsafe fn HTS_GStreamSet_create(
         );
         return false;
     }
-    gss.nstream = HTS_PStreamSet_get_nstream(pss);
-    gss.total_frame = HTS_PStreamSet_get_total_frame(pss);
+    gss.nstream = pss.get_nstream() as u64;
+    gss.total_frame = pss.get_total_frame() as u64;
     gss.total_nsample = fperiod * gss.total_frame;
     gss.gstream = HTS_calloc(
         gss.nstream,
@@ -69,7 +66,7 @@ pub unsafe fn HTS_GStreamSet_create(
     i = 0 as libc::c_int as size_t;
     while i < gss.nstream {
         (*(gss.gstream).offset(i as isize)).vector_length =
-            HTS_PStreamSet_get_vector_length(pss, i);
+            pss.get_vector_length(i as usize) as u64;
         let fresh0 = &mut (*(gss.gstream).offset(i as isize)).par;
         *fresh0 = HTS_calloc(
             gss.total_frame,
@@ -92,16 +89,16 @@ pub unsafe fn HTS_GStreamSet_create(
     ) as *mut libc::c_double;
     i = 0 as libc::c_int as size_t;
     while i < gss.nstream {
-        if HTS_PStreamSet_is_msd(pss, i) != 0 {
+        if pss.is_msd(i as usize) {
             j = 0 as libc::c_int as size_t;
             msd_frame = 0 as libc::c_int as size_t;
             while j < gss.total_frame {
-                if HTS_PStreamSet_get_msd_flag(pss, i, j) != 0 {
+                if pss.get_msd_flag(i as usize, j as usize) {
                     k = 0 as libc::c_int as size_t;
                     while k < (*(gss.gstream).offset(i as isize)).vector_length {
                         *(*((*(gss.gstream).offset(i as isize)).par).offset(j as isize))
                             .offset(k as isize) =
-                            HTS_PStreamSet_get_parameter(pss, i, msd_frame, k);
+                            pss.get_parameter(i as usize, msd_frame as usize, k as usize);
                         k = k.wrapping_add(1);
                     }
                     msd_frame = msd_frame.wrapping_add(1);
@@ -121,7 +118,7 @@ pub unsafe fn HTS_GStreamSet_create(
                 k = 0 as libc::c_int as size_t;
                 while k < (*(gss.gstream).offset(i as isize)).vector_length {
                     *(*((*(gss.gstream).offset(i as isize)).par).offset(j as isize))
-                        .offset(k as isize) = HTS_PStreamSet_get_parameter(pss, i, j, k);
+                        .offset(k as isize) = pss.get_parameter(i as usize, j as usize, k as usize);
                     k = k.wrapping_add(1);
                 }
                 j = j.wrapping_add(1);
@@ -138,9 +135,7 @@ pub unsafe fn HTS_GStreamSet_create(
         HTS_GStreamSet_clear(gss);
         return false;
     }
-    if HTS_PStreamSet_get_vector_length(pss, 1 as libc::c_int as size_t)
-        != 1 as libc::c_int as size_t
-    {
+    if pss.get_vector_length(1) != 1 {
         HTS_error!(
             1 as libc::c_int,
             b"HTS_GStreamSet_create: The size of lf0 static vector should be 1.\n\0" as *const u8

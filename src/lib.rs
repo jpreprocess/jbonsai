@@ -21,6 +21,7 @@ pub use HTS_sstream::*;
 pub mod label;
 pub mod model;
 pub mod sstream;
+pub mod pstream;
 
 #[cfg(test)]
 mod tests {
