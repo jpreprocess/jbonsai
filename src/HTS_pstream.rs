@@ -457,8 +457,8 @@ pub unsafe fn HTS_PStreamSet_create(
         ) as *mut *mut libc::c_double;
         j = 0 as libc::c_int as usize;
         while j < pst.win_size {
-            *(pst.win_l_width).offset(j as isize) = sss.get_window_left_width(i, j);
-            *(pst.win_r_width).offset(j as isize) = sss.get_window_right_width(i, j);
+            *(pst.win_l_width).offset(j as isize) = sss.get_window_left_width(i, j) as i32;
+            *(pst.win_r_width).offset(j as isize) = sss.get_window_right_width(i, j) as i32;
             if *(pst.win_l_width).offset(j as isize) + *(pst.win_r_width).offset(j as isize)
                 == 0 as libc::c_int
             {
@@ -480,7 +480,7 @@ pub unsafe fn HTS_PStreamSet_create(
             shift = *(pst.win_l_width).offset(j as isize);
             while shift <= *(pst.win_r_width).offset(j as isize) {
                 *(*(pst.win_coefficient).offset(j as isize)).offset(shift as isize) =
-                    sss.get_window_coefficient(i, j, shift);
+                    sss.get_window_coefficient(i, j, shift as isize);
                 shift += 1;
             }
             j = j.wrapping_add(1);

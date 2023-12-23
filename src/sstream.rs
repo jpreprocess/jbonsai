@@ -262,24 +262,24 @@ impl SStreamSet {
     pub fn get_window_size(&self, stream_index: usize) -> usize {
         self.ms.get_window_size(stream_index)
     }
-    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> i32 {
+    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
         self.ms
-            .get_window_left_width(stream_index, window_index) as i32
+            .get_window_left_width(stream_index, window_index)
     }
-    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> i32 {
+    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
         self.ms
-            .get_window_right_width(stream_index, window_index) as i32
+            .get_window_right_width(stream_index, window_index)
     }
     pub fn get_window_coefficient(
         &self,
         stream_index: usize,
         window_index: usize,
-        coefficient_index: i32,
+        coefficient_index: isize,
     ) -> f64 {
         self.ms.get_window_coefficient(
             stream_index,
             window_index,
-            coefficient_index as isize,
+            coefficient_index,
         )
     }
     pub fn get_window_max_width(&self, stream_index: usize) -> usize {
