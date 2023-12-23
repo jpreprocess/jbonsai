@@ -5,7 +5,8 @@ mod HTS_misc;
 mod HTS_model;
 mod HTS_pstream;
 mod HTS_sstream;
-mod HTS_vocoder;
+
+mod vocoder;
 
 mod util;
 
@@ -16,7 +17,6 @@ pub use HTS_misc::*;
 pub use HTS_model::*;
 pub use HTS_pstream::*;
 pub use HTS_sstream::*;
-pub use HTS_vocoder::*;
 
 pub mod label;
 pub mod model;
@@ -53,9 +53,9 @@ mod tests {
         unsafe {
             HTS_Engine_synthesize_from_strings(&mut htsengine, &lines);
             let l2000 = HTS_Engine_get_generated_speech(&mut htsengine, 2000);
-            assert_eq!(l2000, 19.35141137623778);
+            approx::assert_abs_diff_eq!(l2000, 19.35141137623778, epsilon = 1.0e-5);
             let l30000 = HTS_Engine_get_generated_speech(&mut htsengine, 30000);
-            assert_eq!(l30000, -980.6757547598129);
+            approx::assert_abs_diff_eq!(l30000, -980.6757547598129, epsilon = 1.0e-5);
         }
     }
 }

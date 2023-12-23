@@ -1,9 +1,9 @@
 use crate::pstream::PStreamSet;
-use crate::{util::*, HTS_Vocoder, HTS_error};
+use crate::vocoder::Vocoder;
+use crate::{util::*, HTS_error};
+use std::ptr::{slice_from_raw_parts, slice_from_raw_parts_mut};
 
-use crate::{
-    HTS_Vocoder_clear, HTS_Vocoder_initialize, HTS_Vocoder_synthesize, HTS_calloc, HTS_free,
-};
+use crate::{HTS_calloc, HTS_free};
 
 #[derive(Clone)]
 pub struct HTS_GStream {
@@ -46,41 +46,6 @@ pub unsafe fn HTS_GStreamSet_create(
     let mut j: size_t = 0;
     let mut k: size_t = 0;
     let mut msd_frame: size_t = 0;
-    let mut v: HTS_Vocoder = HTS_Vocoder {
-        is_first: 0,
-        stage: 0,
-        gamma: 0.,
-        use_log_gain: 0,
-        fprd: 0,
-        next: 0,
-        gauss: 0,
-        rate: 0.,
-        pitch_of_curr_point: 0.,
-        pitch_counter: 0.,
-        pitch_inc_per_point: 0.,
-        excite_ring_buff: std::ptr::null_mut::<libc::c_double>(),
-        excite_buff_size: 0,
-        excite_buff_index: 0,
-        sw: 0,
-        x: 0,
-        freqt_buff: std::ptr::null_mut::<libc::c_double>(),
-        freqt_size: 0,
-        spectrum2en_buff: std::ptr::null_mut::<libc::c_double>(),
-        spectrum2en_size: 0,
-        r1: 0.,
-        r2: 0.,
-        s: 0.,
-        postfilter_buff: std::ptr::null_mut::<libc::c_double>(),
-        postfilter_size: 0,
-        c: std::ptr::null_mut::<libc::c_double>(),
-        cc: std::ptr::null_mut::<libc::c_double>(),
-        cinc: std::ptr::null_mut::<libc::c_double>(),
-        d1: std::ptr::null_mut::<libc::c_double>(),
-        lsp2lpc_buff: std::ptr::null_mut::<libc::c_double>(),
-        lsp2lpc_size: 0,
-        gc2gc_buff: std::ptr::null_mut::<libc::c_double>(),
-        gc2gc_size: 0,
-    };
     let mut nlpf: size_t = 0 as libc::c_int as size_t;
     let mut lpf: *mut libc::c_double = std::ptr::null_mut::<libc::c_double>();
     if !(gss.gstream).is_null() || !(gss.gspeech).is_null() {
@@ -192,14 +157,13 @@ pub unsafe fn HTS_GStreamSet_create(
         HTS_GStreamSet_clear(gss);
         return false;
     }
-    HTS_Vocoder_initialize(
-        &mut v,
+    let mut v = Vocoder::new(
         ((*(gss.gstream).offset(0 as libc::c_int as isize)).vector_length)
-            .wrapping_sub(1 as libc::c_int as size_t),
-        stage,
-        use_log_gain as i8,
-        sampling_rate,
-        fperiod,
+            .wrapping_sub(1 as libc::c_int as size_t) as usize,
+        stage as usize,
+        use_log_gain,
+        sampling_rate as usize,
+        fperiod as usize,
     );
     if gss.nstream >= 3 as libc::c_int as size_t {
         nlpf = (*(gss.gstream).offset(2 as libc::c_int as isize)).vector_length;
@@ -212,24 +176,28 @@ pub unsafe fn HTS_GStreamSet_create(
                 .offset(i as isize))
             .offset(0 as libc::c_int as isize) as *mut libc::c_double;
         }
-        HTS_Vocoder_synthesize(
-            &mut v,
-            ((*(gss.gstream).offset(0 as libc::c_int as isize)).vector_length)
-                .wrapping_sub(1 as libc::c_int as size_t),
-            *(*((*(gss.gstream).offset(1 as libc::c_int as isize)).par).offset(i as isize))
-                .offset(0 as libc::c_int as isize),
-            &mut *(*((*(gss.gstream).offset(0 as libc::c_int as isize)).par).offset(i as isize))
-                .offset(0 as libc::c_int as isize),
-            nlpf,
-            lpf,
+        let m = ((*(gss.gstream).offset(0 as libc::c_int as isize)).vector_length)
+            .wrapping_sub(1 as libc::c_int as size_t) as usize;
+        let lf0 = *(*((*(gss.gstream).offset(1 as libc::c_int as isize)).par).offset(i as isize));
+        let spectrum = (*((*(gss.gstream).offset(0 as libc::c_int as isize)).par)
+            .offset(i as isize))
+        .offset(0 as libc::c_int as isize);
+        let spectrum = slice_from_raw_parts_mut(spectrum, m + 1);
+        let lpf = slice_from_raw_parts(lpf, nlpf as usize);
+        let rawdata = slice_from_raw_parts_mut((gss.gspeech).offset(j as isize), fperiod as usize);
+        v.synthesize(
+            m,
+            lf0,
+            &mut *spectrum,
+            nlpf as usize,
+            &*lpf,
             alpha,
             beta,
             volume,
-            &mut *(gss.gspeech).offset(j as isize),
+            &mut *rawdata,
         );
         i = i.wrapping_add(1);
     }
-    HTS_Vocoder_clear(&mut v);
     // if !audio.is_null() {
     //     HTS_Audio_flush(audio);
     // }
