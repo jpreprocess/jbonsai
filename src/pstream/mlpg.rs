@@ -109,7 +109,7 @@ impl MlpgMatrix {
         for t in (0..self.length).rev() {
             par[t] = g[t] / self.wuw[t][0];
             for i in 1..self.width.min(self.length - t) {
-                par[t] -= self.wuw[t][i] * par[t + 1];
+                par[t] -= self.wuw[t][i] * par[t + i];
             }
         }
 
@@ -234,7 +234,7 @@ impl<'a> MlpgGlobalVariance<'a> {
         let mut step = STEPINIT;
         let mut prev = 0.0;
         self.conv_gv(gv_mean);
-        for i in 1..GV_MAX_ITERATION {
+        for i in 1..GV_MAX_ITERATION + 1 {
             let (mean, vari) = self.calc_gv();
 
             let gvobj = -0.5 * W2 * vari * gv_vari * (vari - 2.0 * gv_mean);
@@ -242,7 +242,7 @@ impl<'a> MlpgGlobalVariance<'a> {
             let obj = -(hmmobj + gvobj);
 
             if i > 1 {
-                if obj < prev {
+                if obj > prev {
                     step *= STEPDEC;
                 } else if obj < prev {
                     step *= STEPINC;
