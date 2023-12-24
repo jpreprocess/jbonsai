@@ -111,9 +111,8 @@ impl ModelParameter {
             self.parameters[i].0 += weight * p.0;
             self.parameters[i].1 += weight * p.1;
         }
-        match (self.msd, rhs.msd) {
-            (Some(ref mut msd), Some(rhs)) => *msd += weight * rhs,
-            _ => (),
+        if let (Some(ref mut msd), Some(rhs)) = (self.msd, rhs.msd) {
+            *msd += weight * rhs
         }
     }
 }

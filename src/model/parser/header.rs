@@ -151,7 +151,7 @@ where
     <S as nom::InputIter>::Item: nom::AsChar,
     <S as nom::InputTakeAtPosition>::Item: nom::AsChar,
 {
-    fn parse_entry<'a, E: ParseError<S> + ContextError<S>>(
+    fn parse_entry<E: ParseError<S> + ContextError<S>>(
         i: S,
     ) -> IResult<S, ((S, Option<S>), S), E> {
         use nom::character::complete::char;
@@ -168,7 +168,7 @@ where
         )(i)
     }
 
-    fn parse_general<'a, E: ParseError<S> + ContextError<S>, T: Default + ApplyParsed>(
+    fn parse_general<E: ParseError<S> + ContextError<S>, T: Default + ApplyParsed>(
         i: S,
     ) -> IResult<S, T, E> {
         fold_many0(
@@ -213,7 +213,7 @@ where
         })
     }
 
-    pub fn parse_global<'a, E: ParseError<S> + ContextError<S>>(
+    pub fn parse_global<E: ParseError<S> + ContextError<S>>(
         i: S,
     ) -> IResult<S, GlobalModelMetadata, E> {
         context(
@@ -225,7 +225,7 @@ where
         )(i)
     }
 
-    pub fn parse_stream<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Stream, E> {
+    pub fn parse_stream<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Stream, E> {
         context(
             "stream",
             preceded(
@@ -235,7 +235,7 @@ where
         )(i)
     }
 
-    pub fn parse_position<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Position, E> {
+    pub fn parse_position<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Position, E> {
         context(
             "position",
             preceded(

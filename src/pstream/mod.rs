@@ -64,10 +64,7 @@ impl PStreamSet {
                                 let is_msd_boundary = sss.get_window_left_width(i, window_index)
                                     < -(msd_left_boundaries[frame] as isize)
                                     || (msd_right_boundaries[frame] as isize)
-                                        < sss
-                                            .get_window_right_width(i, window_index)
-                                            .try_into()
-                                            .unwrap();
+                                        < sss.get_window_right_width(i, window_index);
 
                                 let mean = sss.get_mean(i, state, m);
                                 let ivar = if !is_msd_boundary || window_index == 0 {

@@ -95,7 +95,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn load(voices: &Vec<String>) -> Engine {
+    pub fn load(voices: &[String]) -> Engine {
         let ms = ModelSet::load_htsvoice_files(voices).unwrap();
         Self::new(Rc::new(ms))
     }
@@ -280,9 +280,9 @@ impl Engine {
             self.label.as_ref().unwrap(),
             self.condition.phoneme_alignment_flag,
             self.condition.speed,
-            &mut self.condition.duration_iw,
-            &mut self.condition.parameter_iw,
-            &mut self.condition.gv_iw,
+            &self.condition.duration_iw,
+            &self.condition.parameter_iw,
+            &self.condition.gv_iw,
         );
         if self.condition.additional_half_tone != 0.0 {
             for i in 0..self.get_total_state() {

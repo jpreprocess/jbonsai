@@ -36,22 +36,22 @@ where
         + for<'a> nom::Compare<&'a [u8]>,
     <Self as nom::InputIter>::Item: nom::AsChar,
 {
-    fn parse_template<'a, F, E>(self, cond: F) -> IResult<Self, Self, E>
+    fn parse_template<F, E>(self, cond: F) -> IResult<Self, Self, E>
     where
         F: Fn(char) -> bool,
         E: ParseError<Self>;
-    fn parse_template1<'a, F, E>(self, cond: F) -> IResult<Self, Self, E>
+    fn parse_template1<F, E>(self, cond: F) -> IResult<Self, Self, E>
     where
         F: Fn(char) -> bool,
         E: ParseError<Self>;
     fn parse_ascii_to_string<E: ParseError<Self>>(&self) -> IResult<Self, String, E>;
 
     #[inline(always)]
-    fn sp<'a, E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
+    fn sp<E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
         Self::parse_template(self, |c| SEPARATOR_CHARS.contains(c))
     }
     #[inline(always)]
-    fn sp1<'a, E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
+    fn sp1<E: ParseError<Self>>(self) -> IResult<Self, Self, E> {
         Self::parse_template1(self, |c| SEPARATOR_CHARS.contains(c))
     }
     #[inline(always)]
@@ -74,7 +74,7 @@ where
         Self::parse_template(self, |c: char| c.is_ascii() && c != '\n')
     }
 
-    fn parse_pattern_list<'a, E: ParseError<Self>>(self) -> IResult<Self, Vec<Pattern>, E> {
+    fn parse_pattern_list<E: ParseError<Self>>(self) -> IResult<Self, Vec<Pattern>, E> {
         use nom::character::complete::char;
         let parse_elem = move |s| {
             let (rest, s) = Self::parse_pattern(s)?;

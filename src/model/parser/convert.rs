@@ -25,13 +25,11 @@ pub fn convert_tree(
 
     let mut pdfs = Vec::new();
     for node in &orig_tree.nodes {
-        match node.yes {
-            TreeIndex::Pdf(id) => pdfs.push(id),
-            _ => (),
+        if let TreeIndex::Pdf(id) = node.yes {
+            pdfs.push(id)
         }
-        match node.no {
-            TreeIndex::Pdf(id) => pdfs.push(id),
-            _ => (),
+        if let TreeIndex::Pdf(id) = node.no {
+            pdfs.push(id)
         }
     }
     pdfs.sort_unstable();

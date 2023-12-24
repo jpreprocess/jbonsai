@@ -50,7 +50,7 @@ where
     <S as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
     for<'a> &'a str: nom::FindToken<<S as nom::InputIter>::Item>,
 {
-    fn parse_signed_digits<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, isize, E> {
+    fn parse_signed_digits<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, isize, E> {
         use nom::character::complete::char;
         recognize(pair(opt(char('-')), digit1))(i).and_then(|(rest, number)| {
             match number.parse_to() {
@@ -62,10 +62,10 @@ where
             }
         })
     }
-    fn parse_question_ident<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
+    fn parse_question_ident<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
         i.parse_template1(|c| c.is_ascii() && !" \n".contains(c))
     }
-    fn parse_pattern_list_section<'a, E: ParseError<S> + ContextError<S>>(
+    fn parse_pattern_list_section<E: ParseError<S> + ContextError<S>>(
         i: S,
     ) -> IResult<S, Vec<Pattern>, E> {
         use nom::character::complete::char;
@@ -78,7 +78,7 @@ where
             )),
         )(i)
     }
-    fn parse_question<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Question, E> {
+    fn parse_question<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Question, E> {
         context(
             "question",
             preceded(
@@ -100,7 +100,7 @@ where
             ))
         })
     }
-    pub fn parse_questions<'a, E: ParseError<S> + ContextError<S>>(
+    pub fn parse_questions<E: ParseError<S> + ContextError<S>>(
         i: S,
     ) -> IResult<S, Vec<Question>, E> {
         use nom::character::complete::{char, space0};
@@ -112,7 +112,7 @@ where
             )),
         )(i)
     }
-    fn parse_tree_index<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, TreeIndex, E> {
+    fn parse_tree_index<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, TreeIndex, E> {
         let pdf_index = move |i| {
             S::parse_identifier(i).and_then(|(rest, input)| {
                 let mut id_str = String::new();
@@ -130,19 +130,15 @@ where
                 }
             })
         };
-        let tree_index = move |i| {
-            alt((
-                map(Self::parse_signed_digits, TreeIndex::Node),
-                pdf_index,
-            ))(i)
-        };
+        let tree_index =
+            move |i| alt((map(Self::parse_signed_digits, TreeIndex::Node), pdf_index))(i);
         use nom::character::complete::char;
         context(
             "tree_index",
             alt((tree_index, delimited(char('\"'), tree_index, char('\"')))),
         )(i)
     }
-    fn parse_node<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Node, E> {
+    fn parse_node<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Node, E> {
         context(
             "node",
             tuple((
@@ -164,7 +160,7 @@ where
             ))
         })
     }
-    fn parse_tree<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Tree, E> {
+    fn parse_tree<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Tree, E> {
         use nom::character::complete::{char, space0};
         context(
             "tree",
@@ -198,16 +194,19 @@ where
                     ))),
                 ),
             ))),
-        )(i).map(|(rest, (pattern, state, nodes))| (
+        )(i)
+        .map(|(rest, (pattern, state, nodes))| {
+            (
                 rest,
                 Tree {
                     pattern,
                     state: state as usize,
                     nodes,
                 },
-            ))
+            )
+        })
     }
-    pub fn parse_trees<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Vec<Tree>, E> {
+    pub fn parse_trees<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Vec<Tree>, E> {
         use nom::character::complete::{char, none_of, space0};
         context(
             "trees",
