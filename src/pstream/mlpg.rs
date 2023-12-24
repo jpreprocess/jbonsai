@@ -42,7 +42,7 @@ impl MlpgMatrix {
 
             for i in 0..self.win_size {
                 for shift in sss.get_window_left_width(stream_index, i)
-                    ..sss.get_window_right_width(stream_index, i) + 1
+                    ..=sss.get_window_right_width(stream_index, i)
                 {
                     let idx = (t as isize) + shift;
                     if idx < 0 || idx >= self.length as isize {
@@ -234,7 +234,7 @@ impl<'a> MlpgGlobalVariance<'a> {
         let mut step = STEPINIT;
         let mut prev = 0.0;
         self.conv_gv(gv_mean);
-        for i in 1..GV_MAX_ITERATION + 1 {
+        for i in 1..=GV_MAX_ITERATION {
             let (mean, vari) = self.calc_gv();
 
             let gvobj = -0.5 * W2 * vari * gv_vari * (vari - 2.0 * gv_mean);
