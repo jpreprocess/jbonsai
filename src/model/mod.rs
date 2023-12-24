@@ -300,7 +300,7 @@ pub struct Voice {
 mod tests {
     use crate::{
         model::{model::ModelParameter, ModelSet},
-        tests::SAMPLE_SENTENCE,
+        tests::SAMPLE_SENTENCE_1,
     };
 
     fn load_models() -> ModelSet {
@@ -319,11 +319,11 @@ mod tests {
     fn get_duration() {
         let jsyn = load_models();
 
-        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_duration_index(0, SAMPLE_SENTENCE[2]);
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_duration_index(0, SAMPLE_SENTENCE_1[2]);
         assert_eq!(jsyn_tree_index.unwrap(), 2);
         assert_eq!(jsyn_pdf_index.unwrap(), 144);
 
-        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE[2], &[1.]);
+        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &[1.]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -344,11 +344,11 @@ mod tests {
         let jsyn = load_models();
 
         let (jsyn_tree_index, jsyn_pdf_index) =
-            jsyn.get_parameter_index(0, 1, 2, SAMPLE_SENTENCE[2]);
+            jsyn.get_parameter_index(0, 1, 2, SAMPLE_SENTENCE_1[2]);
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(234));
 
-        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE[2], &vec![vec![1., 1.]]);
+        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &vec![vec![1., 1.]]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -368,11 +368,11 @@ mod tests {
 
         assert!(jsyn.use_gv(1));
 
-        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_gv_index(0, 1, SAMPLE_SENTENCE[2]);
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_gv_index(0, 1, SAMPLE_SENTENCE_1[2]);
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(3));
 
-        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE[2], &vec![vec![1., 1.]]);
+        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &vec![vec![1., 1.]]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
