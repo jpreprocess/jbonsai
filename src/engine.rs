@@ -57,8 +57,8 @@ impl Condition {
         /* global */
         self.sampling_frequency = ms.get_sampling_frequency();
         self.fperiod = ms.get_fperiod();
-        self.msd_threshold = (0..nstream).into_iter().map(|_| 0.5).collect();
-        self.gv_weight = (0..nstream).into_iter().map(|_| 1.0).collect();
+        self.msd_threshold = (0..nstream).map(|_| 0.5).collect();
+        self.gv_weight = (0..nstream).map(|_| 1.0).collect();
 
         /* spectrum */
         for option in ms.get_option(0) {
@@ -75,14 +75,12 @@ impl Condition {
         }
 
         /* interpolation weights */
-        self.duration_iw = (0..voice_len).into_iter().map(|_| average_weight).collect();
+        self.duration_iw = (0..voice_len).map(|_| average_weight).collect();
         self.parameter_iw = (0..voice_len)
-            .into_iter()
-            .map(|_| (0..nstream).into_iter().map(|_| average_weight).collect())
+            .map(|_| (0..nstream).map(|_| average_weight).collect())
             .collect();
         self.gv_iw = (0..voice_len)
-            .into_iter()
-            .map(|_| (0..nstream).into_iter().map(|_| average_weight).collect())
+            .map(|_| (0..nstream).map(|_| average_weight).collect())
             .collect();
     }
 }

@@ -49,7 +49,7 @@ impl FromIterator<ModelParameter> for ModelParameterSequence {
             if is_msd {
                 let msd_value = elem.msd.unwrap();
                 let msd = result.msd.as_mut().unwrap();
-                msd.extend(vec![msd_value].repeat(elem.parameters.len()));
+                msd.extend([msd_value].repeat(elem.parameters.len()));
             }
         }
 
@@ -92,7 +92,7 @@ impl SStreamSet {
 
         let duration_params: Vec<(f64, f64)> = (0..label.get_size())
             .flat_map(|i| {
-                ms.get_duration(label.get_string(i), &duration_iw)
+                ms.get_duration(label.get_string(i), duration_iw)
                     .parameters
             })
             .collect();
@@ -154,7 +154,7 @@ impl SStreamSet {
                     .flat_map(|label_idx| {
                         let sw =
                             !ms.use_gv(stream_idx) || ms.get_gv_flag(label.get_string(label_idx));
-                        vec![sw].repeat(ms.get_nstate())
+                        [sw].repeat(ms.get_nstate())
                     })
                     .collect();
                 let gv_params = if ms.use_gv(stream_idx) {

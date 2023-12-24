@@ -132,7 +132,7 @@ where
         };
         let tree_index = move |i| {
             alt((
-                map(Self::parse_signed_digits, |i| TreeIndex::Node(i)),
+                map(Self::parse_signed_digits, TreeIndex::Node),
                 pdf_index,
             ))(i)
         };
@@ -198,9 +198,7 @@ where
                     ))),
                 ),
             ))),
-        )(i)
-        .and_then(|(rest, (pattern, state, nodes))| {
-            Ok((
+        )(i).map(|(rest, (pattern, state, nodes))| (
                 rest,
                 Tree {
                     pattern,
@@ -208,7 +206,6 @@ where
                     nodes,
                 },
             ))
-        })
     }
     pub fn parse_trees<'a, E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Vec<Tree>, E> {
         use nom::character::complete::{char, none_of, space0};

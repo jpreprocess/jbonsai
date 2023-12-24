@@ -27,7 +27,7 @@ trait ApplyParsed {
         k: (&'a str, Option<&'a str>),
         v: &'a str,
     ) -> Result<(), ParseApplyError>;
-    fn parse_value<'a, T: FromStr>(v: &'a str) -> Result<T, ParseApplyError> {
+    fn parse_value<T: FromStr>(v: &str) -> Result<T, ParseApplyError> {
         v.parse().map_err(|_| ParseApplyError::Value)
     }
 }
@@ -112,7 +112,7 @@ impl ApplyParsed for Position {
         k: (&'a str, Option<&'a str>),
         v: &'a str,
     ) -> Result<(), ParseApplyError> {
-        fn parse_duration<'a>(v: &'a str) -> Result<(usize, usize), ParseApplyError> {
+        fn parse_duration(v: &str) -> Result<(usize, usize), ParseApplyError> {
             match v.split_once('-') {
                 Some((s, e)) => Ok((Position::parse_value(s)?, Position::parse_value(e)?)),
                 _ => Err(ParseApplyError::Value),
@@ -124,7 +124,7 @@ impl ApplyParsed for Position {
                 "STREAM_WIN" => {
                     entry.stream_win = v
                         .split(',')
-                        .map(|s| parse_duration(s))
+                        .map(parse_duration)
                         .collect::<Result<_, _>>()?
                 }
                 "STREAM_PDF" => entry.stream_pdf = parse_duration(v)?,
@@ -190,7 +190,7 @@ where
                     ((k0, k1), v)
                 };
 
-                match acc.apply((&key_main, key_sub.as_ref().map(|x| x.as_str())), &value) {
+                match acc.apply((&key_main, key_sub.as_deref()), &value) {
                     Ok(()) => Ok(acc),
                     Err(ParseApplyError::MainKey) => Err(nom::Err::Failure(E::from_error_kind(
                         r.0 .0,

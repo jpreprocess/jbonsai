@@ -21,7 +21,7 @@ impl PStreamSet {
                 let msd_flag: Vec<_> = (0..sss.get_total_state())
                     .flat_map(|state| {
                         let flag = sss.get_msd(i, state) > msd_threshold[i];
-                        vec![flag].repeat(sss.get_duration(state))
+                        [flag].repeat(sss.get_duration(state))
                     })
                     .collect();
                 Some(msd_flag)
@@ -34,7 +34,6 @@ impl PStreamSet {
 
             let gv_switch = if sss.use_gv(i) {
                 let gv_switch: Vec<bool> = (0..sss.get_total_state())
-                    .into_iter()
                     .flat_map(|state| (0..sss.get_duration(state)).map(move |j| (state, j)))
                     .enumerate()
                     .filter(|(frame, _)| msd_flag.is_none() || msd_flag.as_ref().unwrap()[*frame])
@@ -48,14 +47,12 @@ impl PStreamSet {
             let mut pars = Vec::with_capacity(sss.get_vector_length(i));
             for vector_index in 0..sss.get_vector_length(i) {
                 let parameters: Vec<Vec<(f64, f64)>> = (0..sss.get_window_size(i))
-                    .into_iter()
                     .map(|window_index| {
                         let m = sss.get_vector_length(i) * window_index + vector_index;
 
                         (0..sss.get_total_state())
-                            .into_iter()
                             // iterate over frames
-                            .flat_map(|state| vec![state].repeat(sss.get_duration(state)))
+                            .flat_map(|state| [state].repeat(sss.get_duration(state)))
                             // add frame index
                             .enumerate()
                             // filter by msd
@@ -93,7 +90,7 @@ impl PStreamSet {
                     .collect();
 
                 let mut mtx = MlpgMatrix::new();
-                mtx.calc_wuw_and_wum(&sss, i, parameters);
+                mtx.calc_wuw_and_wum(sss, i, parameters);
 
                 let par = if sss.use_gv(i) {
                     let mtx_before = mtx.clone();

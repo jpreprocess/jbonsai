@@ -34,10 +34,10 @@ impl GStreamSet {
         // synthesize speech waveform
         let mut v = Vocoder::new(
             pss.get_vector_length(0) - 1,
-            stage as usize,
+            stage,
             use_log_gain,
-            sampling_rate as usize,
-            fperiod as usize,
+            sampling_rate,
+            fperiod,
         );
         let nlpf = if pss.get_nstream() >= 3 {
             pss.get_vector_length(2)
@@ -61,14 +61,12 @@ impl GStreamSet {
 
             let lpf = if pss.get_nstream() >= 3 {
                 (0..nlpf)
-                    .into_iter()
                     .map(|vector_index| get_parameter(2, vector_index))
                     .collect()
             } else {
                 vec![]
             };
             let spectrum: Vec<f64> = (0..pss.get_vector_length(0))
-                .into_iter()
                 .map(|vector_index| get_parameter(0, vector_index))
                 .collect();
 

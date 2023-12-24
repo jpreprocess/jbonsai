@@ -43,7 +43,7 @@ impl ModelSet {
     pub fn load_htsvoice_files<P: AsRef<Path>>(paths: &[P]) -> Result<Self, ModelError> {
         let mut metadata = None;
         let mut voices = Vec::with_capacity(paths.len());
-        for p in paths.as_ref() {
+        for p in paths {
             let f = std::fs::read(p).map_err(|err| ModelErrorKind::Io.with_error(err))?;
 
             let (_, (new_metadata, voice)) =
@@ -85,16 +85,11 @@ impl ModelSet {
     pub fn get_gv_flag(&self, string: &str) -> bool {
         if self.metadata.gv_off_context.is_empty() {
             true
-        } else if self
+        } else { !self
             .metadata
             .gv_off_context
             .iter()
-            .any(|p| p.is_match(string))
-        {
-            false
-        } else {
-            true
-        }
+            .any(|p| p.is_match(string)) }
     }
     /// Get number of state
     pub fn get_nstate(&self) -> usize {
@@ -326,7 +321,7 @@ mod tests {
         assert_eq!(jsyn_tree_index.unwrap(), 2);
         assert_eq!(jsyn_pdf_index.unwrap(), 144);
 
-        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE[2], &vec![1.]);
+        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE[2], &[1.]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
