@@ -91,10 +91,7 @@ impl SStreamSet {
         }
 
         let duration_params: Vec<(f64, f64)> = (0..label.get_size())
-            .flat_map(|i| {
-                ms.get_duration(label.get_string(i), duration_iw)
-                    .parameters
-            })
+            .flat_map(|i| ms.get_duration(label.get_string(i), duration_iw).parameters)
             .collect();
 
         let mut duration = vec![];
@@ -255,20 +252,16 @@ impl SStreamSet {
         self.total_frame
     }
     pub fn get_msd(&self, stream_index: usize, state_index: usize) -> f64 {
-        self.sstreams[stream_index].params[state_index]
-            .msd
-            .unwrap()
+        self.sstreams[stream_index].params[state_index].msd.unwrap()
     }
     pub fn get_window_size(&self, stream_index: usize) -> usize {
         self.ms.get_window_size(stream_index)
     }
     pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
-        self.ms
-            .get_window_left_width(stream_index, window_index)
+        self.ms.get_window_left_width(stream_index, window_index)
     }
     pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
-        self.ms
-            .get_window_right_width(stream_index, window_index)
+        self.ms.get_window_right_width(stream_index, window_index)
     }
     pub fn get_window_coefficient(
         &self,
@@ -276,11 +269,8 @@ impl SStreamSet {
         window_index: usize,
         coefficient_index: isize,
     ) -> f64 {
-        self.ms.get_window_coefficient(
-            stream_index,
-            window_index,
-            coefficient_index,
-        )
+        self.ms
+            .get_window_coefficient(stream_index, window_index, coefficient_index)
     }
     pub fn get_window_max_width(&self, stream_index: usize) -> usize {
         self.ms.get_window_max_width(stream_index)
@@ -292,14 +282,10 @@ impl SStreamSet {
         self.duration[state_index]
     }
     pub fn get_mean(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
-        self.sstreams[stream_index].params[state_index].parameters
-            [vector_index]
-            .0
+        self.sstreams[stream_index].params[state_index].parameters[vector_index].0
     }
     pub fn get_vari(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
-        self.sstreams[stream_index].params[state_index].parameters
-            [vector_index]
-            .1
+        self.sstreams[stream_index].params[state_index].parameters[vector_index].1
     }
     pub fn get_gv_mean(&self, stream_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index]
@@ -321,9 +307,13 @@ impl SStreamSet {
         self.sstreams[stream_index].gv_switch[state_index]
     }
 
-    pub fn set_mean(&mut self, stream_index: usize, state_index: usize, vector_index: usize, value: f64) {
-        self.sstreams[stream_index].params[state_index].parameters
-            [vector_index]
-            .0 = value;
+    pub fn set_mean(
+        &mut self,
+        stream_index: usize,
+        state_index: usize,
+        vector_index: usize,
+        value: f64,
+    ) {
+        self.sstreams[stream_index].params[state_index].parameters[vector_index].0 = value;
     }
 }

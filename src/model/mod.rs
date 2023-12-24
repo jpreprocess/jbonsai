@@ -85,11 +85,13 @@ impl ModelSet {
     pub fn get_gv_flag(&self, string: &str) -> bool {
         if self.metadata.gv_off_context.is_empty() {
             true
-        } else { !self
-            .metadata
-            .gv_off_context
-            .iter()
-            .any(|p| p.is_match(string)) }
+        } else {
+            !self
+                .metadata
+                .gv_off_context
+                .iter()
+                .any(|p| p.is_match(string))
+        }
     }
     /// Get number of state
     pub fn get_nstate(&self) -> usize {

@@ -122,10 +122,7 @@ impl ApplyParsed for Position {
             let entry = self.position.entry(subkey.to_string()).or_default();
             match k.0 {
                 "STREAM_WIN" => {
-                    entry.stream_win = v
-                        .split(',')
-                        .map(parse_duration)
-                        .collect::<Result<_, _>>()?
+                    entry.stream_win = v.split(',').map(parse_duration).collect::<Result<_, _>>()?
                 }
                 "STREAM_PDF" => entry.stream_pdf = parse_duration(v)?,
                 "STREAM_TREE" => entry.stream_tree = parse_duration(v)?,
@@ -151,9 +148,7 @@ where
     <S as nom::InputIter>::Item: nom::AsChar,
     <S as nom::InputTakeAtPosition>::Item: nom::AsChar,
 {
-    fn parse_entry<E: ParseError<S> + ContextError<S>>(
-        i: S,
-    ) -> IResult<S, ((S, Option<S>), S), E> {
+    fn parse_entry<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, ((S, Option<S>), S), E> {
         use nom::character::complete::char;
         context(
             "entry",

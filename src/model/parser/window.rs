@@ -19,9 +19,7 @@ where
     <S as nom::InputIter>::IterElem: Clone,
     <S as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
 {
-    pub fn parse_window_row<E: ParseError<S> + ContextError<S>>(
-        i: S,
-    ) -> IResult<S, Vec<f64>, E> {
+    pub fn parse_window_row<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Vec<f64>, E> {
         let (i, n) = digit1(i)?;
         let Some(n) = n.parse_to() else {
             return Err(nom::Err::Error(E::from_error_kind(n, ErrorKind::Float)));
