@@ -1,4 +1,4 @@
-use crate::{model::ModelSet, sstream::SStreamSet};
+use crate::sstream::SStreamSet;
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
