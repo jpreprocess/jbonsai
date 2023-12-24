@@ -1,37 +1,16 @@
-mod HTS_engine;
-mod HTS_gstream;
-mod HTS_label;
-mod HTS_misc;
-mod HTS_model;
-mod HTS_pstream;
-mod HTS_sstream;
-
 mod util;
 
-pub use HTS_engine::*;
-pub use HTS_gstream::*;
-pub use HTS_label::*;
-pub use HTS_misc::*;
-pub use HTS_model::*;
-pub use HTS_pstream::*;
-pub use HTS_sstream::*;
-
 pub mod engine;
+pub mod gstream;
 pub mod label;
 pub mod model;
-pub mod sstream;
 pub mod pstream;
-pub mod gstream;
+pub mod sstream;
 pub mod vocoder;
 
 #[cfg(test)]
 mod tests {
-    use std::{ffi::CString, mem::MaybeUninit};
-
-    use crate::{
-        HTS_Engine, HTS_Engine_get_generated_speech, HTS_Engine_load,
-        HTS_Engine_synthesize_from_strings,
-    };
+    use crate::engine::Engine;
 
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
     pub const SAMPLE_SENTENCE: [&str;8]= [
@@ -49,14 +28,12 @@ mod tests {
     fn load() {
         let lines: Vec<String> = SAMPLE_SENTENCE.iter().map(|l| l.to_string()).collect();
 
-        let mut htsengine =
-            HTS_Engine_load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
-        unsafe {
-            HTS_Engine_synthesize_from_strings(&mut htsengine, &lines);
-            let l2000 = HTS_Engine_get_generated_speech(&mut htsengine, 2000);
-            approx::assert_abs_diff_eq!(l2000, 19.35141137623778, epsilon = 1.0e-10);
-            let l30000 = HTS_Engine_get_generated_speech(&mut htsengine, 30000);
-            approx::assert_abs_diff_eq!(l30000, -980.6757547598129, epsilon = 1.0e-10);
-        }
+        let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+
+        engine.synthesize_from_strings(&lines);
+        let l2000 = engine.get_generated_speech(2000);
+        approx::assert_abs_diff_eq!(l2000, 19.35141137623778, epsilon = 1.0e-10);
+        let l30000 = engine.get_generated_speech(30000);
+        approx::assert_abs_diff_eq!(l30000, -980.6757547598129, epsilon = 1.0e-10);
     }
 }
