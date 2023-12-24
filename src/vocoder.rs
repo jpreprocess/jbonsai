@@ -735,9 +735,7 @@ trait Gain: Clone {
             }
         } else {
             target[0] = source[0].exp();
-            for i in 1..source.len() {
-                target[i] = source[i];
-            }
+            target[1..].copy_from_slice(&source[1..]);
         };
 
         cloned
@@ -756,9 +754,7 @@ trait Gain: Clone {
             }
         } else {
             target[0] = source[0].ln();
-            for i in 1..source.len() {
-                target[i] = source[i];
-            }
+            target[1..].copy_from_slice(&source[1..]);
         };
 
         cloned

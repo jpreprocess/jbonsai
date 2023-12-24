@@ -81,9 +81,9 @@ impl GStreamSet {
                 &mut speech[i * fperiod..],
             );
 
-            for j in 0..pss.get_nstream() {
+            for (j, index) in frame_skipped_index.iter_mut().enumerate() {
                 if !pss.is_msd(j) || pss.get_msd_flag(j, i) {
-                    frame_skipped_index[j] += 1;
+                    *index += 1;
                 }
             }
         }
