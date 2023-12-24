@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use libc::FILE;
 
+use crate::gstream::GStreamSet;
 use crate::label::Label;
 use crate::model::ModelSet;
 use crate::pstream::PStreamSet;
@@ -51,7 +52,7 @@ pub struct HTS_Engine {
     pub label: Option<Label>,
     pub sss: Option<SStreamSet>,
     pub pss: Option<PStreamSet>,
-    pub gss: HTS_GStreamSet,
+    pub gss: Option<GStreamSet>,
 }
 
 pub fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
@@ -119,7 +120,7 @@ pub fn HTS_Engine_load(voices: &Vec<String>) -> HTS_Engine {
         label: None,
         sss: None,
         pss: None,
-        gss: HTS_GStreamSet_initialize(),
+        gss: None,
     }
 }
 
@@ -338,25 +339,25 @@ pub fn HTS_Engine_get_fullcontext_label_version(engine: &mut HTS_Engine) -> &str
     engine.ms.get_fullcontext_label_version()
 }
 
-pub unsafe fn HTS_Engine_get_total_frame(engine: &mut HTS_Engine) -> size_t {
-    HTS_GStreamSet_get_total_frame(&mut engine.gss)
+pub fn HTS_Engine_get_total_frame(engine: &mut HTS_Engine) -> size_t {
+    engine.gss.as_ref().unwrap().get_total_frame() as size_t
 }
 
-pub unsafe fn HTS_Engine_get_nsamples(engine: &mut HTS_Engine) -> size_t {
-    HTS_GStreamSet_get_total_nsamples(&mut engine.gss)
-}
+// pub unsafe fn HTS_Engine_get_nsamples(engine: &mut HTS_Engine) -> size_t {
+//     HTS_GStreamSet_get_total_nsamples(&mut engine.gss)
+// }
 
-pub unsafe fn HTS_Engine_get_generated_parameter(
-    engine: &mut HTS_Engine,
-    stream_index: size_t,
-    frame_index: size_t,
-    vector_index: size_t,
-) -> f64 {
-    HTS_GStreamSet_get_parameter(&mut engine.gss, stream_index, frame_index, vector_index)
-}
+// pub unsafe fn HTS_Engine_get_generated_parameter(
+//     engine: &mut HTS_Engine,
+//     stream_index: size_t,
+//     frame_index: size_t,
+//     vector_index: size_t,
+// ) -> f64 {
+//     HTS_GStreamSet_get_parameter(&mut engine.gss, stream_index, frame_index, vector_index)
+// }
 
-pub unsafe fn HTS_Engine_get_generated_speech(engine: &mut HTS_Engine, index: size_t) -> f64 {
-    HTS_GStreamSet_get_speech(&mut engine.gss, index)
+pub fn HTS_Engine_get_generated_speech(engine: &mut HTS_Engine, index: size_t) -> f64 {
+    engine.gss.as_ref().unwrap().get_speech(index as usize)
 }
 fn HTS_Engine_generate_state_sequence(engine: &mut HTS_Engine) -> bool {
     let mut i: size_t = 0;
@@ -444,18 +445,17 @@ pub unsafe fn HTS_Engine_generate_parameter_sequence(engine: &mut HTS_Engine) ->
 }
 
 pub unsafe fn HTS_Engine_generate_sample_sequence(engine: &mut HTS_Engine) -> bool {
-    HTS_GStreamSet_create(
-        &mut engine.gss,
+    engine.gss = Some(GStreamSet::create(
         engine.pss.as_ref().unwrap(),
-        engine.condition.stage as u64,
+        engine.condition.stage,
         engine.condition.use_log_gain,
-        engine.condition.sampling_frequency as u64,
-        engine.condition.fperiod as u64,
+        engine.condition.sampling_frequency,
+        engine.condition.fperiod,
         engine.condition.alpha,
         engine.condition.beta,
-        engine.condition.stop,
         engine.condition.volume,
-    )
+    ));
+    true
 }
 unsafe fn HTS_Engine_synthesize(engine: &mut HTS_Engine) -> bool {
     if HTS_Engine_generate_state_sequence(engine) as libc::c_int != 1 as libc::c_int {
@@ -915,206 +915,207 @@ pub unsafe fn HTS_Engine_save_label(engine: &mut HTS_Engine, fp: *mut FILE) {
     }
 }
 
-pub unsafe fn HTS_Engine_save_generated_parameter(
-    engine: &mut HTS_Engine,
-    stream_index: size_t,
-    fp: *mut FILE,
-) {
-    let mut i: size_t = 0;
-    let mut j: size_t = 0;
-    let mut temp: libc::c_float = 0.;
-    let gss: &mut HTS_GStreamSet = &mut engine.gss;
-    i = 0 as libc::c_int as size_t;
-    while i < HTS_GStreamSet_get_total_frame(gss) {
-        j = 0 as libc::c_int as size_t;
-        while j < HTS_GStreamSet_get_vector_length(gss, stream_index) {
-            temp = HTS_GStreamSet_get_parameter(gss, stream_index, i, j) as libc::c_float;
-            fwrite(
-                &mut temp as *mut libc::c_float as *const libc::c_void,
-                ::core::mem::size_of::<libc::c_float>() as libc::c_ulong,
-                1 as libc::c_int as libc::c_ulong,
-                fp,
-            );
-            j = j.wrapping_add(1);
-        }
-        i = i.wrapping_add(1);
-    }
-}
+// pub unsafe fn HTS_Engine_save_generated_parameter(
+//     engine: &mut HTS_Engine,
+//     stream_index: size_t,
+//     fp: *mut FILE,
+// ) {
+//     let mut i: size_t = 0;
+//     let mut j: size_t = 0;
+//     let mut temp: libc::c_float = 0.;
+//     let gss: &mut HTS_GStreamSet = &mut engine.gss;
+//     i = 0 as libc::c_int as size_t;
+//     while i < HTS_GStreamSet_get_total_frame(gss) {
+//         j = 0 as libc::c_int as size_t;
+//         while j < HTS_GStreamSet_get_vector_length(gss, stream_index) {
+//             temp = HTS_GStreamSet_get_parameter(gss, stream_index, i, j) as libc::c_float;
+//             fwrite(
+//                 &mut temp as *mut libc::c_float as *const libc::c_void,
+//                 ::core::mem::size_of::<libc::c_float>() as libc::c_ulong,
+//                 1 as libc::c_int as libc::c_ulong,
+//                 fp,
+//             );
+//             j = j.wrapping_add(1);
+//         }
+//         i = i.wrapping_add(1);
+//     }
+// }
 
-pub unsafe fn HTS_Engine_save_generated_speech(engine: &mut HTS_Engine, fp: *mut FILE) {
-    let mut i: size_t = 0;
-    let mut x: f64 = 0.;
-    let mut temp: libc::c_short = 0;
-    let gss: &mut HTS_GStreamSet = &mut engine.gss;
-    i = 0 as libc::c_int as size_t;
-    while i < HTS_GStreamSet_get_total_nsamples(gss) {
-        x = HTS_GStreamSet_get_speech(gss, i);
-        if x > 32767.0f64 {
-            temp = 32767 as libc::c_int as libc::c_short;
-        } else if x < -32768.0f64 {
-            temp = -(32768 as libc::c_int) as libc::c_short;
-        } else {
-            temp = x as libc::c_short;
-        }
-        fwrite(
-            &mut temp as *mut libc::c_short as *const libc::c_void,
-            ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
-            1 as libc::c_int as libc::c_ulong,
-            fp,
-        );
-        i = i.wrapping_add(1);
-    }
-}
+// pub unsafe fn HTS_Engine_save_generated_speech(engine: &mut HTS_Engine, fp: *mut FILE) {
+//     let mut i: size_t = 0;
+//     let mut x: f64 = 0.;
+//     let mut temp: libc::c_short = 0;
+//     let gss: &mut HTS_GStreamSet = &mut engine.gss;
+//     i = 0 as libc::c_int as size_t;
+//     while i < HTS_GStreamSet_get_total_nsamples(gss) {
+//         x = HTS_GStreamSet_get_speech(gss, i);
+//         if x > 32767.0f64 {
+//             temp = 32767 as libc::c_int as libc::c_short;
+//         } else if x < -32768.0f64 {
+//             temp = -(32768 as libc::c_int) as libc::c_short;
+//         } else {
+//             temp = x as libc::c_short;
+//         }
+//         fwrite(
+//             &mut temp as *mut libc::c_short as *const libc::c_void,
+//             ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
+//             1 as libc::c_int as libc::c_ulong,
+//             fp,
+//         );
+//         i = i.wrapping_add(1);
+//     }
+// }
 
-pub unsafe fn HTS_Engine_save_riff(engine: &mut HTS_Engine, fp: *mut FILE) {
-    let mut i: size_t = 0;
-    let mut x: f64 = 0.;
-    let mut temp: libc::c_short = 0;
-    let gss: &mut HTS_GStreamSet = &mut engine.gss;
-    let mut data_01_04: [libc::c_char; 4] = [
-        'R' as i32 as libc::c_char,
-        'I' as i32 as libc::c_char,
-        'F' as i32 as libc::c_char,
-        'F' as i32 as libc::c_char,
-    ];
-    let mut data_05_08: libc::c_int = (HTS_GStreamSet_get_total_nsamples(gss))
-        .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
-        .wrapping_add(36 as libc::c_int as libc::c_ulong)
-        as libc::c_int;
-    let mut data_09_12: [libc::c_char; 4] = [
-        'W' as i32 as libc::c_char,
-        'A' as i32 as libc::c_char,
-        'V' as i32 as libc::c_char,
-        'E' as i32 as libc::c_char,
-    ];
-    let mut data_13_16: [libc::c_char; 4] = [
-        'f' as i32 as libc::c_char,
-        'm' as i32 as libc::c_char,
-        't' as i32 as libc::c_char,
-        ' ' as i32 as libc::c_char,
-    ];
-    let mut data_17_20: libc::c_int = 16 as libc::c_int;
-    let mut data_21_22: libc::c_short = 1 as libc::c_int as libc::c_short;
-    let mut data_23_24: libc::c_short = 1 as libc::c_int as libc::c_short;
-    let mut data_25_28: libc::c_int = engine.condition.sampling_frequency as libc::c_int;
-    let mut data_29_32: libc::c_int = (engine.condition.sampling_frequency as u64)
-        .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
-        as libc::c_int;
-    let mut data_33_34: libc::c_short =
-        ::core::mem::size_of::<libc::c_short>() as libc::c_ulong as libc::c_short;
-    let mut data_35_36: libc::c_short = (::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
-        .wrapping_mul(8 as libc::c_int as libc::c_ulong)
-        as libc::c_short;
-    let mut data_37_40: [libc::c_char; 4] = [
-        'd' as i32 as libc::c_char,
-        'a' as i32 as libc::c_char,
-        't' as i32 as libc::c_char,
-        'a' as i32 as libc::c_char,
-    ];
-    let mut data_41_44: libc::c_int = (HTS_GStreamSet_get_total_nsamples(gss))
-        .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
-        as libc::c_int;
-    HTS_fwrite_little_endian(
-        data_01_04.as_mut_ptr() as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
-        4 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_05_08 as *mut libc::c_int as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        data_09_12.as_mut_ptr() as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
-        4 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        data_13_16.as_mut_ptr() as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
-        4 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_17_20 as *mut libc::c_int as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_21_22 as *mut libc::c_short as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_23_24 as *mut libc::c_short as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_25_28 as *mut libc::c_int as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_29_32 as *mut libc::c_int as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_33_34 as *mut libc::c_short as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_35_36 as *mut libc::c_short as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        data_37_40.as_mut_ptr() as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
-        4 as libc::c_int as size_t,
-        fp,
-    );
-    HTS_fwrite_little_endian(
-        &mut data_41_44 as *mut libc::c_int as *const libc::c_void,
-        ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
-        1 as libc::c_int as size_t,
-        fp,
-    );
-    i = 0 as libc::c_int as size_t;
-    while i < HTS_GStreamSet_get_total_nsamples(gss) {
-        x = HTS_GStreamSet_get_speech(gss, i);
-        if x > 32767.0f64 {
-            temp = 32767 as libc::c_int as libc::c_short;
-        } else if x < -32768.0f64 {
-            temp = -(32768 as libc::c_int) as libc::c_short;
-        } else {
-            temp = x as libc::c_short;
-        }
-        HTS_fwrite_little_endian(
-            &mut temp as *mut libc::c_short as *const libc::c_void,
-            ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
-            1 as libc::c_int as size_t,
-            fp,
-        );
-        i = i.wrapping_add(1);
-    }
-}
+// pub unsafe fn HTS_Engine_save_riff(engine: &mut HTS_Engine, fp: *mut FILE) {
+//     let mut i: size_t = 0;
+//     let mut x: f64 = 0.;
+//     let mut temp: libc::c_short = 0;
+//     let gss: &mut HTS_GStreamSet = &mut engine.gss;
+//     let mut data_01_04: [libc::c_char; 4] = [
+//         'R' as i32 as libc::c_char,
+//         'I' as i32 as libc::c_char,
+//         'F' as i32 as libc::c_char,
+//         'F' as i32 as libc::c_char,
+//     ];
+//     let mut data_05_08: libc::c_int = (HTS_GStreamSet_get_total_nsamples(gss))
+//         .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
+//         .wrapping_add(36 as libc::c_int as libc::c_ulong)
+//         as libc::c_int;
+//     let mut data_09_12: [libc::c_char; 4] = [
+//         'W' as i32 as libc::c_char,
+//         'A' as i32 as libc::c_char,
+//         'V' as i32 as libc::c_char,
+//         'E' as i32 as libc::c_char,
+//     ];
+//     let mut data_13_16: [libc::c_char; 4] = [
+//         'f' as i32 as libc::c_char,
+//         'm' as i32 as libc::c_char,
+//         't' as i32 as libc::c_char,
+//         ' ' as i32 as libc::c_char,
+//     ];
+//     let mut data_17_20: libc::c_int = 16 as libc::c_int;
+//     let mut data_21_22: libc::c_short = 1 as libc::c_int as libc::c_short;
+//     let mut data_23_24: libc::c_short = 1 as libc::c_int as libc::c_short;
+//     let mut data_25_28: libc::c_int = engine.condition.sampling_frequency as libc::c_int;
+//     let mut data_29_32: libc::c_int = (engine.condition.sampling_frequency as u64)
+//         .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
+//         as libc::c_int;
+//     let mut data_33_34: libc::c_short =
+//         ::core::mem::size_of::<libc::c_short>() as libc::c_ulong as libc::c_short;
+//     let mut data_35_36: libc::c_short = (::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
+//         .wrapping_mul(8 as libc::c_int as libc::c_ulong)
+//         as libc::c_short;
+//     let mut data_37_40: [libc::c_char; 4] = [
+//         'd' as i32 as libc::c_char,
+//         'a' as i32 as libc::c_char,
+//         't' as i32 as libc::c_char,
+//         'a' as i32 as libc::c_char,
+//     ];
+//     let mut data_41_44: libc::c_int = (HTS_GStreamSet_get_total_nsamples(gss))
+//         .wrapping_mul(::core::mem::size_of::<libc::c_short>() as libc::c_ulong)
+//         as libc::c_int;
+//     HTS_fwrite_little_endian(
+//         data_01_04.as_mut_ptr() as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
+//         4 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_05_08 as *mut libc::c_int as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         data_09_12.as_mut_ptr() as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
+//         4 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         data_13_16.as_mut_ptr() as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
+//         4 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_17_20 as *mut libc::c_int as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_21_22 as *mut libc::c_short as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_23_24 as *mut libc::c_short as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_25_28 as *mut libc::c_int as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_29_32 as *mut libc::c_int as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_33_34 as *mut libc::c_short as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_35_36 as *mut libc::c_short as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         data_37_40.as_mut_ptr() as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_char>() as libc::c_ulong,
+//         4 as libc::c_int as size_t,
+//         fp,
+//     );
+//     HTS_fwrite_little_endian(
+//         &mut data_41_44 as *mut libc::c_int as *const libc::c_void,
+//         ::core::mem::size_of::<libc::c_int>() as libc::c_ulong,
+//         1 as libc::c_int as size_t,
+//         fp,
+//     );
+//     i = 0 as libc::c_int as size_t;
+//     while i < HTS_GStreamSet_get_total_nsamples(gss) {
+//         x = HTS_GStreamSet_get_speech(gss, i);
+//         if x > 32767.0f64 {
+//             temp = 32767 as libc::c_int as libc::c_short;
+//         } else if x < -32768.0f64 {
+//             temp = -(32768 as libc::c_int) as libc::c_short;
+//         } else {
+//             temp = x as libc::c_short;
+//         }
+//         HTS_fwrite_little_endian(
+//             &mut temp as *mut libc::c_short as *const libc::c_void,
+//             ::core::mem::size_of::<libc::c_short>() as libc::c_ulong,
+//             1 as libc::c_int as size_t,
+//             fp,
+//         );
+//         i = i.wrapping_add(1);
+//     }
+// }
 
 pub unsafe fn HTS_Engine_refresh(engine: &mut HTS_Engine) {
-    HTS_GStreamSet_clear(&mut engine.gss);
     engine.sss = None;
+    engine.pss = None;
+    engine.gss = None;
     engine.label = None;
     engine.condition.stop = false;
 }
