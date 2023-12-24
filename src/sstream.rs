@@ -224,6 +224,7 @@ impl SStreamSet {
                 let (found_duration, _) = duration
                     .iter_mut()
                     .zip(duration_params.iter())
+                    .filter(|(duration, _)| **duration > 1)
                     .min_by(|(ad, ap), (bd, bp)| {
                         calculate_cost(**ad - 1, **ap).total_cmp(&calculate_cost(**bd - 1, **bp))
                     })
