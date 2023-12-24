@@ -84,4 +84,23 @@ mod tests {
         let l100799 = engine.get_generated_speech(100799);
         approx::assert_abs_diff_eq!(l100799, -13.514971382534956, epsilon = 1.0e-10);
     }
+
+    #[test]
+    fn is_this_bonsai_fast() {
+        let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
+
+        let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+        engine.set_speed(1.4);
+
+        engine.synthesize_from_strings(&lines);
+        assert_eq!(engine.get_total_nsamples(), 72000);
+        let l2000 = engine.get_generated_speech(2000);
+        approx::assert_abs_diff_eq!(l2000, 15.0481014871396, epsilon = 1.0e-10);
+        let l30000 = engine.get_generated_speech(30000);
+        approx::assert_abs_diff_eq!(l30000, -56.77163803227678, epsilon = 1.0e-10);
+        let l70000 = engine.get_generated_speech(70000);
+        approx::assert_abs_diff_eq!(l70000, -9.15409432584658, epsilon = 1.0e-10);
+        let l71199 = engine.get_generated_speech(71199);
+        approx::assert_abs_diff_eq!(l71199, 7.840225089163972, epsilon = 1.0e-10);
+    }
 }
