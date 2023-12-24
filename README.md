@@ -2,7 +2,7 @@
 
 フルコンテキストラベルから音声を合成します．
 
-[hts_engine_API](https://hts-engine.sourceforge.net)をRustで書き直したものです．
+[hts_engine API](https://hts-engine.sourceforge.net)をRustで書き直したものです．
 
 ## 目標
 
@@ -13,16 +13,16 @@
 - Webassembly向けにビルド可能であること
 
 また，合成結果に関しては，短期的には
-「[hts_engine_API](https://hts-engine.sourceforge.net)と同じ合成結果が得られること」
+「[hts_engine API](https://hts-engine.sourceforge.net)と同じ合成結果が得られること」
 を目指していますが，将来的にはよりよいアルゴリズムがあれば，それを導入する可能性もあります．
 
 ## Copyright
 
 This software includes source code from:
 
-- [hts_engine_API](https://hts-engine.sourceforge.net).
-  - 2001-2014 Nagoya Institute of Technology Department of Computer Science
-  - 2001-2008 Tokyo Institute of Technology Interdisciplinary Graduate School of Science and Engineering
+- [hts_engine API](https://hts-engine.sourceforge.net).
+  - Copyright (c) 2001-2014 Nagoya Institute of Technology Department of Computer Science
+  - Copyright (c) 2001-2008 Tokyo Institute of Technology Interdisciplinary Graduate School of Science and Engineering
 
 ## License
 
