@@ -31,7 +31,7 @@ mod tests {
         let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
 
         engine.synthesize_from_strings(&lines);
-        assert_eq!(engine.get_total_frame(), 66480);
+        assert_eq!(engine.get_total_nsamples(), 66480);
         let l2000 = engine.get_generated_speech(2000);
         approx::assert_abs_diff_eq!(l2000, 19.35141137623778, epsilon = 1.0e-10);
         let l30000 = engine.get_generated_speech(30000);
@@ -74,7 +74,7 @@ mod tests {
         let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
 
         engine.synthesize_from_strings(&lines);
-        assert_eq!(engine.get_total_frame(), 100800);
+        assert_eq!(engine.get_total_nsamples(), 100800);
         let l2000 = engine.get_generated_speech(2000);
         approx::assert_abs_diff_eq!(l2000, 17.15977345625943, epsilon = 1.0e-10);
         let l30000 = engine.get_generated_speech(30000);

@@ -267,8 +267,8 @@ impl Engine {
         self.ms.get_fullcontext_label_version()
     }
 
-    pub fn get_total_frame(&self) -> usize {
-        self.gss.as_ref().unwrap().get_total_frame()
+    pub fn get_total_nsamples(&self) -> usize {
+        self.gss.as_ref().unwrap().get_total_nsamples()
     }
 
     pub fn get_generated_speech(&self, index: usize) -> f64 {
