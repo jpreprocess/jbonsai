@@ -98,16 +98,16 @@ pub struct Engine {
 
 impl Engine {
     pub fn load(voices: &Vec<String>) -> Engine {
-        /* load voices */
         let ms = ModelSet::load_htsvoice_files(voices).unwrap();
-
-        /* initialize condition */
+        Self::new(Rc::new(ms))
+    }
+    pub fn new(ms: Rc<ModelSet>) -> Engine {
         let mut condition = Condition::default();
         condition.load_model(&ms);
 
         Engine {
             condition,
-            ms: Rc::new(ms),
+            ms,
             label: None,
             sss: None,
             pss: None,
