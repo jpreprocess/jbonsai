@@ -114,7 +114,8 @@ impl ModelSet {
     }
     /// Get number of voices
     pub fn get_nvoices(&self) -> usize {
-        self.metadata.num_voices
+        // self.metadata.num_voices
+        self.voices.len()
     }
 
     /// Get vector length
