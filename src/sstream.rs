@@ -5,58 +5,6 @@ use crate::{
     model::{model::ModelParameter, ModelSet},
 };
 
-#[derive(Debug, Default, Clone)]
-pub struct ModelParameterSequence {
-    pub parameters: Vec<(f64, f64)>,
-    pub msd: Option<Vec<f64>>,
-}
-
-impl ModelParameterSequence {
-    pub fn size(&self) -> usize {
-        self.parameters.len()
-    }
-    pub fn get_rho(&self, target_length: f64) -> f64 {
-        let (mean, vari) = self.parameters.iter().fold((0., 0.), |(mean, vari), curr| {
-            (mean + curr.0, vari + curr.1)
-        });
-        (target_length - mean) / vari
-    }
-}
-
-impl FromIterator<ModelParameter> for ModelParameterSequence {
-    fn from_iter<T: IntoIterator<Item = ModelParameter>>(iter: T) -> Self {
-        let mut iter = iter.into_iter();
-        let Some(ModelParameter {
-            parameters: first_parameters,
-            msd: first_msd,
-        }) = iter.next()
-        else {
-            return Self::default();
-        };
-        let is_msd = first_msd.is_some();
-
-        let mut result = Self {
-            parameters: first_parameters,
-            msd: if is_msd {
-                Some(vec![first_msd.unwrap()])
-            } else {
-                None
-            },
-        };
-
-        for elem in iter {
-            result.parameters.extend_from_slice(&elem.parameters);
-            if is_msd {
-                let msd_value = elem.msd.unwrap();
-                let msd = result.msd.as_mut().unwrap();
-                msd.extend([msd_value].repeat(elem.parameters.len()));
-            }
-        }
-
-        result
-    }
-}
-
 pub struct SStreamSet {
     sstreams: Vec<SStream>,
     // nstate: usize,
