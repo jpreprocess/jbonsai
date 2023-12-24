@@ -6,8 +6,6 @@ mod HTS_model;
 mod HTS_pstream;
 mod HTS_sstream;
 
-mod vocoder;
-
 mod util;
 
 pub use HTS_engine::*;
@@ -18,11 +16,13 @@ pub use HTS_model::*;
 pub use HTS_pstream::*;
 pub use HTS_sstream::*;
 
+pub mod engine;
 pub mod label;
 pub mod model;
 pub mod sstream;
 pub mod pstream;
 pub mod gstream;
+pub mod vocoder;
 
 #[cfg(test)]
 mod tests {
