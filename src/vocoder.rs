@@ -70,13 +70,11 @@ impl Vocoder {
         }
     }
 
-    /// spectrum.len() == _m + 1
-    /// rawdata.len() == self.fperiod
+    /// rawdata.len() >= self.fperiod
     pub fn synthesize(
         &mut self,
-        _m: usize,
         lf0: f64,
-        spectrum: &mut [f64],
+        spectrum: &[f64],
         nlpf: usize,
         lpf: &[f64],
         alpha: f64,
