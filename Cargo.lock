@@ -45,17 +45,10 @@ dependencies = [
  "anyhow",
  "approx",
  "byteorder",
- "libc",
  "nom",
  "regex",
  "thiserror",
 ]
-
-[[package]]
-name = "libc"
-version = "0.2.149"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a08173bc88b7955d1b3145aa561539096c421ac8debde8cbc3612ec635fee29b"
 
 [[package]]
 name = "memchr"
