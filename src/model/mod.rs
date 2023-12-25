@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use self::model::{Model, ModelParameter, Pattern, StreamModels};
+use self::stream::{Model, ModelParameter, Pattern, StreamModels};
 
-pub mod model;
+pub mod stream;
 
 #[cfg(feature = "htsvoice")]
 mod parser;
@@ -299,7 +299,7 @@ pub struct Voice {
 #[cfg(all(test, feature = "htsvoice"))]
 mod tests {
     use crate::{
-        model::{model::ModelParameter, ModelSet},
+        model::{stream::ModelParameter, ModelSet},
         tests::{MODEL_NITECH_ATR503, SAMPLE_SENTENCE_1},
     };
 

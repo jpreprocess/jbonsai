@@ -11,7 +11,7 @@ use nom::{
     AsChar, IResult,
 };
 
-use crate::model::model::Pattern;
+use crate::model::stream::Pattern;
 
 use super::base::ParseTarget;
 
@@ -222,7 +222,7 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::model::Pattern;
+    use crate::model::stream::Pattern;
 
     use super::{Node, Question, Tree, TreeIndex, TreeParser};
 

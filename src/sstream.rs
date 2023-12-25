@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     label::Label,
-    model::{model::ModelParameter, ModelSet},
+    model::{stream::ModelParameter, ModelSet},
 };
 
 pub struct StateStreamSet {
