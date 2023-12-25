@@ -126,10 +126,9 @@ impl Vocoder {
             }
             coefficients
         };
-        let cinc: Vec<_> = coefficients
-            .buffer
+        let cinc: Vec<_> = coefficients[..]
             .iter()
-            .zip(&self.c.buffer)
+            .zip(&self.c[..])
             .map(|(cc, c)| (cc - c) / self.fperiod as f64)
             .collect();
 
@@ -143,18 +142,18 @@ impl Vocoder {
                 if x != 0.0 {
                     x *= self.c[0].exp();
                 }
-                let mlsa = MelLogSpectrumApproximation::new(&self.c.buffer, alpha, 5);
+                let mlsa = MelLogSpectrumApproximation::new(&self.c[..], alpha, 5);
                 mlsa.df(&mut x, &mut self.d1)
             } else {
                 x *= self.c[0];
                 let mglsa =
-                    MelGeneralizedLogSpectrumApproximation::new(&self.c.buffer, alpha, self.stage);
+                    MelGeneralizedLogSpectrumApproximation::new(&self.c[..], alpha, self.stage);
                 mglsa.df(&mut x, &mut self.d1)
             }
             x *= volume;
 
             rawdata[j] = x;
-            for i in 0..self.c.buffer.len() {
+            for i in 0..self.c.len() {
                 self.c[i] += cinc[i];
             }
         }
@@ -180,9 +179,23 @@ macro_rules! buffer_index {
             }
         }
 
+        impl<'a> IntoIterator for &'a $t {
+            type Item = &'a f64;
+            type IntoIter = <&'a Vec<f64> as IntoIterator>::IntoIter;
+
+            fn into_iter(self) -> Self::IntoIter {
+                self.buffer.iter()
+            }
+        }
+
         impl $t {
             fn len(&self) -> usize {
                 self.buffer.len()
+            }
+
+            #[allow(dead_code)]
+            fn iter(&self) -> impl Iterator<Item = &f64> {
+                self.buffer.iter()
             }
         }
     };
@@ -221,14 +234,8 @@ impl LineSpectralPairs {
             ((m + 1) / 2, (m - 1) / 2)
         };
 
-        let p: Vec<_> = self
-            .buffer
-            .iter()
-            .step_by(2)
-            .map(|x| -2.0 * x.cos())
-            .collect();
+        let p: Vec<_> = self.iter().step_by(2).map(|x| -2.0 * x.cos()).collect();
         let q: Vec<_> = self
-            .buffer
             .iter()
             .skip(1)
             .step_by(2)
@@ -301,7 +308,7 @@ impl LineSpectralPairs {
 
     /// calculate frame energy
     fn lsp2en(&self) -> f64 {
-        self.lsp2mgc().buffer.iter().map(|x| x * x).sum()
+        self.lsp2mgc().iter().map(|x| x * x).sum()
     }
 
     fn postfilter_lsp(&mut self, beta: f64) {
@@ -320,7 +327,7 @@ impl LineSpectralPairs {
                     buf[i] = self[i];
                 }
             }
-            self.buffer.copy_from_slice(&buf);
+            self[..].copy_from_slice(&buf);
 
             let en2 = self.lsp2en();
             if en1 != en2 {
