@@ -41,16 +41,13 @@ pub struct Vocoder {
     use_log_gain: bool,
     fperiod: usize,
     rate: usize,
-    /// is_first := excitation.is_none()
-    excitation: Option<Excitation>,
 
-    d1: Vec<f64>,
+    excitation: Option<Excitation>,
 }
 
 impl Vocoder {
     pub fn new(m: usize, stage: usize, use_log_gain: bool, rate: usize, fperiod: usize) -> Self {
-        let stage = Stage::new(stage);
-        let d1_len = stage.d1_len(m + 1);
+        let stage = Stage::new(stage, m + 1);
 
         Self {
             stage,
@@ -59,12 +56,9 @@ impl Vocoder {
             fperiod,
             rate,
             excitation: None,
-
-            d1: vec![0.0; d1_len],
         }
     }
 
-    /// rawdata.len() >= self.fperiod
     pub fn synthesize(
         &mut self,
         lf0: f64,
@@ -89,6 +83,7 @@ impl Vocoder {
             match self.stage {
                 Stage::Zero {
                     ref mut coefficients,
+                    ..
                 } => {
                     let cepstrum = MelCepstrum::new(spectrum, alpha);
                     *coefficients = cepstrum.mc2b();
@@ -97,6 +92,7 @@ impl Vocoder {
                     stage,
                     gamma,
                     ref mut coefficients,
+                    ..
                 } => {
                     let lsp =
                         LineSpectralPairs::new(spectrum, alpha, self.use_log_gain, stage, gamma);
@@ -111,6 +107,7 @@ impl Vocoder {
         match self.stage {
             Stage::Zero {
                 ref mut coefficients,
+                ref mut filter,
             } => {
                 let mut cepstrum = MelCepstrum::new(spectrum, alpha);
                 cepstrum.postfilter_mcp(beta);
@@ -131,8 +128,7 @@ impl Vocoder {
                     if x != 0.0 {
                         x *= coefficients[0].exp();
                     }
-                    let mlsa = MelLogSpectrumApproximation::new(&coefficients[..], alpha, 5);
-                    mlsa.df(&mut x, &mut self.d1);
+                    filter.df(&mut x, alpha, &coefficients);
                     x *= volume;
                     rawdata[j] = x;
                     for i in 0..coefficients.len() {
@@ -147,6 +143,7 @@ impl Vocoder {
                 stage,
                 gamma,
                 ref mut coefficients,
+                ref mut filter,
             } => {
                 let mut lsp =
                     LineSpectralPairs::new(spectrum, alpha, self.use_log_gain, stage, gamma);
@@ -170,12 +167,7 @@ impl Vocoder {
                 for j in 0..self.fperiod {
                     let mut x = excitation.get(lpf);
                     x *= coefficients[0];
-                    let mglsa = MelGeneralizedLogSpectrumApproximation::new(
-                        &coefficients[..],
-                        alpha,
-                        stage,
-                    );
-                    mglsa.df(&mut x, &mut self.d1);
+                    filter.df(&mut x, alpha, coefficients);
                     x *= volume;
                     rawdata[j] = x;
                     for i in 0..coefficients.len() {
@@ -196,17 +188,20 @@ enum Stage {
         stage: usize,
         gamma: f64,
         coefficients: GeneralizedCoefficients,
+        filter: MelGeneralizedLogSpectrumApproximation,
     },
     Zero {
         coefficients: Coefficients,
+        filter: MelLogSpectrumApproximation,
     },
 }
 
 impl Stage {
-    fn new(stage: usize) -> Self {
+    fn new(stage: usize, c_len: usize) -> Self {
         if stage == 0 {
             Self::Zero {
                 coefficients: Coefficients { buffer: Vec::new() },
+                filter: MelLogSpectrumApproximation::new(5, c_len),
             }
         } else {
             let gamma = -1.0 / stage as f64;
@@ -217,14 +212,8 @@ impl Stage {
                     buffer: Vec::new(),
                     gamma,
                 },
+                filter: MelGeneralizedLogSpectrumApproximation::new(stage, c_len),
             }
-        }
-    }
-
-    fn d1_len(&self, c_len: usize) -> usize {
-        match self {
-            Self::NonZero { stage, .. } => c_len * stage,
-            Self::Zero { .. } => (c_len + 4) * 5 + 3,
         }
     }
 }
@@ -278,7 +267,6 @@ trait Buffer:
     fn iter(&self) -> <&Vec<f64> as IntoIterator>::IntoIter;
 }
 
-/// Line Spectral Pairs
 #[derive(Debug, Clone)]
 struct LineSpectralPairs {
     buffer: Vec<f64>,
@@ -301,8 +289,6 @@ impl LineSpectralPairs {
         }
     }
 
-    /// convert self to Linear Prediction Coding
-    /// lpc.len() == lsp.len() + 1
     fn lsp2lpc(&self) -> MelGeneralizedCepstrum {
         let m = self.len();
         let (mh1, mh2) = if m % 2 == 0 {
@@ -368,7 +354,6 @@ impl LineSpectralPairs {
         cepstrum
     }
 
-    // mgc.len() == lsp.len()
     fn lsp2mgc(&self) -> MelGeneralizedCepstrum {
         let mut lpc = self.lsp2lpc();
         if self.use_log_gain {
@@ -383,7 +368,6 @@ impl LineSpectralPairs {
         lpc.mgc2mgc(self.len() - 1, self.alpha, self.gamma)
     }
 
-    /// calculate frame energy
     fn lsp2en(&self) -> f64 {
         self.lsp2mgc().iter().map(|x| x * x).sum()
     }
@@ -735,74 +719,70 @@ trait Generalized: Clone + Buffer {
     }
 }
 
-#[derive(Debug)]
-struct MelLogSpectrumApproximation<'a> {
-    b: &'a [f64],
-    alpha: f64,
+#[derive(Debug, Clone)]
+struct MelLogSpectrumApproximation {
     pd: usize,
-    aa: f64,
-    ppade: &'a [f64],
+    ppade: &'static [f64],
+    d11: Vec<f64>,
+    d12: Vec<f64>,
+    d21: Vec<Vec<f64>>,
+    d22: Vec<f64>,
 }
 
-impl<'a> MelLogSpectrumApproximation<'a> {
-    fn new(b: &'a [f64], alpha: f64, pd: usize) -> Self {
+impl MelLogSpectrumApproximation {
+    fn new(pd: usize, c_len: usize) -> Self {
         Self {
-            b,
-            alpha,
             pd,
-            aa: 1.0 - alpha * alpha,
             ppade: &PADE[(pd * (pd + 1) / 2)..],
+            d11: vec![0.0; pd + 1],
+            d12: vec![0.0; pd + 1],
+            d21: vec![vec![0.0; c_len + 1]; pd],
+            d22: vec![0.0; pd + 1],
         }
     }
 
-    /// d.len() == pd * b.len() + 4 * pd + 3
-    fn df(&self, x: &mut f64, d: &mut [f64]) {
-        let (d1, d2) = d.split_at_mut(2 * (self.pd + 1));
-        self.df1(x, d1);
-        self.df2(x, d2);
+    fn df(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
+        self.df2(x, alpha, coefficients);
+        self.df1(x, alpha, coefficients);
     }
 
-    /// d.len() == 2 * self.pd + 2
-    fn df1(&self, x: &mut f64, d: &mut [f64]) {
+    fn df1(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
+        let aa = 1.0 - alpha * alpha;
         let mut out = 0.0;
-        let (d, pt) = d.split_at_mut(self.pd + 1);
         for i in (1..=self.pd).rev() {
-            d[i] = self.aa * pt[i - 1] + self.alpha * d[i];
-            pt[i] = d[i] * self.b[1];
-            let v = pt[i] * self.ppade[i];
+            self.d11[i] = aa * self.d12[i - 1] + alpha * self.d11[i];
+            self.d12[i] = self.d11[i] * coefficients[1];
+            let v = self.d12[i] * self.ppade[i];
             *x += if i & 1 != 0 { v } else { -v };
             out += v;
         }
-        pt[0] = *x;
+        self.d12[0] = *x;
         *x += out;
     }
 
-    /// d.len() == self.pd * self.b.len() + 2 * self.pd + 1
-    fn df2(&self, x: &mut f64, d: &mut [f64]) {
+    fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let mut out = 0.0;
-        let (d, pt) = d.split_at_mut(self.pd * (self.b.len() + 1));
         for i in (1..=self.pd).rev() {
-            pt[i] = self.fir(
-                pt[i - 1],
-                &mut d[(i - 1) * (self.b.len() + 1)..i * (self.b.len() + 1)],
-            );
-            let v = pt[i] * self.ppade[i];
+            self.d22[i] = self.fir(self.d22[i - 1], alpha, coefficients, i - 1);
+            let v = self.d22[i] * self.ppade[i];
             *x += if i & 1 != 0 { v } else { -v };
             out += v;
         }
-        pt[0] = *x;
+        self.d22[0] = *x;
         *x += out;
     }
 
-    fn fir(&self, x: f64, d: &mut [f64]) -> f64 {
+    fn fir(&mut self, x: f64, alpha: f64, coefficients: &'_ Coefficients, i: usize) -> f64 {
+        let aa = 1.0 - alpha * alpha;
+        let d = &mut self.d21[i];
         d[0] = x;
-        d[1] = self.aa * d[0] + self.alpha * d[1];
-        for i in 2..self.b.len() {
-            d[i] += self.alpha * (d[i + 1] - d[i - 1]);
+        d[1] = aa * d[0] + alpha * d[1];
+        for i in 2..coefficients.len() {
+            d[i] += alpha * (d[i + 1] - d[i - 1]);
         }
         let mut y = 0.0;
-        for i in 2..self.b.len() {
-            y += d[i] * self.b[i];
+        for i in 2..coefficients.len() {
+            y += d[i] * coefficients[i];
         }
         for i in (2..d.len()).rev() {
             d[i] = d[i - 1];
@@ -811,40 +791,43 @@ impl<'a> MelLogSpectrumApproximation<'a> {
     }
 }
 
-#[derive(Debug)]
-struct MelGeneralizedLogSpectrumApproximation<'a> {
-    b: &'a [f64],
-    alpha: f64,
-    n: usize,
-    aa: f64,
+#[derive(Debug, Clone)]
+struct MelGeneralizedLogSpectrumApproximation {
+    d: Vec<Vec<f64>>,
 }
 
-impl<'a> MelGeneralizedLogSpectrumApproximation<'a> {
-    fn new(b: &'a [f64], alpha: f64, n: usize) -> Self {
+impl MelGeneralizedLogSpectrumApproximation {
+    fn new(n: usize, c_len: usize) -> Self {
         Self {
-            b,
-            alpha,
-            n,
-            aa: 1.0 - alpha * alpha,
+            d: vec![vec![0.0; c_len]; n],
         }
     }
 
-    fn df(&self, x: &mut f64, d: &mut [f64]) {
-        for i in 0..self.n {
-            self.dff(x, &mut d[i * self.b.len()..(i + 1) * self.b.len()]);
+    fn df(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ GeneralizedCoefficients) {
+        for i in 0..self.d.len() {
+            self.dff(x, alpha, coefficients, i);
         }
     }
 
-    fn dff(&self, x: &mut f64, d: &mut [f64]) {
-        let mut y = d[0] * self.b[1];
-        for i in 1..self.b.len() - 1 {
-            d[i] += self.alpha * (d[i + 1] - d[i - 1]);
-            y += d[i] * self.b[i + 1];
+    fn dff(
+        &mut self,
+        x: &mut f64,
+        alpha: f64,
+        coefficients: &'_ GeneralizedCoefficients,
+        i: usize,
+    ) {
+        let d = &mut self.d[i];
+        let aa = 1.0 - alpha * alpha;
+
+        let mut y = d[0] * coefficients[1];
+        for i in 1..coefficients.len() - 1 {
+            d[i] += alpha * (d[i + 1] - d[i - 1]);
+            y += d[i] * coefficients[i + 1];
         }
         *x -= y;
-        for i in (1..self.b.len()).rev() {
+        for i in (1..coefficients.len()).rev() {
             d[i] = d[i - 1];
         }
-        d[0] = self.alpha * d[0] + self.aa * *x;
+        d[0] = alpha * d[0] + aa * *x;
     }
 }
