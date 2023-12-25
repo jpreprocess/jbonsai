@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{
     label::Label,
@@ -10,7 +10,7 @@ pub struct StateStreamSet {
     duration: Vec<usize>,
     total_state: usize,
     total_frame: usize,
-    ms: Rc<ModelSet>,
+    ms: Arc<ModelSet>,
 }
 
 pub struct StateStream {
@@ -22,7 +22,7 @@ pub struct StateStream {
 impl StateStreamSet {
     /// parse label and determine state duration
     pub fn create(
-        ms: Rc<ModelSet>,
+        ms: Arc<ModelSet>,
         label: &Label,
         phoneme_alignment_flag: bool,
         speed: f64,

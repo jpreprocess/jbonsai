@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::constants::{DB, HALF_TONE, MAX_LF0, MIN_LF0};
 use crate::gstream::GenerateSpeechStreamSet;
@@ -87,7 +87,7 @@ impl Condition {
 
 pub struct Engine {
     pub condition: Condition,
-    pub ms: Rc<ModelSet>,
+    pub ms: Arc<ModelSet>,
     pub label: Option<Label>,
     pub sss: Option<StateStreamSet>,
     pub pss: Option<ParameterStreamSet>,
@@ -97,9 +97,9 @@ pub struct Engine {
 impl Engine {
     pub fn load(voices: &[String]) -> Engine {
         let ms = ModelSet::load_htsvoice_files(voices).unwrap();
-        Self::new(Rc::new(ms))
+        Self::new(Arc::new(ms))
     }
-    pub fn new(ms: Rc<ModelSet>) -> Engine {
+    pub fn new(ms: Arc<ModelSet>) -> Engine {
         let mut condition = Condition::default();
         condition.load_model(&ms);
 
