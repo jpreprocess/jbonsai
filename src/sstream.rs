@@ -49,7 +49,7 @@ impl StateStreamSet {
             let mut state = 0;
             for i in 0..label.get_size() {
                 let end_frame = label.get_end_frame(i);
-                if end_frame >= 0. {
+                if end_frame >= 0.0 {
                     let curr_duration = Self::estimate_duration_with_frame_length(
                         &duration_params[next_state..state + ms.get_nstate()],
                         end_frame - next_time as f64,
@@ -61,14 +61,14 @@ impl StateStreamSet {
                     eprintln!("HTS_SStreamSet_create: The time of final label is not specified.");
                     Self::estimate_duration(
                         &duration_params[next_state..state + ms.get_nstate()],
-                        0.,
+                        0.0,
                     );
                 }
                 state += ms.get_nstate();
             }
         } else {
             // determine frame length
-            duration = Self::estimate_duration(&duration_params, 0.);
+            duration = Self::estimate_duration(&duration_params, 0.0);
             if speed != 1.0 {
                 let length: usize = duration.iter().sum();
                 duration = Self::estimate_duration_with_frame_length(
@@ -150,7 +150,7 @@ impl StateStreamSet {
         }
 
         // RHO calculation
-        let (mean, vari) = duration_params.iter().fold((0., 0.), |(mean, vari), curr| {
+        let (mean, vari) = duration_params.iter().fold((0.0, 0.0), |(mean, vari), curr| {
             (mean + curr.0, vari + curr.1)
         });
         let rho = (target_length as f64 - mean) / vari;

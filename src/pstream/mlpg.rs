@@ -39,8 +39,8 @@ impl MlpgMatrix {
         self.wum = Vec::new();
 
         for t in 0..self.length {
-            self.wuw.push(vec![0.; self.width]);
-            self.wum.push(0.);
+            self.wuw.push(vec![0.0; self.width]);
+            self.wum.push(0.0);
 
             for i in 0..self.win_size {
                 for shift in sss.get_window_left_width(stream_index, i)
@@ -51,7 +51,7 @@ impl MlpgMatrix {
                         continue;
                     }
                     let coef = sss.get_window_coefficient(stream_index, i, -shift);
-                    if coef == 0. {
+                    if coef == 0.0 {
                         continue;
                     }
 
@@ -65,7 +65,7 @@ impl MlpgMatrix {
                             break;
                         }
                         let coef = sss.get_window_coefficient(stream_index, i, j as isize - shift);
-                        if coef == 0. {
+                        if coef == 0.0 {
                             continue;
                         }
 
@@ -100,7 +100,7 @@ impl MlpgMatrix {
 
     /// Forward & backward substitution
     fn substitutions(&self) -> Vec<f64> {
-        let mut g = vec![0.; self.length];
+        let mut g = vec![0.0; self.length];
         // forward
         for t in 0..self.length {
             g[t] = self.wum[t];
@@ -109,7 +109,7 @@ impl MlpgMatrix {
             }
         }
 
-        let mut par = vec![0.; self.length];
+        let mut par = vec![0.0; self.length];
         // backward
         for t in (0..self.length).rev() {
             par[t] = g[t] / self.wuw[t][0];
@@ -179,7 +179,7 @@ impl<'a> MlpgGlobalVariance<'a> {
             .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
     }
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
-        let mut g = vec![0.; self.mtx.length];
+        let mut g = vec![0.0; self.mtx.length];
         for t in 0..self.mtx.length {
             g[t] = self.mtx.wuw[t][0] * self.par[t];
             for i in 1..self.mtx.width {
@@ -193,7 +193,7 @@ impl<'a> MlpgGlobalVariance<'a> {
         }
 
         let w = 1.0 / ((self.mtx.win_size * self.mtx.length) as f64);
-        let mut hmmobj = 0.;
+        let mut hmmobj = 0.0;
         for t in 0..self.mtx.length {
             hmmobj += W1 * w * self.par[t] * (self.mtx.wum[t] - 0.5 * g[t]);
         }

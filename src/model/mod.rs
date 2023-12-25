@@ -323,7 +323,7 @@ mod tests {
         assert_eq!(jsyn_tree_index.unwrap(), 2);
         assert_eq!(jsyn_pdf_index.unwrap(), 144);
 
-        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &[1.]);
+        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &[1.0]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -348,7 +348,7 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(234));
 
-        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &vec![vec![1., 1.]]);
+        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &vec![vec![1.0, 1.0]]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -372,7 +372,7 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(3));
 
-        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &vec![vec![1., 1.]]);
+        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &vec![vec![1.0, 1.0]]);
         assert_eq!(
             jsyn_param,
             ModelParameter {

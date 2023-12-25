@@ -89,8 +89,8 @@ pub struct ModelParameter {
 impl ModelParameter {
     pub fn new(size: usize, is_msd: bool) -> Self {
         Self {
-            parameters: vec![(0., 0.); size],
-            msd: if is_msd { Some(0.) } else { None },
+            parameters: vec![(0.0, 0.0); size],
+            msd: if is_msd { Some(0.0) } else { None },
         }
     }
 

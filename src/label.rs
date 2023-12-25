@@ -8,8 +8,8 @@ impl LabelString {
     fn parse(s: &str, rate: f64) -> Self {
         Self::parse_digit_string(s, rate).unwrap_or(Self {
             content: s.to_string(),
-            start: -1.,
-            end: -1.,
+            start: -1.0,
+            end: -1.0,
         })
     }
     fn parse_digit_string(s: &str, rate: f64) -> Option<Self> {
@@ -47,17 +47,17 @@ impl Label {
 
         for i in 0..strings.len() {
             if i + 1 < strings.len() {
-                if strings[i].end < 0. && strings[i + 1].start >= 0. {
+                if strings[i].end < 0.0 && strings[i + 1].start >= 0.0 {
                     strings[i].end = strings[i + 1].start;
-                } else if strings[i].end >= 0. && strings[i + 1].start < 0. {
+                } else if strings[i].end >= 0.0 && strings[i + 1].start < 0.0 {
                     strings[i + 1].start = strings[i].end;
                 }
             }
-            if strings[i].start < 0. {
-                strings[i].start = -1.;
+            if strings[i].start < 0.0 {
+                strings[i].start = -1.0;
             }
-            if strings[i].end < 0. {
-                strings[i].end = -1.;
+            if strings[i].end < 0.0 {
+                strings[i].end = -1.0;
             }
         }
 
