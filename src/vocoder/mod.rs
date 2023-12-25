@@ -586,7 +586,7 @@ trait CepstrumT: Buffer + Sized {
         let mut cepstrum = self.clone_with_size(m2 + 1);
         let mut f = vec![0.0; cepstrum.len()];
 
-        for i in 0..=self.len() {
+        for i in 0..self.len() {
             f[0] = cepstrum[0];
             cepstrum[0] = self[i] + alpha * cepstrum[0];
             if 1 <= m2 {
@@ -742,8 +742,8 @@ impl MelLogSpectrumApproximation {
     }
 
     fn df(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
-        self.df2(x, alpha, coefficients);
         self.df1(x, alpha, coefficients);
+        self.df2(x, alpha, coefficients);
     }
 
     fn df1(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
