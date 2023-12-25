@@ -1,4 +1,8 @@
-use std::f64::consts::PI;
+use std::{
+    f64::consts::PI,
+    ops::{Index, IndexMut, RangeFrom, RangeFull},
+    slice::SliceIndex,
+};
 
 use crate::constants::{MAX_F0, MAX_LF0, MIN_F0, MIN_LF0};
 
@@ -67,7 +71,7 @@ impl Vocoder {
             excitation: None,
 
             c: Coefficients {
-                b: Vec::new(),
+                buffer: Vec::new(),
                 gamma,
             },
             d1: vec![0.0; d1_len],
@@ -100,10 +104,10 @@ impl Vocoder {
                 let cepstrum = Cepstrum::new(spectrum, alpha, self.gamma);
                 self.c = cepstrum.mc2b();
             } else {
-                let lsp = Lsp::new(spectrum, alpha, self);
+                let lsp = LineSpectralPairs::new(spectrum, alpha, self);
                 self.c = lsp.lsp2mgc().mc2b().gnorm();
-                for i in 1..self.c.b.len() {
-                    self.c.b[i] *= self.gamma;
+                for i in 1..self.c.len() {
+                    self.c[i] *= self.gamma;
                 }
             }
         }
@@ -113,19 +117,19 @@ impl Vocoder {
             cepstrum.postfilter_mcp(beta);
             cepstrum.mc2b()
         } else {
-            let mut lsp = Lsp::new(spectrum, alpha, self);
+            let mut lsp = LineSpectralPairs::new(spectrum, alpha, self);
             lsp.postfilter_lsp(beta);
             lsp.check_lsp_stability();
             let mut coefficients = lsp.lsp2mgc().mc2b().gnorm();
-            for i in 1..coefficients.b.len() {
-                coefficients.b[i] *= self.gamma;
+            for i in 1..coefficients.len() {
+                coefficients[i] *= self.gamma;
             }
             coefficients
         };
         let cinc: Vec<_> = coefficients
-            .b
+            .buffer
             .iter()
-            .zip(&self.c.b)
+            .zip(&self.c.buffer)
             .map(|(cc, c)| (cc - c) / self.fperiod as f64)
             .collect();
 
@@ -137,20 +141,21 @@ impl Vocoder {
             let mut x = excitation.get(lpf);
             if self.stage == 0 {
                 if x != 0.0 {
-                    x *= self.c.b[0].exp();
+                    x *= self.c[0].exp();
                 }
-                let mlsa = Mlsa::new(&self.c.b, alpha, 5);
+                let mlsa = MelLogSpectrumApproximation::new(&self.c.buffer, alpha, 5);
                 mlsa.df(&mut x, &mut self.d1)
             } else {
-                x *= self.c.b[0];
-                let mglsa = Mglsa::new(&self.c.b, alpha, self.stage);
+                x *= self.c[0];
+                let mglsa =
+                    MelGeneralizedLogSpectrumApproximation::new(&self.c.buffer, alpha, self.stage);
                 mglsa.df(&mut x, &mut self.d1)
             }
             x *= volume;
 
             rawdata[j] = x;
-            for i in 0..self.c.b.len() {
-                self.c.b[i] += cinc[i];
+            for i in 0..self.c.buffer.len() {
+                self.c[i] += cinc[i];
             }
         }
 
@@ -159,20 +164,46 @@ impl Vocoder {
     }
 }
 
+macro_rules! buffer_index {
+    ($t:ty) => {
+        impl<I: SliceIndex<[f64]>> Index<I> for $t {
+            type Output = I::Output;
+
+            fn index(&self, index: I) -> &Self::Output {
+                &self.buffer[index]
+            }
+        }
+
+        impl<I: SliceIndex<[f64]>> IndexMut<I> for $t {
+            fn index_mut(&mut self, index: I) -> &mut Self::Output {
+                &mut self.buffer[index]
+            }
+        }
+
+        impl $t {
+            fn len(&self) -> usize {
+                self.buffer.len()
+            }
+        }
+    };
+}
+
 /// Line Spectral Pairs
 #[derive(Debug, Clone)]
-struct Lsp {
-    lsp: Vec<f64>,
+struct LineSpectralPairs {
+    buffer: Vec<f64>,
     alpha: f64,
     use_log_gain: bool,
     stage: usize,
     gamma: f64,
 }
 
-impl Lsp {
+buffer_index!(LineSpectralPairs);
+
+impl LineSpectralPairs {
     fn new(lsp: &[f64], alpha: f64, vocoder: &Vocoder) -> Self {
         Self {
-            lsp: lsp.to_vec(),
+            buffer: lsp.to_vec(),
             alpha,
             use_log_gain: vocoder.use_log_gain,
             stage: vocoder.stage,
@@ -183,16 +214,21 @@ impl Lsp {
     /// convert self to Linear Prediction Coding
     /// lpc.len() == lsp.len() + 1
     fn lsp2lpc(&self) -> Cepstrum {
-        let m = self.lsp.len();
+        let m = self.len();
         let (mh1, mh2) = if m % 2 == 0 {
             (m / 2, m / 2)
         } else {
             ((m + 1) / 2, (m - 1) / 2)
         };
 
-        let p: Vec<_> = self.lsp.iter().step_by(2).map(|x| -2.0 * x.cos()).collect();
+        let p: Vec<_> = self
+            .buffer
+            .iter()
+            .step_by(2)
+            .map(|x| -2.0 * x.cos())
+            .collect();
         let q: Vec<_> = self
-            .lsp
+            .buffer
             .iter()
             .skip(1)
             .step_by(2)
@@ -209,7 +245,7 @@ impl Lsp {
         let mut xf = 0.0;
 
         let mut cepstrum = Cepstrum {
-            c: vec![0.0; m + 1],
+            buffer: vec![0.0; m + 1],
             alpha: self.alpha,
             gamma: self.gamma,
         };
@@ -236,14 +272,14 @@ impl Lsp {
                 b1[i] = b0[i];
             }
             if k > 0 {
-                cepstrum.c[k - 1] = -0.5 * (a0[mh1] + b0[mh2]);
+                cepstrum[k - 1] = -0.5 * (a0[mh1] + b0[mh2]);
             }
         }
 
         for i in (0..m).rev() {
-            cepstrum.c[i + 1] = -cepstrum.c[i];
+            cepstrum[i + 1] = -cepstrum[i];
         }
-        cepstrum.c[0] = 1.0;
+        cepstrum[0] = 1.0;
 
         cepstrum
     }
@@ -252,70 +288,70 @@ impl Lsp {
     fn lsp2mgc(&self) -> Cepstrum {
         let mut lpc = self.lsp2lpc();
         if self.use_log_gain {
-            lpc.c[0] = self.lsp[0].exp();
+            lpc[0] = self[0].exp();
         } else {
-            lpc.c[0] = self.lsp[0];
+            lpc[0] = self[0];
         }
         let mut lpc = lpc.ignorm();
-        for i in 1..lpc.c.len() {
-            lpc.c[i] *= -(self.stage as f64);
+        for i in 1..lpc.len() {
+            lpc[i] *= -(self.stage as f64);
         }
-        lpc.mgc2mgc(self.lsp.len() - 1, self.alpha, self.gamma)
+        lpc.mgc2mgc(self.len() - 1, self.alpha, self.gamma)
     }
 
     /// calculate frame energy
     fn lsp2en(&self) -> f64 {
-        self.lsp2mgc().c.iter().map(|x| x * x).sum()
+        self.lsp2mgc().buffer.iter().map(|x| x * x).sum()
     }
 
     fn postfilter_lsp(&mut self, beta: f64) {
-        if beta > 0.0 && self.lsp.len() > 2 {
-            let mut buf = vec![0.0; self.lsp.len()];
+        if beta > 0.0 && self.len() > 2 {
+            let mut buf = vec![0.0; self.len()];
             let en1 = self.lsp2en();
-            for i in 0..self.lsp.len() {
-                if i > 1 && i < self.lsp.len() - 1 {
-                    let d1 = beta * (self.lsp[i + 1] - self.lsp[i]);
-                    let d2 = beta * (self.lsp[i] - self.lsp[i - 1]);
-                    buf[i] = self.lsp[i - 1]
+            for i in 0..self.len() {
+                if i > 1 && i < self.len() - 1 {
+                    let d1 = beta * (self[i + 1] - self[i]);
+                    let d2 = beta * (self[i] - self[i - 1]);
+                    buf[i] = self[i - 1]
                         + d2
-                        + (d2 * d2 * ((self.lsp[i + 1] - self.lsp[i - 1]) - (d1 + d2)))
+                        + (d2 * d2 * ((self[i + 1] - self[i - 1]) - (d1 + d2)))
                             / ((d2 * d2) + (d1 * d1));
                 } else {
-                    buf[i] = self.lsp[i];
+                    buf[i] = self[i];
                 }
             }
-            self.lsp.copy_from_slice(&buf);
+            self.buffer.copy_from_slice(&buf);
 
             let en2 = self.lsp2en();
             if en1 != en2 {
                 if self.use_log_gain {
-                    self.lsp[0] += 0.5 * (en1 / en2).ln();
+                    self[0] += 0.5 * (en1 / en2).ln();
                 } else {
-                    self.lsp[0] *= (en1 / en2).sqrt();
+                    self[0] *= (en1 / en2).sqrt();
                 }
             }
         }
     }
 
     fn check_lsp_stability(&mut self) {
-        let min = 0.25 * PI / self.lsp.len() as f64;
-        let last = self.lsp.len() - 1;
+        let min = 0.25 * PI / self.len() as f64;
+        let last = self.len() - 1;
         for _ in 0..4 {
             let mut find = false;
             for j in 1..last {
-                let tmp = self.lsp[j + 1] - self.lsp[j];
+                let tmp = self[j + 1] - self[j];
                 if tmp < min {
-                    self.lsp[j] -= 0.5 * (min - tmp);
-                    self.lsp[j + 1] += 0.5 * (min - tmp);
+                    self[j] -= 0.5 * (min - tmp);
+                    self[j + 1] += 0.5 * (min - tmp);
                     find = true;
                 }
             }
-            if self.lsp[1] < min {
-                self.lsp[1] = min;
+            if self[1] < min {
+                self[1] = min;
                 find = true;
             }
-            if self.lsp[last] > PI - min {
-                self.lsp[last] = PI - min;
+            if self[last] > PI - min {
+                self[last] = PI - min;
                 find = true;
             }
             if !find {
@@ -327,15 +363,17 @@ impl Lsp {
 
 #[derive(Debug, Clone)]
 struct Cepstrum {
-    c: Vec<f64>,
+    buffer: Vec<f64>,
     alpha: f64,
     gamma: f64,
 }
 
+buffer_index!(Cepstrum);
+
 impl Cepstrum {
     fn new(c: &[f64], alpha: f64, gamma: f64) -> Self {
         Self {
-            c: c.to_vec(),
+            buffer: c.to_vec(),
             alpha,
             gamma,
         }
@@ -343,31 +381,31 @@ impl Cepstrum {
 
     fn mc2b(&self) -> Coefficients {
         let mut coefficients = Coefficients {
-            b: self.c.clone(),
+            buffer: self.buffer.clone(),
             gamma: self.gamma,
         };
         if self.alpha != 0.0 {
-            let last = self.c.len() - 1;
-            coefficients.b[last] = self.c[last];
+            let last = self.len() - 1;
+            coefficients[last] = self[last];
             for i in (0..last).rev() {
-                coefficients.b[i] = self.c[i] - self.alpha * coefficients.b[i + 1];
+                coefficients[i] = self[i] - self.alpha * coefficients[i + 1];
             }
         }
         coefficients
     }
 
     fn postfilter_mcp(&mut self, beta: f64) {
-        if beta > 0.0 && self.c.len() > 2 {
+        if beta > 0.0 && self.len() > 2 {
             let mut coefficients = self.mc2b();
             let e1 = coefficients.b2en(self.alpha);
 
-            coefficients.b[1] -= beta * self.alpha * coefficients.b[2];
-            for k in 2..self.c.len() {
-                coefficients.b[k] *= 1.0 + beta;
+            coefficients[1] -= beta * self.alpha * coefficients[2];
+            for k in 2..self.len() {
+                coefficients[k] *= 1.0 + beta;
             }
 
             let e2 = coefficients.b2en(self.alpha);
-            coefficients.b[0] += (e1 / e2).ln() / 2.0;
+            coefficients[0] += (e1 / e2).ln() / 2.0;
             *self = coefficients.b2mc(self.alpha);
         }
     }
@@ -376,22 +414,22 @@ impl Cepstrum {
         let aa = 1.0 - alpha * alpha;
 
         let mut cepstrum = Self {
-            c: vec![0.0; m2 + 1],
+            buffer: vec![0.0; m2 + 1],
             alpha: self.alpha,
             gamma: self.gamma,
         };
-        let mut f = vec![0.0; cepstrum.c.len()];
+        let mut f = vec![0.0; cepstrum.len()];
 
-        for i in 0..=self.c.len() {
-            f[0] = cepstrum.c[0];
-            cepstrum.c[0] = self.c[i] + alpha * cepstrum.c[0];
+        for i in 0..=self.len() {
+            f[0] = cepstrum[0];
+            cepstrum[0] = self[i] + alpha * cepstrum[0];
             if 1 <= m2 {
-                f[1] = cepstrum.c[1];
-                cepstrum.c[1] = aa * f[0] + alpha * cepstrum.c[1];
+                f[1] = cepstrum[1];
+                cepstrum[1] = aa * f[0] + alpha * cepstrum[1];
             }
-            for j in 2..cepstrum.c.len() {
-                f[j] = cepstrum.c[j];
-                cepstrum.c[j] = f[j - 1] + alpha * (cepstrum.c[j] - cepstrum.c[j - 1]);
+            for j in 2..cepstrum.len() {
+                f[j] = cepstrum[j];
+                cepstrum[j] = f[j - 1] + alpha * (cepstrum[j] - cepstrum[j - 1]);
             }
         }
 
@@ -400,25 +438,25 @@ impl Cepstrum {
 
     fn gc2gc(&self, m2: usize, gamma: f64) -> Self {
         let mut cepstrum = Self {
-            c: vec![0.0; m2 + 1],
+            buffer: vec![0.0; m2 + 1],
             alpha: self.alpha,
             gamma,
         };
-        cepstrum.c[0] = self.c[0];
+        cepstrum[0] = self[0];
 
         for i in 1..=m2 {
             let mut ss1 = 0.0;
             let mut ss2 = 0.0;
-            for k in 1..self.c.len().min(i) {
+            for k in 1..self.len().min(i) {
                 let mk = i - k;
-                let cc = self.c[k] * cepstrum.c[mk];
+                let cc = self[k] * cepstrum[mk];
                 ss1 += mk as f64 * cc;
                 ss2 += k as f64 * cc;
             }
-            if i < self.c.len() {
-                cepstrum.c[i] = self.c[i] + (cepstrum.gamma * ss2 - self.gamma * ss1) / (i as f64);
+            if i < self.len() {
+                cepstrum[i] = self[i] + (cepstrum.gamma * ss2 - self.gamma * ss1) / (i as f64);
             } else {
-                cepstrum.c[i] = (cepstrum.gamma * ss2 - self.gamma * ss1) / (i as f64);
+                cepstrum[i] = (cepstrum.gamma * ss2 - self.gamma * ss1) / (i as f64);
             }
         }
 
@@ -436,11 +474,11 @@ impl Cepstrum {
 
     fn c2ir(&self, len: usize) -> Vec<f64> {
         let mut ir = vec![0.0; len];
-        ir[0] = self.c[0].exp();
+        ir[0] = self[0].exp();
         for n in 1..len {
             let mut d = 0.0;
-            for k in 1..self.c.len().min(n + 1) {
-                d += k as f64 * self.c[k] * ir[n - k];
+            for k in 1..self.len().min(n + 1) {
+                d += k as f64 * self[k] * ir[n - k];
             }
             ir[n] = d / n as f64;
         }
@@ -450,21 +488,23 @@ impl Cepstrum {
 
 #[derive(Debug, Clone)]
 struct Coefficients {
-    b: Vec<f64>,
+    buffer: Vec<f64>,
     gamma: f64,
 }
+
+buffer_index!(Coefficients);
 
 impl Coefficients {
     fn b2mc(&self, alpha: f64) -> Cepstrum {
         let mut cepstrum = Cepstrum {
-            c: vec![0.0; self.b.len()],
+            buffer: vec![0.0; self.len()],
             alpha,
             gamma: self.gamma,
         };
-        let last = self.b.len() - 1;
-        cepstrum.c[last] = self.b[last];
+        let last = self.len() - 1;
+        cepstrum[last] = self[last];
         for i in (0..last).rev() {
-            cepstrum.c[i] = self.b[i] + alpha * self.b[i + 1];
+            cepstrum[i] = self[i] + alpha * self[i + 1];
         }
         cepstrum
     }
@@ -479,76 +519,61 @@ impl Gain for Coefficients {
     fn gamma(&self) -> f64 {
         self.gamma
     }
-
-    fn slice(&self) -> &[f64] {
-        &self.b
-    }
-
-    fn slice_mut(&mut self) -> &mut [f64] {
-        &mut self.b
-    }
 }
 
 impl Gain for Cepstrum {
     fn gamma(&self) -> f64 {
         self.gamma
     }
-
-    fn slice(&self) -> &[f64] {
-        &self.c
-    }
-
-    fn slice_mut(&mut self) -> &mut [f64] {
-        &mut self.c
-    }
 }
 
-trait Gain: Clone {
+trait Gain:
+    Clone
+    + Index<usize, Output = f64>
+    + IndexMut<usize, Output = f64>
+    + Index<RangeFull, Output = [f64]>
+    + Index<RangeFrom<usize>, Output = [f64]>
+    + IndexMut<RangeFrom<usize>, Output = [f64]>
+{
     fn gamma(&self) -> f64;
-    fn slice(&self) -> &[f64];
-    fn slice_mut(&mut self) -> &mut [f64];
 
     fn gnorm(&self) -> Self {
-        let mut cloned = self.clone();
-        let source = self.slice();
-        let target = cloned.slice_mut();
+        let mut target = self.clone();
 
         if self.gamma() != 0.0 {
-            let k = 1.0 + self.gamma() * source[0];
+            let k = 1.0 + self.gamma() * self[0];
             target[0] = k.powf(1.0 / self.gamma());
-            for i in 1..source.len() {
-                target[i] = source[i] / k;
+            for i in 1..self[..].len() {
+                target[i] = self[i] / k;
             }
         } else {
-            target[0] = source[0].exp();
-            target[1..].copy_from_slice(&source[1..]);
+            target[0] = self[0].exp();
+            target[1..].copy_from_slice(&self[1..]);
         };
 
-        cloned
+        target
     }
 
     fn ignorm(&self) -> Self {
-        let mut cloned = self.clone();
-        let source = self.slice();
-        let target = cloned.slice_mut();
+        let mut target = self.clone();
 
         if self.gamma() != 0.0 {
-            let k = source[0].powf(self.gamma());
+            let k = self[0].powf(self.gamma());
             target[0] = (k - 1.0) / self.gamma();
-            for i in 1..source.len() {
-                target[i] = source[i] * k;
+            for i in 1..self[..].len() {
+                target[i] = self[i] * k;
             }
         } else {
-            target[0] = source[0].ln();
-            target[1..].copy_from_slice(&source[1..]);
+            target[0] = self[0].ln();
+            target[1..].copy_from_slice(&self[1..]);
         };
 
-        cloned
+        target
     }
 }
 
 #[derive(Debug)]
-struct Mlsa<'a> {
+struct MelLogSpectrumApproximation<'a> {
     b: &'a [f64],
     alpha: f64,
     pd: usize,
@@ -556,7 +581,7 @@ struct Mlsa<'a> {
     ppade: &'a [f64],
 }
 
-impl<'a> Mlsa<'a> {
+impl<'a> MelLogSpectrumApproximation<'a> {
     fn new(b: &'a [f64], alpha: f64, pd: usize) -> Self {
         Self {
             b,
@@ -624,14 +649,14 @@ impl<'a> Mlsa<'a> {
 }
 
 #[derive(Debug)]
-struct Mglsa<'a> {
+struct MelGeneralizedLogSpectrumApproximation<'a> {
     b: &'a [f64],
     alpha: f64,
     n: usize,
     aa: f64,
 }
 
-impl<'a> Mglsa<'a> {
+impl<'a> MelGeneralizedLogSpectrumApproximation<'a> {
     fn new(b: &'a [f64], alpha: f64, n: usize) -> Self {
         Self {
             b,
