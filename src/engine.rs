@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
 use crate::constants::{DB, HALF_TONE, MAX_LF0, MIN_LF0};
-use crate::gstream::GStreamSet;
+use crate::gstream::GenerateSpeechStreamSet;
 use crate::label::Label;
 use crate::model::ModelSet;
-use crate::pstream::PStreamSet;
-use crate::sstream::SStreamSet;
+use crate::pstream::ParameterStreamSet;
+use crate::sstream::StateStreamSet;
 
 #[derive(Clone)]
 pub struct Condition {
@@ -89,9 +89,9 @@ pub struct Engine {
     pub condition: Condition,
     pub ms: Rc<ModelSet>,
     pub label: Option<Label>,
-    pub sss: Option<SStreamSet>,
-    pub pss: Option<PStreamSet>,
-    pub gss: Option<GStreamSet>,
+    pub sss: Option<StateStreamSet>,
+    pub pss: Option<ParameterStreamSet>,
+    pub gss: Option<GenerateSpeechStreamSet>,
 }
 
 impl Engine {
@@ -275,7 +275,7 @@ impl Engine {
         self.gss.as_ref().unwrap().get_speech(index)
     }
     fn generate_state_sequence(&mut self) {
-        self.sss = SStreamSet::create(
+        self.sss = StateStreamSet::create(
             self.ms.clone(),
             self.label.as_ref().unwrap(),
             self.condition.phoneme_alignment_flag,
@@ -305,7 +305,7 @@ impl Engine {
     }
 
     pub fn generate_parameter_sequence(&mut self) {
-        self.pss = Some(PStreamSet::create(
+        self.pss = Some(ParameterStreamSet::create(
             self.sss.as_ref().unwrap(),
             &self.condition.msd_threshold,
             &self.condition.gv_weight,
@@ -313,7 +313,7 @@ impl Engine {
     }
 
     pub fn generate_sample_sequence(&mut self) {
-        self.gss = Some(GStreamSet::create(
+        self.gss = Some(GenerateSpeechStreamSet::create(
             self.pss.as_ref().unwrap(),
             self.condition.stage,
             self.condition.use_log_gain,

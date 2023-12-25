@@ -1,4 +1,4 @@
-use crate::sstream::SStreamSet;
+use crate::sstream::StateStreamSet;
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
@@ -25,7 +25,7 @@ impl MlpgMatrix {
 
     pub fn calc_wuw_and_wum(
         &mut self,
-        sss: &SStreamSet,
+        sss: &StateStreamSet,
         stream_index: usize,
         parameters: Vec<Vec<(f64, f64)>>,
     ) {

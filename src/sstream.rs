@@ -5,8 +5,8 @@ use crate::{
     model::{model::ModelParameter, ModelSet},
 };
 
-pub struct SStreamSet {
-    sstreams: Vec<SStream>,
+pub struct StateStreamSet {
+    sstreams: Vec<StateStream>,
     // nstate: usize,
     duration: Vec<usize>,
     total_state: usize,
@@ -14,7 +14,7 @@ pub struct SStreamSet {
     ms: Rc<ModelSet>,
 }
 
-pub struct SStream {
+pub struct StateStream {
     // vector_length: usize,
     params: Vec<ModelParameter>,
     // win_coef: Vec<Vec<f32>>,
@@ -22,7 +22,7 @@ pub struct SStream {
     gv_switch: Vec<bool>,
 }
 
-impl SStreamSet {
+impl StateStreamSet {
     pub fn create(
         ms: Rc<ModelSet>,
         label: &Label,
@@ -79,7 +79,7 @@ impl SStreamSet {
             }
         }
 
-        let sstreams: Vec<SStream> = (0..ms.get_nstream())
+        let sstreams: Vec<StateStream> = (0..ms.get_nstream())
             .map(|stream_idx| {
                 let params = (0..label.get_size())
                     .flat_map(|label_idx| {
@@ -107,7 +107,7 @@ impl SStreamSet {
                 } else {
                     None
                 };
-                SStream {
+                StateStream {
                     params,
                     gv_params,
                     gv_switch,

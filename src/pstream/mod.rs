@@ -1,20 +1,20 @@
-use crate::sstream::SStreamSet;
+use crate::sstream::StateStreamSet;
 
 use self::mlpg::{MlpgGlobalVariance, MlpgMatrix};
 mod mlpg;
 
-pub struct PStreamSet {
-    streams: Vec<PStream>,
+pub struct ParameterStreamSet {
+    streams: Vec<ParameterStream>,
 }
 
-pub struct PStream {
+pub struct ParameterStream {
     par: Vec<Vec<f64>>,
     msd_flag: Option<Vec<bool>>,
 }
 
-impl PStreamSet {
+impl ParameterStreamSet {
     /// create: parameter generation using GV weight
-    pub fn create(sss: &SStreamSet, msd_threshold: &[f64], gv_weight: &[f64]) -> PStreamSet {
+    pub fn create(sss: &StateStreamSet, msd_threshold: &[f64], gv_weight: &[f64]) -> ParameterStreamSet {
         let mut streams = Vec::with_capacity(sss.get_nstream());
         for i in 0..sss.get_nstream() {
             let msd_flag = if sss.is_msd(i) {
@@ -105,13 +105,13 @@ impl PStreamSet {
                 pars.push(par);
             }
 
-            streams.push(PStream {
+            streams.push(ParameterStream {
                 par: pars,
                 msd_flag,
             });
         }
 
-        PStreamSet { streams }
+        ParameterStreamSet { streams }
     }
 
     fn msd_boundary_distances(
@@ -183,19 +183,19 @@ impl PStreamSet {
 
 #[cfg(test)]
 mod tests {
-    use super::PStreamSet;
+    use super::ParameterStreamSet;
 
     #[test]
     fn msd_boundary_distances() {
         assert_eq!(
-            PStreamSet::msd_boundary_distances(10, &None),
+            ParameterStreamSet::msd_boundary_distances(10, &None),
             (
                 vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
             )
         );
         assert_eq!(
-            PStreamSet::msd_boundary_distances(
+            ParameterStreamSet::msd_boundary_distances(
                 10,
                 &Some(vec![
                     true, true, true, false, false, true, true, true, true, true
@@ -207,7 +207,7 @@ mod tests {
             )
         );
         assert_eq!(
-            PStreamSet::msd_boundary_distances(0, &None),
+            ParameterStreamSet::msd_boundary_distances(0, &None),
             (vec![], vec![])
         );
     }

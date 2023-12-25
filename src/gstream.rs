@@ -1,13 +1,13 @@
-use crate::{constants::NODATA, pstream::PStreamSet, vocoder::Vocoder};
+use crate::{constants::NODATA, pstream::ParameterStreamSet, vocoder::Vocoder};
 
-pub struct GStreamSet {
+pub struct GenerateSpeechStreamSet {
     speech: Vec<f64>,
 }
 
-impl GStreamSet {
+impl GenerateSpeechStreamSet {
     /// create: generate speech
     pub fn create(
-        pss: &PStreamSet,
+        pss: &ParameterStreamSet,
         stage: usize,
         use_log_gain: bool,
         sampling_rate: usize,
@@ -88,7 +88,7 @@ impl GStreamSet {
             }
         }
 
-        GStreamSet { speech }
+        GenerateSpeechStreamSet { speech }
     }
 
     // get total number of sample
