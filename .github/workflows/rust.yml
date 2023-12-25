@@ -21,14 +21,6 @@ jobs:
     - name: Cache Cargo dependencies
       uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
 
-    - name: Setup integration test
-      working-directory: models
-      run: |
-        wget http://downloads.sourceforge.net/open-jtalk/hts_voice_nitech_jp_atr503_m001-1.05.tar.gz
-        tar xvf hts_voice_nitech_jp_atr503_m001-1.05.tar.gz
-
-        rm *.tar.gz
-
     - name: Build
       run: cargo build --verbose
     - name: Run tests
@@ -60,14 +52,6 @@ jobs:
       run: |
         cargo --version
         rustc --version
-
-    - name: Setup integration test
-      working-directory: models
-      run: |
-        wget http://downloads.sourceforge.net/open-jtalk/hts_voice_nitech_jp_atr503_m001-1.05.tar.gz
-        tar xvf hts_voice_nitech_jp_atr503_m001-1.05.tar.gz
-
-        rm *.tar.gz
 
     - name: Run test
       run: cargo test --verbose
