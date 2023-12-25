@@ -103,4 +103,11 @@ mod tests {
         let l71199 = engine.get_generated_speech(71199);
         approx::assert_abs_diff_eq!(l71199, 7.840225089163972, epsilon = 1.0e-10);
     }
+
+    #[test]
+    fn empty() {
+        let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+        engine.synthesize_from_strings(&[]);
+        assert_eq!(engine.get_total_nsamples(), 0);
+    }
 }

@@ -102,7 +102,7 @@ impl SStreamSet {
                         [sw].repeat(ms.get_nstate())
                     })
                     .collect();
-                let gv_params = if ms.use_gv(stream_idx) {
+                let gv_params = if ms.use_gv(stream_idx) && label.get_size() > 0 {
                     Some(ms.get_gv(stream_idx, label.get_string(0), gv_iw))
                 } else {
                     None

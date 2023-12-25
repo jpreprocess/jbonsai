@@ -118,6 +118,10 @@ impl PStreamSet {
         total_frame: usize,
         msd_flag: &Option<Vec<bool>>,
     ) -> (Vec<usize>, Vec<usize>) {
+        if total_frame == 0 {
+            return (vec![], vec![]);
+        }
+
         let mut result_left = vec![0; total_frame];
         let mut left = 0;
         for frame in 0..total_frame {
@@ -201,6 +205,10 @@ mod tests {
                 vec![0, 1, 2, 3, 0, 0, 1, 2, 3, 4],
                 vec![2, 1, 0, 0, 5, 4, 3, 2, 1, 0]
             )
+        );
+        assert_eq!(
+            PStreamSet::msd_boundary_distances(0, &None),
+            (vec![], vec![])
         );
     }
 }
