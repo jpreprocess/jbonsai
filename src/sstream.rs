@@ -20,7 +20,7 @@ pub struct StateStream {
 }
 
 impl StateStreamSet {
-    /// parse label and determine state duration
+    /// Parse label and determine state duration
     pub fn create(
         ms: Arc<ModelSet>,
         label: &Label,
@@ -127,14 +127,14 @@ impl StateStreamSet {
         })
     }
 
-    /// estimate state duration
+    /// Estimate state duration
     fn estimate_duration(duration_params: &[(f64, f64)], rho: f64) -> Vec<usize> {
         duration_params
             .iter()
             .map(|(mean, vari)| (mean + rho * vari).round().max(1.0) as usize)
             .collect()
     }
-    /// estimate duration from state duration probability distribution and specified frame length
+    /// Estimate duration from state duration probability distribution and specified frame length
     fn estimate_duration_with_frame_length(
         duration_params: &[(f64, f64)],
         frame_length: f64,
@@ -190,43 +190,43 @@ impl StateStreamSet {
         duration
     }
 
-    /// get number of stream
+    /// Get number of stream
     pub fn get_nstream(&self) -> usize {
         self.ms.get_nstream()
     }
-    /// get vector length
+    /// Get vector length
     pub fn get_vector_length(&self, stream_index: usize) -> usize {
         self.ms.get_vector_length(stream_index)
     }
-    /// get MSD flag
+    /// Get MSD flag
     pub fn is_msd(&self, stream_index: usize) -> bool {
         self.ms.is_msd(stream_index)
     }
-    /// get total number of state
+    /// Get total number of state
     pub fn get_total_state(&self) -> usize {
         self.total_state
     }
-    /// get total number of frame
+    /// Get total number of frame
     pub fn get_total_frame(&self) -> usize {
         self.total_frame
     }
-    /// get MSD parameter
+    /// Get MSD parameter
     pub fn get_msd(&self, stream_index: usize, state_index: usize) -> f64 {
         self.sstreams[stream_index].params[state_index].msd.unwrap()
     }
-    /// get dynamic window size
+    /// Get dynamic window size
     pub fn get_window_size(&self, stream_index: usize) -> usize {
         self.ms.get_window_size(stream_index)
     }
-    /// get left width of dynamic window
+    /// Get left width of dynamic window
     pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
         self.ms.get_window_left_width(stream_index, window_index)
     }
-    /// get right width of dynamic window
+    /// Get right width of dynamic window
     pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
         self.ms.get_window_right_width(stream_index, window_index)
     }
-    /// get coefficient of dynamic window
+    /// Get coefficient of dynamic window
     pub fn get_window_coefficient(
         &self,
         stream_index: usize,
@@ -236,27 +236,27 @@ impl StateStreamSet {
         self.ms
             .get_window_coefficient(stream_index, window_index, coefficient_index)
     }
-    /// get max width of dynamic window
+    /// Get max width of dynamic window
     pub fn get_window_max_width(&self, stream_index: usize) -> usize {
         self.ms.get_window_max_width(stream_index)
     }
-    /// get GV flag
+    /// Get GV flag
     pub fn use_gv(&self, stream_index: usize) -> bool {
         self.sstreams[stream_index].gv_params.is_some()
     }
-    /// get state duration
+    /// Get state duration
     pub fn get_duration(&self, state_index: usize) -> usize {
         self.duration[state_index]
     }
-    /// get mean parameter
+    /// Get mean parameter
     pub fn get_mean(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index].params[state_index].parameters[vector_index].0
     }
-    /// get variance parameter
+    /// Get variance parameter
     pub fn get_vari(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index].params[state_index].parameters[vector_index].1
     }
-    /// get GV mean parameter
+    /// Get GV mean parameter
     pub fn get_gv_mean(&self, stream_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index]
             .gv_params
@@ -265,7 +265,7 @@ impl StateStreamSet {
             .parameters[vector_index]
             .0
     }
-    /// get GV variance parameter
+    /// Get GV variance parameter
     pub fn get_gv_vari(&self, stream_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index]
             .gv_params
@@ -274,12 +274,12 @@ impl StateStreamSet {
             .parameters[vector_index]
             .1
     }
-    /// get GV switch
+    /// Get GV switch
     pub fn get_gv_switch(&self, stream_index: usize, state_index: usize) -> bool {
         self.sstreams[stream_index].gv_switch[state_index]
     }
 
-    /// set mean parameter
+    /// Set mean parameter
     pub fn set_mean(
         &mut self,
         stream_index: usize,

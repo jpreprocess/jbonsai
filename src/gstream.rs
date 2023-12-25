@@ -5,7 +5,7 @@ pub struct GenerateSpeechStreamSet {
 }
 
 impl GenerateSpeechStreamSet {
-    /// generate speech
+    /// Generate speech
     pub fn create(
         pss: &ParameterStreamSet,
         stage: usize,
@@ -91,11 +91,11 @@ impl GenerateSpeechStreamSet {
         GenerateSpeechStreamSet { speech }
     }
 
-    // get total number of sample
+    /// Get total number of sample
     pub fn get_total_nsamples(&self) -> usize {
         self.speech.len()
     }
-    // get synthesized speech parameter
+    /// Get synthesized speech parameter
     pub fn get_speech(&self, sample_index: usize) -> f64 {
         self.speech[sample_index]
     }

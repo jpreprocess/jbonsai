@@ -13,7 +13,7 @@ pub struct ParameterStream {
 }
 
 impl ParameterStreamSet {
-    /// parameter generation using GV weight
+    /// Parameter generation using GV weight
     pub fn create(sss: &StateStreamSet, msd_threshold: &[f64], gv_weight: &[f64]) -> ParameterStreamSet {
         let mut streams = Vec::with_capacity(sss.get_nstream());
         for i in 0..sss.get_nstream() {
@@ -114,7 +114,7 @@ impl ParameterStreamSet {
         ParameterStreamSet { streams }
     }
 
-    /// calculate distance from the closest msd boundaries
+    /// Calculate distance from the closest msd boundaries
     fn msd_boundary_distances(
         total_frame: usize,
         msd_flag: &Option<Vec<bool>>,
@@ -151,19 +151,19 @@ impl ParameterStreamSet {
         (result_left, result_right)
     }
 
-    /// get number of stream
+    /// Get number of stream
     pub fn get_nstream(&self) -> usize {
         self.streams.len()
     }
-    /// get feature length
+    /// Get feature length
     pub fn get_vector_length(&self, stream_index: usize) -> usize {
         self.streams[stream_index].par.len()
     }
-    /// get total number of frame
+    /// Get total number of frame
     pub fn get_total_frame(&self) -> usize {
         self.streams[0].par[0].len()
     }
-    /// get parameter
+    /// Get parameter
     pub fn get_parameter(
         &self,
         stream_index: usize,
@@ -172,11 +172,11 @@ impl ParameterStreamSet {
     ) -> f64 {
         self.streams[stream_index].par[vector_index][frame_index]
     }
-    /// get generated MSD flag per frame
+    /// Get generated MSD flag per frame
     pub fn get_msd_flag(&self, stream_index: usize, frame_index: usize) -> bool {
         self.streams[stream_index].msd_flag.as_ref().unwrap()[frame_index]
     }
-    /// get MSD flag
+    /// Get MSD flag
     pub fn is_msd(&self, stream_index: usize) -> bool {
         self.streams[stream_index].msd_flag.is_some()
     }

@@ -44,7 +44,7 @@ impl Model {
     }
 
     /// Get index of tree and PDF
-    /// returns (tree_index, pdf_index)
+    /// Returns (tree_index, pdf_index)
     pub fn get_index(&self, state_index: usize, string: &str) -> (Option<usize>, Option<usize>) {
         let tree_index = self.find_tree_index(state_index, string);
 
