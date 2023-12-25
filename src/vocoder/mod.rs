@@ -114,7 +114,7 @@ impl Vocoder {
                     if x != 0.0 {
                         x *= coefficients[0].exp();
                     }
-                    filter.df(&mut x, alpha, &coefficients);
+                    filter.df(&mut x, alpha, coefficients);
                     x *= volume;
                     rawdata[j] = x;
                     for i in 0..coefficients.len() {
