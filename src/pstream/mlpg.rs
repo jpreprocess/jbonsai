@@ -23,6 +23,8 @@ impl MlpgMatrix {
         }
     }
 
+    /// Calculate W^T U^{-1} W and W^T U^{-1} \mu
+    /// (preparation for calculation of dynamic feature)
     pub fn calc_wuw_and_wum(
         &mut self,
         sss: &StateStreamSet,
@@ -74,11 +76,13 @@ impl MlpgMatrix {
         }
     }
 
+    /// Solve equation $W^T U^{-1} W c = W^T U^{-1} \mu$ and return the vector $c$
     pub fn solve(&mut self) -> Vec<f64> {
         self.ldl_factorization();
         self.substitutions()
     }
 
+    /// Perform Cholesky decomposition
     fn ldl_factorization(&mut self) {
         for t in 0..self.length {
             for i in 1..self.width.min(t + 1) {
@@ -94,6 +98,7 @@ impl MlpgMatrix {
         }
     }
 
+    /// Forward & backward substitution
     fn substitutions(&self) -> Vec<f64> {
         let mut g = vec![0.; self.length];
         // forward
@@ -162,6 +167,8 @@ impl<'a> MlpgGlobalVariance<'a> {
 
         (mean, vari)
     }
+
+    /// Adjust parameter's deviation from mean value using gv_mean
     fn conv_gv(&mut self, gv_mean: f64) {
         let (mean, vari) = self.calc_gv();
         let ratio = (gv_mean / vari).sqrt();

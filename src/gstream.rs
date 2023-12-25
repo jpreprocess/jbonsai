@@ -5,7 +5,7 @@ pub struct GenerateSpeechStreamSet {
 }
 
 impl GenerateSpeechStreamSet {
-    /// create: generate speech
+    /// generate speech
     pub fn create(
         pss: &ParameterStreamSet,
         stage: usize,
