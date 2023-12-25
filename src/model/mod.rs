@@ -300,11 +300,11 @@ pub struct Voice {
 mod tests {
     use crate::{
         model::{model::ModelParameter, ModelSet},
-        tests::SAMPLE_SENTENCE_1,
+        tests::{MODEL_NITECH_ATR503, SAMPLE_SENTENCE_1},
     };
 
     fn load_models() -> ModelSet {
-        ModelSet::load_htsvoice_files(&["models/nitech_jp_atr503_m001.htsvoice"]).unwrap()
+        ModelSet::load_htsvoice_files(&[MODEL_NITECH_ATR503]).unwrap()
     }
 
     #[test]

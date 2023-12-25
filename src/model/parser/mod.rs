@@ -193,11 +193,13 @@ mod tests {
 
     use nom::error::VerboseError;
 
+    use crate::tests::MODEL_NITECH_ATR503;
+
     use super::parse_htsvoice;
 
     #[test]
     fn load() {
-        let model = fs::read("models/nitech_jp_atr503_m001.htsvoice").unwrap();
+        let model = fs::read(MODEL_NITECH_ATR503).unwrap();
         parse_htsvoice::<VerboseError<&[u8]>>(&model).unwrap();
     }
 }

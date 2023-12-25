@@ -12,6 +12,8 @@ pub mod vocoder;
 mod tests {
     use crate::engine::Engine;
 
+    pub const MODEL_NITECH_ATR503: &str = "models/nitech_jp_atr503_m001.htsvoice";
+
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
     pub const SAMPLE_SENTENCE_1: [&str;8]= [
     "xx^xx-sil+b=o/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:4_4%0_xx_xx/H:xx_xx/I:xx-xx@xx+xx&xx-xx|xx+xx/J:1_4/K:1+1-4",
@@ -28,7 +30,7 @@ mod tests {
     fn bonsai() {
         let lines: Vec<String> = SAMPLE_SENTENCE_1.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 66480);
@@ -71,7 +73,7 @@ mod tests {
     fn is_this_bonsai() {
         let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 100800);
@@ -89,7 +91,7 @@ mod tests {
     fn is_this_bonsai_fast() {
         let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
         engine.set_speed(1.4);
 
         engine.synthesize_from_strings(&lines);
@@ -106,7 +108,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let mut engine = Engine::load(&vec!["models/nitech_jp_atr503_m001.htsvoice".to_string()]);
+        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
         engine.synthesize_from_strings(&[]);
         assert_eq!(engine.get_total_nsamples(), 0);
     }
