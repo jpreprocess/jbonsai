@@ -61,5 +61,13 @@ jobs:
         cargo --version
         rustc --version
 
+    - name: Setup integration test
+      working-directory: models
+      run: |
+        wget http://downloads.sourceforge.net/open-jtalk/hts_voice_nitech_jp_atr503_m001-1.05.tar.gz
+        tar xvf hts_voice_nitech_jp_atr503_m001-1.05.tar.gz
+
+        rm *.tar.gz
+
     - name: Run test
       run: cargo test --verbose
