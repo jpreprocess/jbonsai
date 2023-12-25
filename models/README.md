@@ -4,14 +4,6 @@
 
 This is the directory to put the model files.
 
-## Test Setup
-
-テストを実行するには，「HTS Voice "NIT ATR503 M001" version 1.05」をダウンロード・解凍し，
-パスが`models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice`となるように配置してください．
-
-To run tests, please download and extract 'HTS Voice "NIT ATR503 M001" version 1.05' and place it under this directory.
-The path should look like `models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice`.
-
 ## Download links
 
 ### [HTS Voice "NIT ATR503 M001" version 1.05](http://downloads.sourceforge.net/open-jtalk/hts_voice_nitech_jp_atr503_m001-1.05.tar.gz)
