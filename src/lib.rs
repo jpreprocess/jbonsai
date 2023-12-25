@@ -12,7 +12,8 @@ pub mod vocoder;
 mod tests {
     use crate::engine::Engine;
 
-    pub const MODEL_NITECH_ATR503: &str = "models/nitech_jp_atr503_m001.htsvoice";
+    pub const MODEL_NITECH_ATR503: &str =
+        "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice";
 
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
     pub const SAMPLE_SENTENCE_1: [&str;8]= [
