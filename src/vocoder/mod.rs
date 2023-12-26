@@ -45,12 +45,10 @@ impl Vocoder {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn synthesize(
         &mut self,
         lf0: f64,
         spectrum: &[f64],
-        nlpf: usize,
         lpf: &[f64],
         alpha: f64,
         beta: f64,
@@ -106,7 +104,7 @@ impl Vocoder {
 
                 let excitation = self
                     .excitation
-                    .get_or_insert_with(|| Excitation::new(p, nlpf));
+                    .get_or_insert_with(|| Excitation::new(p, lpf.len()));
                 excitation.start(p, self.fperiod);
 
                 let rawdata = (0..self.fperiod)
@@ -150,7 +148,7 @@ impl Vocoder {
 
                 let excitation = self
                     .excitation
-                    .get_or_insert_with(|| Excitation::new(p, nlpf));
+                    .get_or_insert_with(|| Excitation::new(p, lpf.len()));
                 excitation.start(p, self.fperiod);
 
                 let rawdata = (0..self.fperiod)

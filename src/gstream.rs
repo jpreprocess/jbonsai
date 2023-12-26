@@ -27,9 +27,6 @@ impl GenerateSpeechStreamSet {
             panic!("The number of low-pass filter coefficient must be odd numbers.");
         }
 
-        // create speech buffer
-        let total_frame = pss.get_total_frame();
-
         // synthesize speech waveform
         let mut v = Vocoder::new(
             pss.get_vector_length(0) - 1,
@@ -38,13 +35,11 @@ impl GenerateSpeechStreamSet {
             sampling_rate,
             fperiod,
         );
-        let nlpf = if pss.get_nstream() >= 3 {
-            pss.get_vector_length(2)
-        } else {
-            0
-        };
 
+        // create speech buffer
+        let total_frame = pss.get_total_frame();
         let mut speech = Vec::with_capacity(total_frame * fperiod);
+
         let mut frame_skipped_index = vec![0; pss.get_nstream()];
         for i in 0..total_frame {
             let get_parameter = |stream_index: usize, vector_index: usize| {
@@ -60,7 +55,7 @@ impl GenerateSpeechStreamSet {
             };
 
             let lpf = if pss.get_nstream() >= 3 {
-                (0..nlpf)
+                (0..pss.get_vector_length(2))
                     .map(|vector_index| get_parameter(2, vector_index))
                     .collect()
             } else {
@@ -70,15 +65,7 @@ impl GenerateSpeechStreamSet {
                 .map(|vector_index| get_parameter(0, vector_index))
                 .collect();
 
-            let rawdata = v.synthesize(
-                get_parameter(1, 0),
-                &spectrum,
-                nlpf,
-                &lpf,
-                alpha,
-                beta,
-                volume,
-            );
+            let rawdata = v.synthesize(get_parameter(1, 0), &spectrum, &lpf, alpha, beta, volume);
             speech.extend(rawdata);
 
             for (j, index) in frame_skipped_index.iter_mut().enumerate() {
