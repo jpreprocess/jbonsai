@@ -150,9 +150,11 @@ impl StateStreamSet {
         }
 
         // RHO calculation
-        let (mean, vari) = duration_params.iter().fold((0.0, 0.0), |(mean, vari), curr| {
-            (mean + curr.0, vari + curr.1)
-        });
+        let (mean, vari) = duration_params
+            .iter()
+            .fold((0.0, 0.0), |(mean, vari), curr| {
+                (mean + curr.0, vari + curr.1)
+            });
         let rho = (target_length as f64 - mean) / vari;
 
         let mut duration = Self::estimate_duration(duration_params, rho);

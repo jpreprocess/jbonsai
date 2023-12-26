@@ -14,7 +14,11 @@ pub struct ParameterStream {
 
 impl ParameterStreamSet {
     /// Parameter generation using GV weight
-    pub fn create(sss: &StateStreamSet, msd_threshold: &[f64], gv_weight: &[f64]) -> ParameterStreamSet {
+    pub fn create(
+        sss: &StateStreamSet,
+        msd_threshold: &[f64],
+        gv_weight: &[f64],
+    ) -> ParameterStreamSet {
         let mut streams = Vec::with_capacity(sss.get_nstream());
         for i in 0..sss.get_nstream() {
             let msd_flag = if sss.is_msd(i) {
