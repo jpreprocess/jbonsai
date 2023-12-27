@@ -43,7 +43,7 @@ impl GenerateSpeechStreamSet {
         let mut frame_skipped_index = vec![0; pss.get_nstream()];
         for i in 0..total_frame {
             let get_parameter = |stream_index: usize, vector_index: usize| {
-                if pss.is_msd(stream_index) && !pss.get_msd_flag(stream_index, i) {
+                if !pss.get_msd_flag(stream_index, i) {
                     NODATA
                 } else {
                     pss.get_parameter(
@@ -69,7 +69,7 @@ impl GenerateSpeechStreamSet {
             speech.extend(rawdata);
 
             for (j, index) in frame_skipped_index.iter_mut().enumerate() {
-                if !pss.is_msd(j) || pss.get_msd_flag(j, i) {
+                if pss.get_msd_flag(j, i) {
                     *index += 1;
                 }
             }

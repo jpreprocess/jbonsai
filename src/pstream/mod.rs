@@ -9,7 +9,7 @@ pub struct ParameterStreamSet {
 
 pub struct ParameterStream {
     par: Vec<Vec<f64>>,
-    msd_flag: Option<Vec<bool>>,
+    msd_flag: Vec<bool>,
 }
 
 impl ParameterStreamSet {
@@ -22,15 +22,14 @@ impl ParameterStreamSet {
         let mut streams = Vec::with_capacity(sss.get_nstream());
         for i in 0..sss.get_nstream() {
             let msd_flag = if sss.is_msd(i) {
-                let msd_flag: Vec<_> = (0..sss.get_total_state())
+                (0..sss.get_total_state())
                     .flat_map(|state| {
                         let flag = sss.get_msd(i, state) > msd_threshold[i];
                         [flag].repeat(sss.get_duration(state))
                     })
-                    .collect();
-                Some(msd_flag)
+                    .collect()
             } else {
-                None
+                [true].repeat(sss.get_total_frame())
             };
 
             let (msd_left_boundaries, msd_right_boundaries) =
@@ -40,7 +39,7 @@ impl ParameterStreamSet {
                 let gv_switch: Vec<bool> = (0..sss.get_total_state())
                     .flat_map(|state| (0..sss.get_duration(state)).map(move |j| (state, j)))
                     .enumerate()
-                    .filter(|(frame, _)| msd_flag.is_none() || msd_flag.as_ref().unwrap()[*frame])
+                    .filter(|(frame, _)| msd_flag[*frame])
                     .map(|(_, (state, _))| sss.get_gv_switch(i, state))
                     .collect();
                 Some(gv_switch)
@@ -60,9 +59,7 @@ impl ParameterStreamSet {
                             // add frame index
                             .enumerate()
                             // filter by msd
-                            .filter(|(frame, _)| {
-                                msd_flag.is_none() || msd_flag.as_ref().unwrap()[*frame]
-                            })
+                            .filter(|(frame, _)| msd_flag[*frame])
                             .zip(std::iter::repeat((m, window_index)))
                             .map(|((frame, state), (m, window_index))| {
                                 let is_msd_boundary = sss.get_window_left_width(i, window_index)
@@ -119,10 +116,7 @@ impl ParameterStreamSet {
     }
 
     /// Calculate distance from the closest msd boundaries
-    fn msd_boundary_distances(
-        total_frame: usize,
-        msd_flag: &Option<Vec<bool>>,
-    ) -> (Vec<usize>, Vec<usize>) {
+    fn msd_boundary_distances(total_frame: usize, msd_flag: &[bool]) -> (Vec<usize>, Vec<usize>) {
         if total_frame == 0 {
             return (vec![], vec![]);
         }
@@ -132,7 +126,7 @@ impl ParameterStreamSet {
         for frame in 0..total_frame {
             result_left[frame] = frame - left;
 
-            if matches!(msd_flag, Some(ref msd_flag) if !msd_flag[frame]) {
+            if !msd_flag[frame] {
                 // MSD is enabled and current position is non-MSD
                 left = frame + 1;
             }
@@ -143,7 +137,7 @@ impl ParameterStreamSet {
         for frame in (0..total_frame).rev() {
             result_right[frame] = right - frame;
 
-            if matches!(msd_flag, Some(ref msd_flag) if !msd_flag[frame]) {
+            if !msd_flag[frame] {
                 // MSD is enabled and current position is non-MSD
                 if frame == 0 {
                     break;
@@ -178,11 +172,7 @@ impl ParameterStreamSet {
     }
     /// Get generated MSD flag per frame
     pub fn get_msd_flag(&self, stream_index: usize, frame_index: usize) -> bool {
-        self.streams[stream_index].msd_flag.as_ref().unwrap()[frame_index]
-    }
-    /// Get MSD flag
-    pub fn is_msd(&self, stream_index: usize) -> bool {
-        self.streams[stream_index].msd_flag.is_some()
+        self.streams[stream_index].msd_flag[frame_index]
     }
 }
 
@@ -193,7 +183,10 @@ mod tests {
     #[test]
     fn msd_boundary_distances() {
         assert_eq!(
-            ParameterStreamSet::msd_boundary_distances(10, &None),
+            ParameterStreamSet::msd_boundary_distances(
+                10,
+                &[true, true, true, true, true, true, true, true, true, true]
+            ),
             (
                 vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
@@ -202,9 +195,7 @@ mod tests {
         assert_eq!(
             ParameterStreamSet::msd_boundary_distances(
                 10,
-                &Some(vec![
-                    true, true, true, false, false, true, true, true, true, true
-                ])
+                &[true, true, true, false, false, true, true, true, true, true]
             ),
             (
                 vec![0, 1, 2, 3, 0, 0, 1, 2, 3, 4],
@@ -212,7 +203,7 @@ mod tests {
             )
         );
         assert_eq!(
-            ParameterStreamSet::msd_boundary_distances(0, &None),
+            ParameterStreamSet::msd_boundary_distances(0, &[]),
             (vec![], vec![])
         );
     }
