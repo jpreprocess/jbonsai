@@ -41,21 +41,10 @@ impl ParameterStreamSet {
                         let m = sss.get_vector_length(i) * window_index + vector_index;
 
                         (0..sss.get_total_state())
-                            // iterate over frames
-                            .flat_map(|state| [state].repeat(sss.get_duration(state)))
-                            // add frame index
-                            .enumerate()
-                            // filter by msd
-                            .filter(|(frame, _)| msd_flag[*frame])
-                            .zip(std::iter::repeat((m, window_index)))
-                            .map(|((frame, state), (m, window_index))| {
-                                let is_msd_boundary = sss.get_window_left_width(i, window_index)
-                                    < -(msd_boundaries[frame].0 as isize)
-                                    || (msd_boundaries[frame].1 as isize)
-                                        < sss.get_window_right_width(i, window_index);
-
+                            // get mean and ivar, and spread it to its duration
+                            .flat_map(|state| {
                                 let mean = sss.get_mean(i, state, m);
-                                let ivar = if !is_msd_boundary || window_index == 0 {
+                                let ivar = {
                                     let vari = sss.get_vari(i, state, m);
                                     if vari.abs() > 1e19 {
                                         0.0
@@ -64,11 +53,31 @@ impl ParameterStreamSet {
                                     } else {
                                         1.0 / vari
                                     }
-                                } else {
-                                    0.0
                                 };
 
-                                (mean, ivar)
+                                [(mean, ivar)].repeat(sss.get_duration(state))
+                            })
+                            // add frame index
+                            .enumerate()
+                            // filter by msd
+                            .filter(|(frame, _)| msd_flag[*frame])
+                            // apply boundary condition
+                            .map(|(frame, (mean, ivar))| {
+                                let (left, right) = msd_boundaries[frame];
+
+                                let is_left_msd_boundary =
+                                    sss.get_window_left_width(i, window_index) < -(left as isize);
+                                let is_right_msd_boundary =
+                                    (right as isize) < sss.get_window_right_width(i, window_index);
+
+                                // If the window includes non-msd frames, set the ivar to 0.0
+                                if (is_left_msd_boundary || is_right_msd_boundary)
+                                    && window_index != 0
+                                {
+                                    (mean, 0.0)
+                                } else {
+                                    (mean, ivar)
+                                }
                             })
                             .collect()
                     })
@@ -205,13 +214,31 @@ mod tests {
                 (0, 2),
                 (1, 1),
                 (2, 0),
-                (3, 0),
-                (0, 5),
+                (0, 0),
+                (0, 0),
                 (0, 4),
                 (1, 3),
                 (2, 2),
                 (3, 1),
                 (4, 0)
+            ]
+        );
+        assert_eq!(
+            ParameterStreamSet::msd_boundary_distances(
+                10,
+                &[true, true, true, false, true, false, false, false, false, false]
+            ),
+            vec![
+                (0, 2),
+                (1, 1),
+                (2, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0),
+                (0, 0)
             ]
         );
         assert_eq!(ParameterStreamSet::msd_boundary_distances(0, &[]), vec![]);
