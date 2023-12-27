@@ -10,20 +10,25 @@ use crate::sstream::StateStreamSet;
 #[derive(Clone)]
 pub struct Condition {
     pub sampling_frequency: usize,
-    pub fperiod: usize,
-    pub volume: f64,
-    pub msd_threshold: Vec<f64>,
-    pub gv_weight: Vec<f64>,
-    pub phoneme_alignment_flag: bool,
+
     pub speed: f64,
-    pub stage: usize,
-    pub use_log_gain: bool,
-    pub alpha: f64,
-    pub beta: f64,
-    pub additional_half_tone: f64,
+    pub phoneme_alignment_flag: bool,
     pub duration_iw: Vec<f64>,
     pub parameter_iw: Vec<Vec<f64>>,
     pub gv_iw: Vec<Vec<f64>>,
+
+    pub additional_half_tone: f64,
+
+    pub msd_threshold: Vec<f64>,
+    pub gv_weight: Vec<f64>,
+
+    pub stage: usize,
+    pub use_log_gain: bool,
+    pub fperiod: usize,
+
+    pub alpha: f64,
+    pub beta: f64,
+    pub volume: f64,
 }
 
 impl Default for Condition {
