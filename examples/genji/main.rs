@@ -14,19 +14,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         engine.get_total_nsamples()
     );
 
-    let mut writer = hound::WavWriter::create(
-        "result/genji.wav",
-        hound::WavSpec {
-            channels: 1,
-            sample_rate: 48000,
-            bits_per_sample: 16,
-            sample_format: hound::SampleFormat::Int,
-        },
-    )?;
-    for i in 0..engine.get_total_nsamples() {
-        let value = engine.get_generated_speech(i);
-        writer.write_sample(value as i16)?;
-    }
+    // let mut writer = hound::WavWriter::create(
+    //     "result/genji.wav",
+    //     hound::WavSpec {
+    //         channels: 1,
+    //         sample_rate: 48000,
+    //         bits_per_sample: 16,
+    //         sample_format: hound::SampleFormat::Int,
+    //     },
+    // )?;
+    // for i in 0..engine.get_total_nsamples() {
+    //     let value = engine.get_generated_speech(i);
+    //     writer.write_sample(value as i16)?;
+    // }
 
     Ok(())
 }
