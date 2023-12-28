@@ -31,7 +31,7 @@ mod tests {
     fn bonsai() {
         let lines: Vec<String> = SAMPLE_SENTENCE_1.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
+        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 66480);
@@ -74,7 +74,7 @@ mod tests {
     fn is_this_bonsai() {
         let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
+        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 100800);
@@ -92,7 +92,7 @@ mod tests {
     fn is_this_bonsai_fast() {
         let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
+        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
         engine.set_speed(1.4);
 
         engine.synthesize_from_strings(&lines);
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let mut engine = Engine::load(&vec![MODEL_NITECH_ATR503.to_string()]);
+        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
         engine.synthesize_from_strings(&[]);
         assert_eq!(engine.get_total_nsamples(), 0);
     }
