@@ -5,14 +5,23 @@ edition = "2021"
 
 [features]
 default = ["htsvoice"]
+binary = ["htsvoice", "dep:hound"]
 htsvoice = ["dep:nom"]
+
+[[example]]
+name = "is-bonsai"
+required-features = ["binary"]
+[[example]]
+name = "genji"
+required-features = ["binary"]
 
 [dependencies]
 anyhow = "1.0.75"
 byteorder = "1.5.0"
 thiserror = "1.0"
+approx = "0.5.1"
 
 regex = "1.10.2"
 
 nom = { version = "7.1.3", optional = true }
-approx = "0.5.1"
+hound = { version = "3.5.1", optional = true }
