@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     label::Label,
-    model::{stream::ModelParameter, ModelSet},
+    model::{interporation_weight::InterporationWeight, stream::ModelParameter, ModelSet},
 };
 
 pub struct StateStreamSet {
@@ -26,18 +26,13 @@ impl StateStreamSet {
         label: &Label,
         phoneme_alignment_flag: bool,
         speed: f64,
-        duration_iw: &[f64],
-        parameter_iw: &Vec<Vec<f64>>,
-        gv_iw: &Vec<Vec<f64>>,
+        iw: &InterporationWeight,
     ) -> Option<Self> {
-        // check interpolation weights
-        let duration_iw_sum: f64 = duration_iw.iter().sum();
-        if (duration_iw_sum - 1.0).abs() > f64::EPSILON {
-            return None;
-        }
-
         let duration_params: Vec<(f64, f64)> = (0..label.get_size())
-            .flat_map(|i| ms.get_duration(label.get_string(i), duration_iw).parameters)
+            .flat_map(|i| {
+                ms.get_duration(label.get_string(i), iw.get_duration())
+                    .parameters
+            })
             .collect();
 
         // determine state duration
@@ -82,15 +77,16 @@ impl StateStreamSet {
             .map(|stream_idx| {
                 // get parameter
                 let params = (0..label.get_size())
-                    .flat_map(|label_idx| {
+                    .zip(std::iter::repeat(iw))
+                    .flat_map(|(label_idx, iw)| {
                         (2..2 + ms.get_nstate())
-                            .zip(std::iter::repeat(label_idx))
-                            .map(|(state_idx, label_idx)| {
+                            .zip(std::iter::repeat((label_idx, iw)))
+                            .map(|(state_idx, (label_idx, iw))| {
                                 ms.get_parameter(
                                     stream_idx,
                                     state_idx,
                                     label.get_string(label_idx),
-                                    parameter_iw,
+                                    iw.get_parameter(stream_idx),
                                 )
                             })
                     })
@@ -105,7 +101,7 @@ impl StateStreamSet {
                     })
                     .collect();
                 let gv_params = if ms.use_gv(stream_idx) && label.get_size() > 0 {
-                    Some(ms.get_gv(stream_idx, label.get_string(0), gv_iw))
+                    Some(ms.get_gv(stream_idx, label.get_string(0), iw.get_gv(stream_idx)))
                 } else {
                     None
                 };

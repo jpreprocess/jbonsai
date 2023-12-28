@@ -2,6 +2,7 @@ use std::{fmt::Display, path::Path};
 
 use self::stream::{Model, ModelParameter, Pattern, StreamModels};
 
+pub mod interporation_weight;
 pub mod stream;
 
 #[cfg(feature = "htsvoice")]
@@ -234,7 +235,7 @@ impl ModelSet {
         stream_index: usize,
         state_index: usize,
         string: &str,
-        iw: &Vec<Vec<f64>>,
+        iw: &[f64],
     ) -> ModelParameter {
         self.voices
             .iter()
@@ -244,7 +245,7 @@ impl ModelSet {
                     .stream_model
                     .get_parameter(state_index, string);
                 if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i][stream_index], params);
+                    acc.add_assign(iw[i], params);
                 } else {
                     acc = Some(params.clone());
                 }
@@ -266,7 +267,7 @@ impl ModelSet {
             .get_index(2, string)
     }
     /// Get GV using interpolation weight
-    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &Vec<Vec<f64>>) -> ModelParameter {
+    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &[f64]) -> ModelParameter {
         self.voices
             .iter()
             .enumerate()
@@ -277,7 +278,7 @@ impl ModelSet {
                     .unwrap()
                     .get_parameter(2, string);
                 if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i][stream_index], params);
+                    acc.add_assign(iw[i], params);
                 } else {
                     acc = Some(params.clone());
                 }
@@ -387,7 +388,7 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(234));
 
-        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &vec![vec![1.0, 1.0]]);
+        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &[1.0, 1.0]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -411,7 +412,7 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(3));
 
-        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &vec![vec![1.0, 1.0]]);
+        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &[1.0, 1.0]);
         assert_eq!(
             jsyn_param,
             ModelParameter {

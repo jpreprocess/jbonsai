@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::constants::{DB, HALF_TONE, MAX_LF0, MIN_LF0};
 use crate::gstream::GenerateSpeechStreamSet;
 use crate::label::Label;
+use crate::model::interporation_weight::InterporationWeight;
 use crate::model::ModelSet;
 use crate::pstream::ParameterStreamSet;
 use crate::sstream::StateStreamSet;
@@ -13,9 +14,7 @@ pub struct Condition {
 
     pub speed: f64,
     pub phoneme_alignment_flag: bool,
-    pub duration_iw: Vec<f64>,
-    pub parameter_iw: Vec<Vec<f64>>,
-    pub gv_iw: Vec<Vec<f64>>,
+    pub interporation_weight: InterporationWeight,
 
     pub additional_half_tone: f64,
 
@@ -46,9 +45,7 @@ impl Default for Condition {
             alpha: 0.0f64,
             beta: 0.0f64,
             additional_half_tone: 0.0f64,
-            duration_iw: Vec::new(),
-            parameter_iw: Vec::new(),
-            gv_iw: Vec::new(),
+            interporation_weight: InterporationWeight::default(),
         }
     }
 }
@@ -57,7 +54,6 @@ impl Condition {
     pub fn load_model(&mut self, ms: &ModelSet) {
         let voice_len = ms.get_nvoices();
         let nstream = ms.get_nstream();
-        let average_weight = 1.0f64 / voice_len as f64;
 
         /* global */
         self.sampling_frequency = ms.get_sampling_frequency();
@@ -80,13 +76,7 @@ impl Condition {
         }
 
         /* interpolation weights */
-        self.duration_iw = (0..voice_len).map(|_| average_weight).collect();
-        self.parameter_iw = (0..voice_len)
-            .map(|_| (0..nstream).map(|_| average_weight).collect())
-            .collect();
-        self.gv_iw = (0..voice_len)
-            .map(|_| (0..nstream).map(|_| average_weight).collect())
-            .collect();
+        self.interporation_weight = InterporationWeight::new(voice_len, nstream);
     }
 }
 
@@ -186,37 +176,11 @@ impl Engine {
         self.condition.additional_half_tone = f;
     }
 
-    pub fn set_duration_interpolation_weight(&mut self, voice_index: usize, f: f64) {
-        self.condition.duration_iw[voice_index] = f;
+    pub fn get_interporation_weight(&self) -> &InterporationWeight {
+        &self.condition.interporation_weight
     }
-
-    pub fn get_duration_interpolation_weight(&self, voice_index: usize) -> f64 {
-        self.condition.duration_iw[voice_index]
-    }
-
-    pub fn set_parameter_interpolation_weight(
-        &mut self,
-        voice_index: usize,
-        stream_index: usize,
-        f: f64,
-    ) {
-        self.condition.parameter_iw[voice_index][stream_index] = f;
-    }
-
-    pub fn get_parameter_interpolation_weight(
-        &mut self,
-        voice_index: usize,
-        stream_index: usize,
-    ) -> f64 {
-        self.condition.parameter_iw[voice_index][stream_index]
-    }
-
-    pub fn set_gv_interpolation_weight(&mut self, voice_index: usize, stream_index: usize, f: f64) {
-        self.condition.gv_iw[voice_index][stream_index] = f;
-    }
-
-    pub fn get_gv_interpolation_weight(&mut self, voice_index: usize, stream_index: usize) -> f64 {
-        self.condition.gv_iw[voice_index][stream_index]
+    pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
+        &mut self.condition.interporation_weight
     }
 
     pub fn get_total_state(&mut self) -> usize {
@@ -285,9 +249,7 @@ impl Engine {
             self.label.as_ref().unwrap(),
             self.condition.phoneme_alignment_flag,
             self.condition.speed,
-            &self.condition.duration_iw,
-            &self.condition.parameter_iw,
-            &self.condition.gv_iw,
+            &self.condition.interporation_weight,
         );
         if self.condition.additional_half_tone != 0.0 {
             for i in 0..self.get_total_state() {
