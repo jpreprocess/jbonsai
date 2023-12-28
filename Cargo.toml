@@ -8,8 +8,8 @@ default = ["htsvoice", "binary"]
 binary = ["htsvoice", "dep:hound", "dep:clap"]
 htsvoice = ["dep:nom"]
 
-[[bin]]
-name = "jbonsai"
+[[example]]
+name = "is-bonsai"
 required-features = ["binary"]
 
 [dependencies]
