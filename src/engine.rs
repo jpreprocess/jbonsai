@@ -7,6 +7,7 @@ use crate::model::interporation_weight::InterporationWeight;
 use crate::model::ModelSet;
 use crate::pstream::ParameterStreamSet;
 use crate::sstream::StateStreamSet;
+use crate::vocoder::Vocoder;
 
 #[derive(Clone)]
 pub struct Condition {
@@ -280,11 +281,16 @@ impl Engine {
     }
 
     pub fn generate_sample_sequence(&mut self) {
-        self.gss = Some(GenerateSpeechStreamSet::create(
-            self.pss.as_ref().unwrap(),
+        let vocoder = Vocoder::new(
+            self.ms.get_vector_length(0) - 1,
             self.condition.stage,
             self.condition.use_log_gain,
             self.condition.sampling_frequency,
+            self.condition.fperiod,
+        );
+        self.gss = Some(GenerateSpeechStreamSet::create(
+            self.pss.as_ref().unwrap(),
+            vocoder,
             self.condition.fperiod,
             self.condition.alpha,
             self.condition.beta,

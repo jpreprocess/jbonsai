@@ -8,9 +8,7 @@ impl GenerateSpeechStreamSet {
     /// Generate speech
     pub fn create(
         pss: &ParameterStreamSet,
-        stage: usize,
-        use_log_gain: bool,
-        sampling_rate: usize,
+        mut v: Vocoder,
         fperiod: usize,
         alpha: f64,
         beta: f64,
@@ -27,19 +25,11 @@ impl GenerateSpeechStreamSet {
             panic!("The number of low-pass filter coefficient must be odd numbers.");
         }
 
-        // synthesize speech waveform
-        let mut v = Vocoder::new(
-            pss.get_vector_length(0) - 1,
-            stage,
-            use_log_gain,
-            sampling_rate,
-            fperiod,
-        );
-
         // create speech buffer
         let total_frame = pss.get_total_frame();
         let mut speech = Vec::with_capacity(total_frame * fperiod);
 
+        // synthesize speech waveform
         let mut frame_skipped_index = vec![0; pss.get_nstream()];
         for i in 0..total_frame {
             let get_parameter = |stream_index: usize, vector_index: usize| {
