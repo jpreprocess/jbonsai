@@ -8,11 +8,11 @@ pub struct InterporationWeight {
 impl InterporationWeight {
     pub fn new(voice_len: usize, nstream: usize) -> Self {
         let average_weight = 1.0f64 / voice_len as f64;
-        let default_weight = [average_weight].repeat(voice_len);
+        let default_weight = vec![average_weight; voice_len];
         Self {
             duration: default_weight.clone(),
-            parameter: (0..nstream).map(|_| default_weight.clone()).collect(),
-            gv: (0..nstream).map(|_| default_weight.clone()).collect(),
+            parameter: vec![default_weight.clone(); nstream],
+            gv: vec![default_weight.clone(); nstream],
         }
     }
 
