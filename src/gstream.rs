@@ -1,16 +1,14 @@
-use crate::{pstream::PStreamSet, vocoder::Vocoder};
+use crate::{constants::NODATA, pstream::ParameterStreamSet, vocoder::Vocoder};
 
-pub struct GStreamSet {
+pub struct GenerateSpeechStreamSet {
     speech: Vec<f64>,
 }
 
-impl GStreamSet {
-    /// create: generate speech
+impl GenerateSpeechStreamSet {
+    /// Generate speech
     pub fn create(
-        pss: &PStreamSet,
-        stage: usize,
-        use_log_gain: bool,
-        sampling_rate: usize,
+        pss: &ParameterStreamSet,
+        mut v: Vocoder,
         fperiod: usize,
         alpha: f64,
         beta: f64,
@@ -29,27 +27,14 @@ impl GStreamSet {
 
         // create speech buffer
         let total_frame = pss.get_total_frame();
-        let mut speech = vec![0.0; total_frame * fperiod];
+        let mut speech = Vec::with_capacity(total_frame * fperiod);
 
         // synthesize speech waveform
-        let mut v = Vocoder::new(
-            pss.get_vector_length(0) - 1,
-            stage,
-            use_log_gain,
-            sampling_rate,
-            fperiod,
-        );
-        let nlpf = if pss.get_nstream() >= 3 {
-            pss.get_vector_length(2)
-        } else {
-            0
-        };
-
         let mut frame_skipped_index = vec![0; pss.get_nstream()];
         for i in 0..total_frame {
             let get_parameter = |stream_index: usize, vector_index: usize| {
-                if pss.is_msd(stream_index) && !pss.get_msd_flag(stream_index, i) {
-                    -1e10 // HTS_NODATA
+                if !pss.get_msd_flag(stream_index, i) {
+                    NODATA
                 } else {
                     pss.get_parameter(
                         stream_index,
@@ -60,7 +45,7 @@ impl GStreamSet {
             };
 
             let lpf = if pss.get_nstream() >= 3 {
-                (0..nlpf)
+                (0..pss.get_vector_length(2))
                     .map(|vector_index| get_parameter(2, vector_index))
                     .collect()
             } else {
@@ -70,32 +55,24 @@ impl GStreamSet {
                 .map(|vector_index| get_parameter(0, vector_index))
                 .collect();
 
-            v.synthesize(
-                get_parameter(1, 0),
-                &spectrum,
-                nlpf,
-                &lpf,
-                alpha,
-                beta,
-                volume,
-                &mut speech[i * fperiod..],
-            );
+            let rawdata = v.synthesize(get_parameter(1, 0), &spectrum, &lpf, alpha, beta, volume);
+            speech.extend(rawdata);
 
             for (j, index) in frame_skipped_index.iter_mut().enumerate() {
-                if !pss.is_msd(j) || pss.get_msd_flag(j, i) {
+                if pss.get_msd_flag(j, i) {
                     *index += 1;
                 }
             }
         }
 
-        GStreamSet { speech }
+        GenerateSpeechStreamSet { speech }
     }
 
-    // get total number of sample
+    /// Get total number of sample
     pub fn get_total_nsamples(&self) -> usize {
         self.speech.len()
     }
-    // get synthesized speech parameter
+    /// Get synthesized speech parameter
     pub fn get_speech(&self, sample_index: usize) -> f64 {
         self.speech[sample_index]
     }

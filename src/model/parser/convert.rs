@@ -1,22 +1,22 @@
 use std::collections::BTreeMap;
 
-use crate::model::model::Pattern;
+use crate::model::stream::Pattern;
 
 use super::tree::{Tree, TreeIndex};
 
 pub fn convert_tree(
     orig_tree: Tree,
     question_lut: &BTreeMap<&String, &Vec<Pattern>>,
-) -> crate::model::model::Tree {
+) -> crate::model::stream::Tree {
     let node_lut = BTreeMap::from_iter(orig_tree.nodes.iter().enumerate().map(|(i, n)| (n.id, i)));
 
     if orig_tree.nodes.len() == 1 && orig_tree.nodes[0].yes == orig_tree.nodes[0].no {
         let TreeIndex::Pdf(i) = orig_tree.nodes[0].yes else {
             todo!("Malformed model file. Should not reach here.");
         };
-        return crate::model::model::Tree {
+        return crate::model::stream::Tree {
             patterns: orig_tree.pattern,
-            nodes: vec![crate::model::model::TreeNode::Leaf {
+            nodes: vec![crate::model::stream::TreeNode::Leaf {
                 pdf_index: i as usize,
             }],
             state: orig_tree.state,
@@ -53,7 +53,7 @@ pub fn convert_tree(
         }
         .unwrap();
 
-        nodes.push(crate::model::model::TreeNode::Node {
+        nodes.push(crate::model::stream::TreeNode::Node {
             patterns: question_lut.get(&node.question_name).unwrap().to_vec(),
             yes: yes_id,
             no: no_id,
@@ -61,12 +61,12 @@ pub fn convert_tree(
     }
     nodes.extend(
         pdfs.into_iter()
-            .map(|i| crate::model::model::TreeNode::Leaf {
+            .map(|i| crate::model::stream::TreeNode::Leaf {
                 pdf_index: i as usize,
             }),
     );
 
-    crate::model::model::Tree {
+    crate::model::stream::Tree {
         patterns: orig_tree.pattern,
         nodes,
         state: orig_tree.state,

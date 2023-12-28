@@ -1,47 +1,41 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{
     label::Label,
-    model::{model::ModelParameter, ModelSet},
+    model::{interporation_weight::InterporationWeight, stream::ModelParameter, ModelSet},
 };
 
-pub struct SStreamSet {
-    sstreams: Vec<SStream>,
-    // nstate: usize,
+pub struct StateStreamSet {
+    sstreams: Vec<StateStream>,
     duration: Vec<usize>,
     total_state: usize,
     total_frame: usize,
-    ms: Rc<ModelSet>,
+    ms: Arc<ModelSet>,
 }
 
-pub struct SStream {
-    // vector_length: usize,
+pub struct StateStream {
     params: Vec<ModelParameter>,
-    // win_coef: Vec<Vec<f32>>,
     gv_params: Option<ModelParameter>,
     gv_switch: Vec<bool>,
 }
 
-impl SStreamSet {
+impl StateStreamSet {
+    /// Parse label and determine state duration
     pub fn create(
-        ms: Rc<ModelSet>,
+        ms: Arc<ModelSet>,
         label: &Label,
         phoneme_alignment_flag: bool,
         speed: f64,
-        duration_iw: &[f64],
-        parameter_iw: &Vec<Vec<f64>>,
-        gv_iw: &Vec<Vec<f64>>,
+        iw: &InterporationWeight,
     ) -> Option<Self> {
-        // check interpolation weights
-        let duration_iw_sum: f64 = duration_iw.iter().sum();
-        if (duration_iw_sum - 1.0).abs() > f64::EPSILON {
-            return None;
-        }
-
         let duration_params: Vec<(f64, f64)> = (0..label.get_size())
-            .flat_map(|i| ms.get_duration(label.get_string(i), duration_iw).parameters)
+            .flat_map(|i| {
+                ms.get_duration(label.get_string(i), iw.get_duration())
+                    .parameters
+            })
             .collect();
 
+        // determine state duration
         let mut duration = vec![];
         if phoneme_alignment_flag {
             // use duration set by user
@@ -50,7 +44,7 @@ impl SStreamSet {
             let mut state = 0;
             for i in 0..label.get_size() {
                 let end_frame = label.get_end_frame(i);
-                if end_frame >= 0. {
+                if end_frame >= 0.0 {
                     let curr_duration = Self::estimate_duration_with_frame_length(
                         &duration_params[next_state..state + ms.get_nstate()],
                         end_frame - next_time as f64,
@@ -62,14 +56,14 @@ impl SStreamSet {
                     eprintln!("HTS_SStreamSet_create: The time of final label is not specified.");
                     Self::estimate_duration(
                         &duration_params[next_state..state + ms.get_nstate()],
-                        0.,
+                        0.0,
                     );
                 }
                 state += ms.get_nstate();
             }
         } else {
             // determine frame length
-            duration = Self::estimate_duration(&duration_params, 0.);
+            duration = Self::estimate_duration(&duration_params, 0.0);
             if speed != 1.0 {
                 let length: usize = duration.iter().sum();
                 duration = Self::estimate_duration_with_frame_length(
@@ -79,22 +73,26 @@ impl SStreamSet {
             }
         }
 
-        let sstreams: Vec<SStream> = (0..ms.get_nstream())
+        let sstreams: Vec<StateStream> = (0..ms.get_nstream())
             .map(|stream_idx| {
+                // get parameter
                 let params = (0..label.get_size())
-                    .flat_map(|label_idx| {
+                    .zip(std::iter::repeat(iw))
+                    .flat_map(|(label_idx, iw)| {
                         (2..2 + ms.get_nstate())
-                            .zip(std::iter::repeat(label_idx))
-                            .map(|(state_idx, label_idx)| {
+                            .zip(std::iter::repeat((label_idx, iw)))
+                            .map(|(state_idx, (label_idx, iw))| {
                                 ms.get_parameter(
                                     stream_idx,
                                     state_idx,
                                     label.get_string(label_idx),
-                                    parameter_iw,
+                                    iw.get_parameter(stream_idx),
                                 )
                             })
                     })
                     .collect();
+
+                // determine GV
                 let gv_switch = (0..label.get_size())
                     .flat_map(|label_idx| {
                         let sw =
@@ -103,11 +101,12 @@ impl SStreamSet {
                     })
                     .collect();
                 let gv_params = if ms.use_gv(stream_idx) && label.get_size() > 0 {
-                    Some(ms.get_gv(stream_idx, label.get_string(0), gv_iw))
+                    Some(ms.get_gv(stream_idx, label.get_string(0), iw.get_gv(stream_idx)))
                 } else {
                     None
                 };
-                SStream {
+
+                StateStream {
                     params,
                     gv_params,
                     gv_switch,
@@ -124,12 +123,14 @@ impl SStreamSet {
         })
     }
 
+    /// Estimate state duration
     fn estimate_duration(duration_params: &[(f64, f64)], rho: f64) -> Vec<usize> {
         duration_params
             .iter()
             .map(|(mean, vari)| (mean + rho * vari).round().max(1.0) as usize)
             .collect()
     }
+    /// Estimate duration from state duration probability distribution and specified frame length
     fn estimate_duration_with_frame_length(
         duration_params: &[(f64, f64)],
         frame_length: f64,
@@ -145,9 +146,11 @@ impl SStreamSet {
         }
 
         // RHO calculation
-        let (mean, vari) = duration_params.iter().fold((0., 0.), |(mean, vari), curr| {
-            (mean + curr.0, vari + curr.1)
-        });
+        let (mean, vari) = duration_params
+            .iter()
+            .fold((0.0, 0.0), |(mean, vari), curr| {
+                (mean + curr.0, vari + curr.1)
+            });
         let rho = (target_length as f64 - mean) / vari;
 
         let mut duration = Self::estimate_duration(duration_params, rho);
@@ -185,33 +188,43 @@ impl SStreamSet {
         duration
     }
 
+    /// Get number of stream
     pub fn get_nstream(&self) -> usize {
         self.ms.get_nstream()
     }
+    /// Get vector length
     pub fn get_vector_length(&self, stream_index: usize) -> usize {
         self.ms.get_vector_length(stream_index)
     }
+    /// Get MSD flag
     pub fn is_msd(&self, stream_index: usize) -> bool {
         self.ms.is_msd(stream_index)
     }
+    /// Get total number of state
     pub fn get_total_state(&self) -> usize {
         self.total_state
     }
+    /// Get total number of frame
     pub fn get_total_frame(&self) -> usize {
         self.total_frame
     }
+    /// Get MSD parameter
     pub fn get_msd(&self, stream_index: usize, state_index: usize) -> f64 {
         self.sstreams[stream_index].params[state_index].msd.unwrap()
     }
+    /// Get dynamic window size
     pub fn get_window_size(&self, stream_index: usize) -> usize {
         self.ms.get_window_size(stream_index)
     }
+    /// Get left width of dynamic window
     pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
         self.ms.get_window_left_width(stream_index, window_index)
     }
+    /// Get right width of dynamic window
     pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
         self.ms.get_window_right_width(stream_index, window_index)
     }
+    /// Get coefficient of dynamic window
     pub fn get_window_coefficient(
         &self,
         stream_index: usize,
@@ -221,21 +234,27 @@ impl SStreamSet {
         self.ms
             .get_window_coefficient(stream_index, window_index, coefficient_index)
     }
+    /// Get max width of dynamic window
     pub fn get_window_max_width(&self, stream_index: usize) -> usize {
         self.ms.get_window_max_width(stream_index)
     }
+    /// Get GV flag
     pub fn use_gv(&self, stream_index: usize) -> bool {
         self.sstreams[stream_index].gv_params.is_some()
     }
+    /// Get state duration
     pub fn get_duration(&self, state_index: usize) -> usize {
         self.duration[state_index]
     }
+    /// Get mean parameter
     pub fn get_mean(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index].params[state_index].parameters[vector_index].0
     }
+    /// Get variance parameter
     pub fn get_vari(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index].params[state_index].parameters[vector_index].1
     }
+    /// Get GV mean parameter
     pub fn get_gv_mean(&self, stream_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index]
             .gv_params
@@ -244,6 +263,7 @@ impl SStreamSet {
             .parameters[vector_index]
             .0
     }
+    /// Get GV variance parameter
     pub fn get_gv_vari(&self, stream_index: usize, vector_index: usize) -> f64 {
         self.sstreams[stream_index]
             .gv_params
@@ -252,10 +272,12 @@ impl SStreamSet {
             .parameters[vector_index]
             .1
     }
+    /// Get GV switch
     pub fn get_gv_switch(&self, stream_index: usize, state_index: usize) -> bool {
         self.sstreams[stream_index].gv_switch[state_index]
     }
 
+    /// Set mean parameter
     pub fn set_mean(
         &mut self,
         stream_index: usize,

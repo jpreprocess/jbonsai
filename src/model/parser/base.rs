@@ -10,7 +10,7 @@ use nom::{
     IResult,
 };
 
-use crate::model::model::Pattern;
+use crate::model::stream::Pattern;
 
 const SEPARATOR_CHARS: &str = " \n";
 const PATTERN_WILDCARD: &str = "*?";
@@ -149,7 +149,7 @@ impl ParseTarget for &[u8] {
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::model::Pattern;
+    use crate::model::stream::Pattern;
 
     use super::ParseTarget;
 
