@@ -34,8 +34,12 @@ impl InterporationWeight {
 
     fn assert_weights(weights: &[f64]) {
         let sum: f64 = weights.iter().sum();
-        if (sum - 1.0).abs() > f64::EPSILON {
-            panic!("The sum of weights must be 1.0 but got {}", sum);
+        if cfg!(debug_assertions) {
+            approx::assert_abs_diff_eq!(sum, 1.0);
+        } else {
+            if approx::abs_diff_ne!(sum, 1.0) {
+                eprintln!("Warn: the sum of weight should be 1.0, but got {}", sum)
+            }
         }
     }
 
