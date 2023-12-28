@@ -11,6 +11,9 @@ htsvoice = ["dep:nom"]
 [[example]]
 name = "is-bonsai"
 required-features = ["binary"]
+[[example]]
+name = "genji"
+required-features = ["binary"]
 
 [dependencies]
 anyhow = "1.0.75"
