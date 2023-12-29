@@ -82,16 +82,32 @@ impl MelLogSpectrumApproximation {
         let d = &mut self.d21[i];
         d[0] = x;
         d[1] = aa * d[0] + alpha * d[1];
-        for i in 2..coefficients.len() {
-            d[i] += alpha * (d[i + 1] - d[i - 1]);
-        }
+
+        // Code optimization was done here.
+        // The original code is as follows.
+        // ```rs
+        // for i in 2..coefficients.len() {
+        //     d[i] += alpha * (d[i + 1] - d[i - 1]);
+        // }
+        // let mut y = 0.0;
+        // for i in 2..coefficients.len() {
+        //     y += d[i] * coefficients[i];
+        // }
+        // for i in (2..d.len()).rev() {
+        //     d[i] = d[i - 1];
+        // }
+        // ```
         let mut y = 0.0;
+        let mut prev = d[1];
         for i in 2..coefficients.len() {
-            y += d[i] * coefficients[i];
+            let mut di = d[i];
+            di += alpha * (d[i + 1] - prev);
+            y += di * coefficients[i];
+            d[i] = prev;
+            prev = di;
         }
-        for i in (2..d.len()).rev() {
-            d[i] = d[i - 1];
-        }
+        d[coefficients.len()] = prev;
+
         y
     }
 }
