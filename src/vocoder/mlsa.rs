@@ -100,8 +100,7 @@ impl MelLogSpectrumApproximation {
         let mut y = 0.0;
         let mut prev = d[1];
         for i in 2..coefficients.len() {
-            let mut di = d[i];
-            di += alpha * (d[i + 1] - prev);
+            let di = d[i] + alpha * (d[i + 1] - prev);
             y += di * coefficients[i];
             d[i] = prev;
             prev = di;
