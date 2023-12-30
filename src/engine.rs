@@ -244,6 +244,30 @@ impl Engine {
     pub fn get_generated_speech(&self, index: usize) -> f64 {
         self.gss.as_ref().unwrap().get_speech(index)
     }
+
+    pub fn synthesize_from_strings(&mut self, lines: &[String]) {
+        self.refresh();
+        self.load_labels(lines);
+        self.generate_state_sequence();
+        self.generate_parameter_sequence();
+        self.generate_sample_sequence();
+    }
+
+    fn refresh(&mut self) {
+        self.label = None;
+        self.sss = None;
+        self.pss = None;
+        self.gss = None;
+    }
+
+    fn load_labels(&mut self, lines: &[String]) {
+        self.label = Some(Label::load_from_strings(
+            self.condition.sampling_frequency,
+            self.condition.fperiod,
+            lines,
+        ));
+    }
+
     fn generate_state_sequence(&mut self) {
         self.sss = StateStreamSet::create(
             self.ms.clone(),
@@ -262,17 +286,7 @@ impl Engine {
         }
     }
 
-    pub fn generate_state_sequence_from_strings(&mut self, lines: &[String]) {
-        self.refresh();
-        self.label = Some(Label::load_from_strings(
-            self.condition.sampling_frequency,
-            self.condition.fperiod,
-            lines,
-        ));
-        self.generate_state_sequence();
-    }
-
-    pub fn generate_parameter_sequence(&mut self) {
+    fn generate_parameter_sequence(&mut self) {
         self.pss = Some(ParameterStreamSet::create(
             self.sss.as_ref().unwrap(),
             &self.condition.msd_threshold,
@@ -280,7 +294,7 @@ impl Engine {
         ));
     }
 
-    pub fn generate_sample_sequence(&mut self) {
+    fn generate_sample_sequence(&mut self) {
         let vocoder = Vocoder::new(
             self.ms.get_vector_length(0) - 1,
             self.condition.stage,
@@ -296,27 +310,5 @@ impl Engine {
             self.condition.beta,
             self.condition.volume,
         ));
-    }
-    fn synthesize(&mut self) {
-        self.generate_state_sequence();
-        self.generate_parameter_sequence();
-        self.generate_sample_sequence();
-    }
-
-    pub fn synthesize_from_strings(&mut self, lines: &[String]) {
-        self.refresh();
-        self.label = Some(Label::load_from_strings(
-            self.condition.sampling_frequency,
-            self.condition.fperiod,
-            lines,
-        ));
-        self.synthesize()
-    }
-
-    pub fn refresh(&mut self) {
-        self.label = None;
-        self.sss = None;
-        self.pss = None;
-        self.gss = None;
     }
 }
