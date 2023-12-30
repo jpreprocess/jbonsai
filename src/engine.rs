@@ -63,7 +63,7 @@ impl Default for Condition {
 
 impl Condition {
     pub fn load_model(&mut self, ms: &ModelSet) {
-        let voice_len = ms.get_nvoices();
+        let nvoices = ms.get_nvoices();
         let nstream = ms.get_nstream();
 
         /* global */
@@ -87,7 +87,7 @@ impl Condition {
         }
 
         /* interpolation weights */
-        self.interporation_weight = InterporationWeight::new(voice_len, nstream);
+        self.interporation_weight = InterporationWeight::new(nvoices, nstream);
     }
 
     /// Set sampling frequency (Hz), 1 <= i
