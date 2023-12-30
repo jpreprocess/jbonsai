@@ -46,6 +46,7 @@ impl Excitation {
     }
 
     /// lpf.len() == nlpf
+    #[allow(clippy::needless_range_loop)]
     fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
         let center = (self.ring_buffer.len() - 1) / 2;
         if noise != 0.0 {
