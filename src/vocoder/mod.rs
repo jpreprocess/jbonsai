@@ -1,4 +1,4 @@
-use crate::constants::{MAX_F0, MAX_LF0, MIN_F0, MIN_LF0};
+use crate::constants::{MAX_F0, MAX_LF0, MIN_F0, MIN_LF0, NODATA};
 
 #[macro_use]
 mod buffer;
@@ -49,14 +49,12 @@ impl Vocoder {
         &mut self,
         lf0: f64,
         spectrum: &[f64],
-        nlpf: usize,
         lpf: &[f64],
         alpha: f64,
         beta: f64,
         volume: f64,
-        rawdata: &mut [f64],
-    ) {
-        let p = if lf0 == -1.0e+10 {
+    ) -> Vec<f64> {
+        let p = if lf0 == NODATA {
             0.0
         } else if lf0 <= MIN_LF0 {
             self.rate as f64 / MIN_F0
@@ -106,24 +104,27 @@ impl Vocoder {
 
                 let excitation = self
                     .excitation
-                    .get_or_insert_with(|| Excitation::new(p, nlpf));
+                    .get_or_insert_with(|| Excitation::new(p, lpf.len()));
                 excitation.start(p, self.fperiod);
 
-                for j in 0..self.fperiod {
-                    let mut x = excitation.get(lpf);
-                    if x != 0.0 {
-                        x *= coefficients[0].exp();
-                    }
-                    filter.df(&mut x, alpha, coefficients);
-                    x *= volume;
-                    rawdata[j] = x;
-                    for i in 0..coefficients.len() {
-                        coefficients[i] += cinc[i];
-                    }
-                }
+                let rawdata = (0..self.fperiod)
+                    .map(|_| {
+                        let mut x = excitation.get(lpf);
+                        if x != 0.0 {
+                            x *= coefficients[0].exp();
+                        }
+                        filter.df(&mut x, alpha, coefficients);
+                        for i in 0..coefficients.len() {
+                            coefficients[i] += cinc[i];
+                        }
+                        x * volume
+                    })
+                    .collect();
 
                 excitation.end(p);
-                *coefficients = cc
+                *coefficients = cc;
+
+                rawdata
             }
             Stage::NonZero {
                 stage,
@@ -147,22 +148,25 @@ impl Vocoder {
 
                 let excitation = self
                     .excitation
-                    .get_or_insert_with(|| Excitation::new(p, nlpf));
+                    .get_or_insert_with(|| Excitation::new(p, lpf.len()));
                 excitation.start(p, self.fperiod);
 
-                for j in 0..self.fperiod {
-                    let mut x = excitation.get(lpf);
-                    x *= coefficients[0];
-                    filter.df(&mut x, alpha, coefficients);
-                    x *= volume;
-                    rawdata[j] = x;
-                    for i in 0..coefficients.len() {
-                        coefficients[i] += cinc[i];
-                    }
-                }
+                let rawdata = (0..self.fperiod)
+                    .map(|_| {
+                        let mut x = excitation.get(lpf);
+                        x *= coefficients[0];
+                        filter.df(&mut x, alpha, coefficients);
+                        for i in 0..coefficients.len() {
+                            coefficients[i] += cinc[i];
+                        }
+                        x * volume
+                    })
+                    .collect();
 
                 excitation.end(p);
-                *coefficients = cc
+                *coefficients = cc;
+
+                rawdata
             }
         }
     }

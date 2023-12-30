@@ -10,7 +10,7 @@ use nom::{
     IResult,
 };
 
-use crate::model::{model::StreamModelMetadata, GlobalModelMetadata};
+use crate::model::{stream::StreamModelMetadata, GlobalModelMetadata};
 
 use super::base::ParseTarget;
 
@@ -245,7 +245,7 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::model::Pattern;
+    use crate::model::stream::Pattern;
 
     use super::{HeaderParser, PositionData, StreamModelMetadata};
 

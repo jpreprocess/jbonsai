@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use regex::Regex;
 
 pub struct StreamModels {
@@ -6,6 +8,27 @@ pub struct StreamModels {
     pub stream_model: Model,
     pub gv_model: Option<Model>,
     pub windows: Vec<Vec<f64>>,
+}
+
+impl Display for StreamModels {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "  Model: {}", self.stream_model)?;
+        if let Some(ref gv_model) = self.gv_model {
+            write!(f, "  GV Model: {}", gv_model)?;
+        }
+        writeln!(
+            f,
+            "  Window Width: {}",
+            self.windows.iter().fold(String::new(), |acc, curr| {
+                if acc.is_empty() {
+                    format!("{}", curr.len())
+                } else {
+                    format!("{}, {}", acc, curr.len())
+                }
+            })
+        )?;
+        Ok(())
+    }
 }
 
 impl StreamModels {
@@ -38,13 +61,43 @@ pub struct Model {
     pdf: Vec<Vec<ModelParameter>>,
 }
 
+impl Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "\n{}",
+            self.trees.iter().fold(String::new(), |acc, curr| {
+                if acc.is_empty() {
+                    format!(
+                        "    #{}: [{}] {} -> {}",
+                        curr.state,
+                        curr.patterns.len(),
+                        curr.nodes.len(),
+                        self.pdf[curr.state - 2].len()
+                    )
+                } else {
+                    format!(
+                        "{}\n    #{}: [{}] {} -> {}",
+                        acc,
+                        curr.state,
+                        curr.patterns.len(),
+                        curr.nodes.len(),
+                        self.pdf[curr.state - 2].len()
+                    )
+                }
+            }),
+        )?;
+        Ok(())
+    }
+}
+
 impl Model {
     pub fn new(trees: Vec<Tree>, pdf: Vec<Vec<ModelParameter>>) -> Self {
         Self { trees, pdf }
     }
 
     /// Get index of tree and PDF
-    /// returns (tree_index, pdf_index)
+    /// Returns (tree_index, pdf_index)
     pub fn get_index(&self, state_index: usize, string: &str) -> (Option<usize>, Option<usize>) {
         let tree_index = self.find_tree_index(state_index, string);
 
@@ -89,8 +142,8 @@ pub struct ModelParameter {
 impl ModelParameter {
     pub fn new(size: usize, is_msd: bool) -> Self {
         Self {
-            parameters: vec![(0., 0.); size],
-            msd: if is_msd { Some(0.) } else { None },
+            parameters: vec![(0.0, 0.0); size],
+            msd: if is_msd { Some(0.0) } else { None },
         }
     }
 

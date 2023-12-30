@@ -1,8 +1,9 @@
-use std::path::Path;
+use std::{fmt::Display, path::Path};
 
-use self::model::{Model, ModelParameter, Pattern, StreamModels};
+use self::stream::{Model, ModelParameter, Pattern, StreamModels};
 
-pub mod model;
+pub mod interporation_weight;
+pub mod stream;
 
 #[cfg(feature = "htsvoice")]
 mod parser;
@@ -36,6 +37,16 @@ pub struct ModelError {
 pub struct ModelSet {
     metadata: GlobalModelMetadata,
     voices: Vec<Voice>,
+}
+
+impl Display for ModelSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.metadata)?;
+        for (i, voice) in self.voices.iter().enumerate() {
+            writeln!(f, "Voice #{}:\n{}", i, voice)?;
+        }
+        Ok(())
+    }
 }
 
 impl ModelSet {
@@ -224,7 +235,7 @@ impl ModelSet {
         stream_index: usize,
         state_index: usize,
         string: &str,
-        iw: &Vec<Vec<f64>>,
+        iw: &[f64],
     ) -> ModelParameter {
         self.voices
             .iter()
@@ -234,7 +245,7 @@ impl ModelSet {
                     .stream_model
                     .get_parameter(state_index, string);
                 if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i][stream_index], params);
+                    acc.add_assign(iw[i], params);
                 } else {
                     acc = Some(params.clone());
                 }
@@ -256,7 +267,7 @@ impl ModelSet {
             .get_index(2, string)
     }
     /// Get GV using interpolation weight
-    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &Vec<Vec<f64>>) -> ModelParameter {
+    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &[f64]) -> ModelParameter {
         self.voices
             .iter()
             .enumerate()
@@ -267,7 +278,7 @@ impl ModelSet {
                     .unwrap()
                     .get_parameter(2, string);
                 if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i][stream_index], params);
+                    acc.add_assign(iw[i], params);
                 } else {
                     acc = Some(params.clone());
                 }
@@ -291,15 +302,44 @@ pub struct GlobalModelMetadata {
     pub gv_off_context: Vec<Pattern>,
 }
 
+impl Display for GlobalModelMetadata {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "HTS Voice Version: {}", self.hts_voice_version)?;
+        writeln!(f, "Sampling Frequency: {}", self.sampling_frequency)?;
+        writeln!(f, "Frame Period: {}", self.frame_period)?;
+        writeln!(f, "Number of Voices: {}", self.num_voices)?;
+        writeln!(f, "Number of States: {}", self.num_states)?;
+        writeln!(f, "Number of Streams: {}", self.num_streams)?;
+        writeln!(f, "Streams: {}", self.stream_type.join(", "))?;
+        writeln!(
+            f,
+            "Fullcontext: {}@{}",
+            self.fullcontext_format, self.fullcontext_version
+        )?;
+        Ok(())
+    }
+}
+
 pub struct Voice {
     pub duration_model: Model,
     pub stream_models: Vec<StreamModels>,
 }
 
+impl Display for Voice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Duration Model: {}", self.duration_model)?;
+        writeln!(f, "Stream Models:")?;
+        for (i, model) in self.stream_models.iter().enumerate() {
+            write!(f, "#{}:\n{}", i, model)?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(all(test, feature = "htsvoice"))]
 mod tests {
     use crate::{
-        model::{model::ModelParameter, ModelSet},
+        model::{stream::ModelParameter, ModelSet},
         tests::{MODEL_NITECH_ATR503, SAMPLE_SENTENCE_1},
     };
 
@@ -323,7 +363,7 @@ mod tests {
         assert_eq!(jsyn_tree_index.unwrap(), 2);
         assert_eq!(jsyn_pdf_index.unwrap(), 144);
 
-        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &[1.]);
+        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &[1.0]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -348,7 +388,7 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(234));
 
-        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &vec![vec![1., 1.]]);
+        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &[1.0, 1.0]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -372,7 +412,7 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(3));
 
-        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &vec![vec![1., 1.]]);
+        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &[1.0, 1.0]);
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -391,5 +431,11 @@ mod tests {
         assert_eq!(jsyn.get_window_coefficient(0, 1, 0), 0.0);
         assert_eq!(jsyn.get_window_coefficient(0, 1, 1), 0.5);
         assert_eq!(jsyn.get_window_max_width(0), 1);
+    }
+
+    #[test]
+    fn display() {
+        let jsyn = load_models();
+        println!("{}", jsyn);
     }
 }

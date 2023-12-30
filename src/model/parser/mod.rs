@@ -20,7 +20,7 @@ use self::{
 };
 
 use super::{
-    model::{Model, Pattern, StreamModelMetadata, StreamModels},
+    stream::{Model, Pattern, StreamModelMetadata, StreamModels},
     GlobalModelMetadata, Voice,
 };
 
@@ -157,7 +157,7 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                     n,
                     map(
                         many_m_n(pdf_len, pdf_len, map(le_f32, |v| v as f64)),
-                        crate::model::model::ModelParameter::from_linear,
+                        crate::model::stream::ModelParameter::from_linear,
                     ),
                 )(i)?;
                 pdf.push(r);
