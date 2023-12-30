@@ -10,7 +10,7 @@ use crate::pstream::ParameterStreamSet;
 use crate::sstream::StateStreamSet;
 use crate::vocoder::Vocoder;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Condition {
     /// Sampling frequency
     sampling_frequency: usize,
@@ -119,6 +119,7 @@ impl Condition {
     }
 
     /// Set threshold for MSD
+    /// Note: Default value is 0.5.
     pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
         self.msd_threshold[stream_index] = f.min(1.0).max(0.0);
     }
