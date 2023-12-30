@@ -79,15 +79,20 @@ impl MelLogSpectrumApproximation {
 
     // Code optimization was done in [#12](https://github.com/jpreprocess/jbonsai/pull/12)
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
+        // This ensures the unsafe code will not cause undefined behavior
+        assert_eq!(d.len(), coefficients.len() + 1);
+
         let aa = 1.0 - alpha * alpha;
         d[0] = x;
         d[1] = aa * d[0] + alpha * d[1];
         let mut y = 0.0;
         let mut prev = d[1];
         for i in 2..coefficients.len() {
-            let di = d[i] + alpha * (d[i + 1] - prev);
-            y += di * coefficients[i];
-            d[i] = std::mem::replace(&mut prev, di);
+            unsafe {
+                let di = d.get_unchecked(i) + alpha * (d.get_unchecked(i + 1) - prev);
+                y += di * coefficients.buffer.get_unchecked(i);
+                *d.get_unchecked_mut(i) = std::mem::replace(&mut prev, di);
+            }
         }
         d[coefficients.len()] = prev;
 
