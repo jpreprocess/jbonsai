@@ -206,12 +206,11 @@ pub struct Engine {
 impl Engine {
     pub fn load<P: AsRef<Path>>(voices: &[P]) -> Engine {
         let ms = ModelSet::load_htsvoice_files(voices).unwrap();
-        Self::new(Arc::new(ms))
-    }
-    pub fn new(ms: Arc<ModelSet>) -> Engine {
         let mut condition = Condition::default();
         condition.load_model(&ms);
-
+        Self::new(Arc::new(ms), condition)
+    }
+    pub fn new(ms: Arc<ModelSet>, condition: Condition) -> Engine {
         Engine {
             condition,
             ms,
