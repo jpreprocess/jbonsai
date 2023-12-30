@@ -3,14 +3,16 @@ use std::{collections::HashMap, marker::PhantomData, str::FromStr};
 use nom::{
     bytes::complete::tag,
     character::complete::line_ending,
-    combinator::{cut, opt},
+    combinator::{cut, map, opt},
     error::{context, ContextError, ErrorKind, ParseError},
     multi::{fold_many0, many0, many1},
     sequence::{delimited, pair, preceded, separated_pair, terminated},
     IResult,
 };
 
-use crate::model::{stream::StreamModelMetadata, GlobalModelMetadata};
+use crate::model::{
+    parser::header_entry::HeaderEntry, stream::StreamModelMetadata, GlobalModelMetadata,
+};
 
 use super::base::ParseTarget;
 
@@ -22,37 +24,31 @@ enum ParseApplyError {
 }
 
 trait ApplyParsed {
-    fn apply<'a>(
-        &mut self,
-        k: (&'a str, Option<&'a str>),
-        v: &'a str,
-    ) -> Result<(), ParseApplyError>;
+    fn apply(&mut self, entry: HeaderEntry<String>) -> Result<(), ParseApplyError>;
     fn parse_value<T: FromStr>(v: &str) -> Result<T, ParseApplyError> {
         v.parse().map_err(|_| ParseApplyError::Value)
     }
 }
 
 impl ApplyParsed for GlobalModelMetadata {
-    fn apply<'a>(
-        &mut self,
-        k: (&'a str, Option<&'a str>),
-        v: &'a str,
-    ) -> Result<(), ParseApplyError> {
-        if k.1.is_some() {
+    fn apply<'a>(&mut self, entry: HeaderEntry<String>) -> Result<(), ParseApplyError> {
+        if entry.key_sub().is_some() {
             return Err(ParseApplyError::SubKey);
         }
-        match k.0 {
-            "HTS_VOICE_VERSION" => self.hts_voice_version = v.to_string(),
-            "SAMPLING_FREQUENCY" => self.sampling_frequency = Self::parse_value(v)?,
-            "FRAME_PERIOD" => self.frame_period = Self::parse_value(v)?,
-            "NUM_VOICES" => self.num_voices = Self::parse_value(v)?,
-            "NUM_STATES" => self.num_states = Self::parse_value(v)?,
-            "NUM_STREAMS" => self.num_streams = Self::parse_value(v)?,
-            "STREAM_TYPE" => self.stream_type = v.split(',').map(|s| s.to_string()).collect(),
-            "FULLCONTEXT_FORMAT" => self.fullcontext_format = v.to_string(),
-            "FULLCONTEXT_VERSION" => self.fullcontext_version = v.to_string(),
+        match entry.key_main() {
+            "HTS_VOICE_VERSION" => self.hts_voice_version = entry.value().to_string(),
+            "SAMPLING_FREQUENCY" => self.sampling_frequency = Self::parse_value(entry.value())?,
+            "FRAME_PERIOD" => self.frame_period = Self::parse_value(entry.value())?,
+            "NUM_VOICES" => self.num_voices = Self::parse_value(entry.value())?,
+            "NUM_STATES" => self.num_states = Self::parse_value(entry.value())?,
+            "NUM_STREAMS" => self.num_streams = Self::parse_value(entry.value())?,
+            "STREAM_TYPE" => {
+                self.stream_type = entry.value().split(',').map(|s| s.to_string()).collect()
+            }
+            "FULLCONTEXT_FORMAT" => self.fullcontext_format = entry.value().to_string(),
+            "FULLCONTEXT_VERSION" => self.fullcontext_version = entry.value().to_string(),
             "GV_OFF_CONTEXT" => {
-                self.gv_off_context = ParseTarget::parse_pattern_list::<()>(v)
+                self.gv_off_context = ParseTarget::parse_pattern_list::<()>(entry.value())
                     .or(Err(ParseApplyError::Value))?
                     .1
             }
@@ -69,21 +65,23 @@ pub struct Stream {
 }
 
 impl ApplyParsed for Stream {
-    fn apply<'a>(
-        &mut self,
-        k: (&'a str, Option<&'a str>),
-        v: &'a str,
-    ) -> Result<(), ParseApplyError> {
-        let Some(subkey) = k.1 else {
+    fn apply<'a>(&mut self, header_entry: HeaderEntry<String>) -> Result<(), ParseApplyError> {
+        let Some(subkey) = header_entry.key_sub() else {
             return Err(ParseApplyError::SubKey);
         };
         let entry = self.stream.entry(subkey.to_string()).or_default();
-        match k.0 {
-            "VECTOR_LENGTH" => entry.vector_length = Self::parse_value(v)?,
-            "NUM_WINDOWS" => entry.num_windows = Self::parse_value(v)?,
-            "IS_MSD" => entry.is_msd = v == "1",
-            "USE_GV" => entry.use_gv = v == "1",
-            "OPTION" => entry.option = v.split(',').map(|s| s.to_string()).collect(),
+        match header_entry.key_main() {
+            "VECTOR_LENGTH" => entry.vector_length = Self::parse_value(header_entry.value())?,
+            "NUM_WINDOWS" => entry.num_windows = Self::parse_value(header_entry.value())?,
+            "IS_MSD" => entry.is_msd = header_entry.value() == "1",
+            "USE_GV" => entry.use_gv = header_entry.value() == "1",
+            "OPTION" => {
+                entry.option = header_entry
+                    .value()
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect()
+            }
             _ => Err(ParseApplyError::MainKey)?,
         }
         Ok(())
@@ -107,33 +105,33 @@ pub struct PositionData {
 }
 
 impl ApplyParsed for Position {
-    fn apply<'a>(
-        &mut self,
-        k: (&'a str, Option<&'a str>),
-        v: &'a str,
-    ) -> Result<(), ParseApplyError> {
+    fn apply<'a>(&mut self, header_entry: HeaderEntry<String>) -> Result<(), ParseApplyError> {
         fn parse_duration(v: &str) -> Result<(usize, usize), ParseApplyError> {
             match v.split_once('-') {
                 Some((s, e)) => Ok((Position::parse_value(s)?, Position::parse_value(e)?)),
                 _ => Err(ParseApplyError::Value),
             }
         }
-        if let Some(subkey) = k.1 {
+        if let Some(subkey) = header_entry.key_sub() {
             let entry = self.position.entry(subkey.to_string()).or_default();
-            match k.0 {
+            match header_entry.key_main() {
                 "STREAM_WIN" => {
-                    entry.stream_win = v.split(',').map(parse_duration).collect::<Result<_, _>>()?
+                    entry.stream_win = header_entry
+                        .value()
+                        .split(',')
+                        .map(parse_duration)
+                        .collect::<Result<_, _>>()?
                 }
-                "STREAM_PDF" => entry.stream_pdf = parse_duration(v)?,
-                "STREAM_TREE" => entry.stream_tree = parse_duration(v)?,
-                "GV_PDF" => entry.gv_pdf = parse_duration(v)?,
-                "GV_TREE" => entry.gv_tree = parse_duration(v)?,
+                "STREAM_PDF" => entry.stream_pdf = parse_duration(header_entry.value())?,
+                "STREAM_TREE" => entry.stream_tree = parse_duration(header_entry.value())?,
+                "GV_PDF" => entry.gv_pdf = parse_duration(header_entry.value())?,
+                "GV_TREE" => entry.gv_tree = parse_duration(header_entry.value())?,
                 _ => Err(ParseApplyError::MainKey)?,
             }
         } else {
-            match k.0 {
-                "DURATION_PDF" => self.duration_pdf = parse_duration(v)?,
-                "DURATION_TREE" => self.duration_tree = parse_duration(v)?,
+            match header_entry.key_main() {
+                "DURATION_PDF" => self.duration_pdf = parse_duration(header_entry.value())?,
+                "DURATION_TREE" => self.duration_tree = parse_duration(header_entry.value())?,
                 _ => Err(ParseApplyError::MainKey)?,
             }
         }
@@ -148,17 +146,21 @@ where
     <S as nom::InputIter>::Item: nom::AsChar,
     <S as nom::InputTakeAtPosition>::Item: nom::AsChar,
 {
-    fn parse_entry<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, ((S, Option<S>), S), E> {
+    fn parse_entry<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, HeaderEntry<S>, E> {
         use nom::character::complete::char;
+
         context(
             "entry",
-            separated_pair(
-                pair(
-                    S::parse_identifier,
-                    opt(delimited(char('['), S::parse_identifier, char(']'))),
+            map(
+                separated_pair(
+                    pair(
+                        S::parse_identifier,
+                        opt(delimited(char('['), S::parse_identifier, char(']'))),
+                    ),
+                    char(':'),
+                    S::parse_ascii,
                 ),
-                char(':'),
-                S::parse_ascii,
+                HeaderEntry::new,
             ),
         )(i)
     }
@@ -174,29 +176,20 @@ where
                     return acc;
                 };
 
-                let ((key_main, key_sub), value) = {
-                    let (_, k0) = r.0 .0.parse_ascii_to_string()?;
-                    let k1 =
-                        r.0 .1
-                            .as_ref()
-                            .map(|s| s.parse_ascii_to_string().map(|s| s.1))
-                            .transpose()?;
-                    let (_, v) = r.1.parse_ascii_to_string()?;
-                    ((k0, k1), v)
-                };
+                let (_, entry) = r.parse_to_string()?;
 
-                match acc.apply((&key_main, key_sub.as_deref()), &value) {
+                match acc.apply(entry) {
                     Ok(()) => Ok(acc),
                     Err(ParseApplyError::MainKey) => Err(nom::Err::Failure(E::from_error_kind(
-                        r.0 .0,
+                        r.into_key_main(),
                         ErrorKind::Tag,
                     ))),
                     Err(ParseApplyError::SubKey) => Err(nom::Err::Failure(E::from_error_kind(
-                        r.0 .1.unwrap_or(r.0 .0),
+                        r.into_key_sub_or_main(),
                         ErrorKind::NonEmpty,
                     ))),
                     Err(ParseApplyError::Value) => Err(nom::Err::Failure(E::from_error_kind(
-                        r.1,
+                        r.into_value(),
                         ErrorKind::Verify,
                     ))),
                 }
@@ -245,7 +238,7 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::stream::Pattern;
+    use crate::model::{parser::header::HeaderEntry, stream::Pattern};
 
     use super::{HeaderParser, PositionData, StreamModelMetadata};
 
@@ -257,22 +250,28 @@ mod tests {
             ),
             Ok((
                 "\nGV_PDF[LF0]:1167762-1167789",
-                (("GV_PDF", Some("MCP")), "1167198-1167761")
+                HeaderEntry::new((("GV_PDF", Some("MCP")), "1167198-1167761"))
             ))
         );
         assert_eq!(
             HeaderParser::parse_entry::<VerboseError<&str>>("GV_PDF[LF0]:1167762-1167789"),
-            Ok(("", (("GV_PDF", Some("LF0")), "1167762-1167789")))
+            Ok((
+                "",
+                HeaderEntry::new((("GV_PDF", Some("LF0")), "1167762-1167789"))
+            ))
         );
         assert_eq!(
             HeaderParser::parse_entry::<VerboseError<&str>>(
                 "GV_OFF_CONTEXT:\"*-sil+*\",\"*-pau+*\""
             ),
-            Ok(("", (("GV_OFF_CONTEXT", None), "\"*-sil+*\",\"*-pau+*\"")))
+            Ok((
+                "",
+                HeaderEntry::new((("GV_OFF_CONTEXT", None), "\"*-sil+*\",\"*-pau+*\""))
+            ))
         );
         assert_eq!(
             HeaderParser::parse_entry::<VerboseError<&str>>("COMMENT:"),
-            Ok(("", (("COMMENT", None), "")))
+            Ok(("", HeaderEntry::new((("COMMENT", None), ""))))
         );
     }
     const CONTENT: &str = "
