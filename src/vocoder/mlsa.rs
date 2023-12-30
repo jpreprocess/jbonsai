@@ -77,25 +77,11 @@ impl MelLogSpectrumApproximation {
         *x += out;
     }
 
+    // Code optimization was done in [#12](https://github.com/jpreprocess/jbonsai/pull/12)
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
         let aa = 1.0 - alpha * alpha;
         d[0] = x;
         d[1] = aa * d[0] + alpha * d[1];
-
-        // Code optimization was done here.
-        // The original code is as follows.
-        // ```rs
-        // for i in 2..coefficients.len() {
-        //     d[i] += alpha * (d[i + 1] - d[i - 1]);
-        // }
-        // let mut y = 0.0;
-        // for i in 2..coefficients.len() {
-        //     y += d[i] * coefficients[i];
-        // }
-        // for i in (2..d.len()).rev() {
-        //     d[i] = d[i - 1];
-        // }
-        // ```
         let mut y = 0.0;
         let mut prev = d[1];
         for i in 2..coefficients.len() {
