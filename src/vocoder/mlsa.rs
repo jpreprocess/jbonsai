@@ -101,8 +101,7 @@ impl MelLogSpectrumApproximation {
         for i in 2..coefficients.len() {
             let di = d[i] + alpha * (d[i + 1] - prev);
             y += di * coefficients[i];
-            d[i] = prev;
-            prev = di;
+            d[i] = std::mem::replace(&mut prev, di);
         }
         d[coefficients.len()] = prev;
 
