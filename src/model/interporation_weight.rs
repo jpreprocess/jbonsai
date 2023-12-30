@@ -16,17 +16,23 @@ impl InterporationWeight {
         }
     }
 
+    /// Set duration weight
     /// weights.len() == nstream
+    /// weights.iter().sum() == 1.0
     pub fn set_duration(&mut self, weights: Vec<f64>) {
         Self::assert_weights(&weights);
         self.duration = weights;
     }
+    /// Set parameter weight
     /// weights.len() == nstream
+    /// weights.iter().sum() == 1.0
     pub fn set_parameter(&mut self, stream_index: usize, weights: Vec<f64>) {
         Self::assert_weights(&weights);
         self.parameter[stream_index] = weights;
     }
+    /// Set GV weight
     /// weights.len() == nstream
+    /// weights.iter().sum() == 1.0
     pub fn set_gv(&mut self, stream_index: usize, weights: Vec<f64>) {
         Self::assert_weights(&weights);
         self.gv[stream_index] = weights;
@@ -41,12 +47,15 @@ impl InterporationWeight {
         }
     }
 
+    /// Get duration weight
     pub fn get_duration(&self) -> &[f64] {
         &self.duration
     }
+    /// Get parameter weight
     pub fn get_parameter(&self, stream_index: usize) -> &[f64] {
         &self.parameter[stream_index]
     }
+    /// Get GV weight
     pub fn get_gv(&self, stream_index: usize) -> &[f64] {
         &self.gv[stream_index]
     }

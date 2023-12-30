@@ -12,24 +12,33 @@ use crate::vocoder::Vocoder;
 
 #[derive(Clone)]
 pub struct Condition {
-    pub sampling_frequency: usize,
+    /// Sampling frequency
+    sampling_frequency: usize,
+    /// Frame period
+    fperiod: usize,
+    /// Volume
+    volume: f64,
+    /// MSD thresholds
+    msd_threshold: Vec<f64>,
+    /// GV weights
+    gv_weight: Vec<f64>,
+    /// Flag for using phoneme alignment in label
+    phoneme_alignment_flag: bool,
+    /// Speech speed
+    speed: f64,
+    /// If stage = 0 then gamma = 0 else gamma = -1/stage
+    stage: usize,
+    /// Log gain flag (for LSP)
+    use_log_gain: bool,
+    /// All-pass constant
+    alpha: f64,
+    /// Postfiltering coefficient
+    beta: f64,
+    /// Additional half tone
+    additional_half_tone: f64,
 
-    pub speed: f64,
-    pub phoneme_alignment_flag: bool,
-    pub interporation_weight: InterporationWeight,
-
-    pub additional_half_tone: f64,
-
-    pub msd_threshold: Vec<f64>,
-    pub gv_weight: Vec<f64>,
-
-    pub stage: usize,
-    pub use_log_gain: bool,
-    pub fperiod: usize,
-
-    pub alpha: f64,
-    pub beta: f64,
-    pub volume: f64,
+    /// Interporation weights
+    interporation_weight: InterporationWeight,
 }
 
 impl Default for Condition {
@@ -81,77 +90,105 @@ impl Condition {
         self.interporation_weight = InterporationWeight::new(voice_len, nstream);
     }
 
+    /// Set sampling frequency (Hz), 1 <= i
     pub fn set_sampling_frequency(&mut self, i: usize) {
         self.sampling_frequency = i.max(1);
     }
-
+    /// Get sampling frequency
     pub fn get_sampling_frequency(&self) -> usize {
         self.sampling_frequency
     }
 
+    /// Set frame shift (point), 1 <= i
     pub fn set_fperiod(&mut self, i: usize) {
         self.fperiod = i.max(1);
     }
-
+    /// Get frame shift (point)
     pub fn get_fperiod(&mut self) -> usize {
         self.fperiod
     }
 
+    /// Set volume in db
+    /// Note: Default value is 0.0.
     pub fn set_volume(&mut self, f: f64) {
         self.volume = (f * DB).exp();
     }
-
+    /// Get volume in db
     pub fn get_volume(&self) -> f64 {
         self.volume.ln() / DB
     }
 
+    /// Set threshold for MSD
     pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
         self.msd_threshold[stream_index] = f.min(1.0).max(0.0);
     }
-
+    /// Get threshold for MSD
     pub fn get_msd_threshold(&self, stream_index: usize) -> f64 {
         self.msd_threshold[stream_index]
     }
 
+    /// Set GV weight
+    /// Note: Default value is 1.0.
     pub fn set_gv_weight(&mut self, stream_index: usize, f: f64) {
         self.gv_weight[stream_index] = f.max(0.0);
     }
-
+    /// Get GV weight
     pub fn get_gv_weight(&self, stream_index: usize) -> f64 {
         self.gv_weight[stream_index]
     }
 
+    /// Set speed
+    /// Note: Default value is 1.0.
     pub fn set_speed(&mut self, f: f64) {
         self.speed = f.max(1.0E-06);
     }
+    /// Get speed
+    pub fn get_speed(&self) -> f64 {
+        self.speed
+    }
 
+    /// Set flag to use phoneme alignment in label
+    /// Note: Default value is 1.0.
     pub fn set_phoneme_alignment_flag(&mut self, b: bool) {
         self.phoneme_alignment_flag = b;
     }
+    /// Get flag to use phoneme alignment in label
+    pub fn get_phoneme_alignment_flag(&self) -> bool {
+        self.phoneme_alignment_flag
+    }
 
+    /// Set frequency warping parameter alpha
     pub fn set_alpha(&mut self, f: f64) {
         self.alpha = f.max(0.0).min(1.0);
     }
-
+    /// Get frequency warping parameter alpha
     pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 
+    /// Set postfiltering coefficient parameter beta
     pub fn set_beta(&mut self, f: f64) {
         self.beta = f.max(0.0).min(1.0);
     }
-
+    /// Get postfiltering coefficient parameter beta
     pub fn get_beta(&self) -> f64 {
         self.beta
     }
 
-    pub fn add_half_tone(&mut self, f: f64) {
+    /// Set additional half tone
+    pub fn set_additional_half_tone(&mut self, f: f64) {
         self.additional_half_tone = f;
     }
+    /// Get additional half tone
+    pub fn get_additional_half_tone(&self) -> f64 {
+        self.additional_half_tone
+    }
 
+    /// Get interporation weight
     pub fn get_interporation_weight(&self) -> &InterporationWeight {
         &self.interporation_weight
     }
+    /// Get interporation weight as mutable reference
     pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
         &mut self.interporation_weight
     }
