@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,66 +15,66 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-    - name: Cache Cargo dependencies
-      uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
 
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose -- --include-ignored
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose -- --include-ignored
 
-    - name: Run Clippy
-      run: |
-        rustup component add clippy --toolchain nightly-x86_64-unknown-linux-gnu
-        cargo clippy --all-targets
-    - name: Run Format Check
-      run: |
-        rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
-        cargo fmt --check
+      - name: Run Clippy
+        run: |
+          rustup component add clippy --toolchain nightly-x86_64-unknown-linux-gnu
+          cargo clippy --all-targets
+      - name: Run Format Check
+        run: |
+          rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
+          cargo fmt --check
 
   build-stable:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-    - name: Use stable
-      run: echo 'stable' > rust-toolchain
+      - name: Use stable
+        run: echo 'stable' > rust-toolchain
 
-    - name: Cache Cargo dependencies
-      uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
 
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose -- --include-ignored
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose -- --include-ignored
 
   check-msrv:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
-    - name: Reset rust-toolchain
-      run: rm rust-toolchain
+      - name: Reset rust-toolchain
+        run: rm rust-toolchain
 
-    - name: Get MSRV
-      id: msrv
-      run: echo "msrv=$(cargo metadata --no-deps --format-version=1 | jq -r ".packages[] | select(.name==\"jbonsai\") | .rust_version")" >> $GITHUB_OUTPUT
+      - name: Get MSRV
+        id: msrv
+        run: echo "msrv=$(cargo metadata --no-deps --format-version=1 | jq -r ".packages[] | select(.name==\"jbonsai\") | .rust_version")" >> $GITHUB_OUTPUT
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@439cf607258077187679211f12aa6f19af4a0af7 # master
-      with:
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@439cf607258077187679211f12aa6f19af4a0af7 # master
+        with:
           toolchain: ${{ steps.msrv.outputs.msrv }}
 
-    - name: Cache Cargo dependencies
-      uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
 
-    - name: Print version
-      run: |
-        cargo --version
-        rustc --version
+      - name: Print version
+        run: |
+          cargo --version
+          rustc --version
 
-    - name: Run test
-      run: cargo test --verbose
+      - name: Run test
+        run: cargo test --verbose
