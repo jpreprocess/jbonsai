@@ -167,7 +167,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn load(voices: &[String]) -> Engine {
+    pub fn load<P: AsRef<Path>>(voices: &[P]) -> Engine {
         let ms = ModelSet::load_htsvoice_files(voices).unwrap();
         Self::new(Arc::new(ms))
     }
@@ -185,7 +185,7 @@ impl Engine {
         }
     }
 
-    pub fn get_total_state(&mut self) -> usize {
+    pub fn get_total_state(&self) -> usize {
         self.sss.as_ref().unwrap().get_total_state()
     }
 
