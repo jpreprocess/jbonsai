@@ -68,7 +68,7 @@ impl MelLogSpectrumApproximation {
     fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let mut out = 0.0;
         for i in (1..=self.pd).rev() {
-            self.d22[i] = self.fir(self.d22[i - 1], alpha, coefficients, i - 1);
+            self.d22[i] = Self::fir(&mut self.d21[i - 1], self.d22[i - 1], alpha, coefficients);
             let v = self.d22[i] * self.ppade[i];
             *x += if i & 1 != 0 { v } else { -v };
             out += v;
@@ -77,21 +77,20 @@ impl MelLogSpectrumApproximation {
         *x += out;
     }
 
-    fn fir(&mut self, x: f64, alpha: f64, coefficients: &'_ Coefficients, i: usize) -> f64 {
+    // Code optimization was done in [#12](https://github.com/jpreprocess/jbonsai/pull/12)
+    fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
         let aa = 1.0 - alpha * alpha;
-        let d = &mut self.d21[i];
         d[0] = x;
         d[1] = aa * d[0] + alpha * d[1];
-        for i in 2..coefficients.len() {
-            d[i] += alpha * (d[i + 1] - d[i - 1]);
-        }
         let mut y = 0.0;
+        let mut prev = d[1];
         for i in 2..coefficients.len() {
-            y += d[i] * coefficients[i];
+            let di = d[i] + alpha * (d[i + 1] - prev);
+            y += di * coefficients[i];
+            d[i] = std::mem::replace(&mut prev, di);
         }
-        for i in (2..d.len()).rev() {
-            d[i] = d[i - 1];
-        }
+        d[coefficients.len()] = prev;
+
         y
     }
 }
