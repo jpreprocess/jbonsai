@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::constants::{DB, HALF_TONE, MAX_LF0, MIN_LF0};
@@ -251,34 +252,21 @@ impl Engine {
             self.condition.speed,
             &self.condition.interporation_weight,
         );
-        if self.condition.additional_half_tone != 0.0 {
-            for i in 0..self.get_total_state() {
-                let mut f = self.get_state_mean(1, i, 0);
+        self.apply_additional_half_tone();
+    }
+
+    fn apply_additional_half_tone(&mut self) {
+        if self.condition.additional_half_tone == 0.0 {
+            return;
+        }
+        if let Some(ref mut sss) = self.sss {
+            for i in 0..sss.get_total_state() {
+                let mut f = sss.get_mean(1, i, 0);
                 f += self.condition.additional_half_tone * HALF_TONE;
                 f = f.max(MIN_LF0).min(MAX_LF0);
-                self.set_state_mean(1, i, 0, f);
+                sss.set_mean(1, i, 0, f);
             }
         }
-    }
-
-    fn set_state_mean(
-        &mut self,
-        stream_index: usize,
-        state_index: usize,
-        vector_index: usize,
-        f: f64,
-    ) {
-        self.sss
-            .as_mut()
-            .unwrap()
-            .set_mean(stream_index, state_index, vector_index, f);
-    }
-
-    fn get_state_mean(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
-        self.sss
-            .as_ref()
-            .unwrap()
-            .get_mean(stream_index, state_index, vector_index)
     }
 
     fn generate_parameter_sequence(&mut self) {
