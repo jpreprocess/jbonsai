@@ -93,7 +93,7 @@ mod tests {
         let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
 
         let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
-        engine.set_speed(1.4);
+        engine.condition.set_speed(1.4);
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 72000);

@@ -79,6 +79,81 @@ impl Condition {
         /* interpolation weights */
         self.interporation_weight = InterporationWeight::new(voice_len, nstream);
     }
+
+    pub fn set_sampling_frequency(&mut self, i: usize) {
+        self.sampling_frequency = i.max(1);
+    }
+
+    pub fn get_sampling_frequency(&self) -> usize {
+        self.sampling_frequency
+    }
+
+    pub fn set_fperiod(&mut self, i: usize) {
+        self.fperiod = i.max(1);
+    }
+
+    pub fn get_fperiod(&mut self) -> usize {
+        self.fperiod
+    }
+
+    pub fn set_volume(&mut self, f: f64) {
+        self.volume = (f * DB).exp();
+    }
+
+    pub fn get_volume(&self) -> f64 {
+        self.volume.ln() / DB
+    }
+
+    pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
+        self.msd_threshold[stream_index] = f.min(1.0).max(0.0);
+    }
+
+    pub fn get_msd_threshold(&self, stream_index: usize) -> f64 {
+        self.msd_threshold[stream_index]
+    }
+
+    pub fn set_gv_weight(&mut self, stream_index: usize, f: f64) {
+        self.gv_weight[stream_index] = f.max(0.0);
+    }
+
+    pub fn get_gv_weight(&self, stream_index: usize) -> f64 {
+        self.gv_weight[stream_index]
+    }
+
+    pub fn set_speed(&mut self, f: f64) {
+        self.speed = f.max(1.0E-06);
+    }
+
+    pub fn set_phoneme_alignment_flag(&mut self, b: bool) {
+        self.phoneme_alignment_flag = b;
+    }
+
+    pub fn set_alpha(&mut self, f: f64) {
+        self.alpha = f.max(0.0).min(1.0);
+    }
+
+    pub fn get_alpha(&self) -> f64 {
+        self.alpha
+    }
+
+    pub fn set_beta(&mut self, f: f64) {
+        self.beta = f.max(0.0).min(1.0);
+    }
+
+    pub fn get_beta(&self) -> f64 {
+        self.beta
+    }
+
+    pub fn add_half_tone(&mut self, f: f64) {
+        self.additional_half_tone = f;
+    }
+
+    pub fn get_interporation_weight(&self) -> &InterporationWeight {
+        &self.interporation_weight
+    }
+    pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
+        &mut self.interporation_weight
+    }
 }
 
 pub struct Engine {
@@ -107,81 +182,6 @@ impl Engine {
             pss: None,
             gss: None,
         }
-    }
-
-    pub fn set_sampling_frequency(&mut self, i: usize) {
-        self.condition.sampling_frequency = i.max(1);
-    }
-
-    pub fn get_sampling_frequency(&self) -> usize {
-        self.condition.sampling_frequency
-    }
-
-    pub fn set_fperiod(&mut self, i: usize) {
-        self.condition.fperiod = i.max(1);
-    }
-
-    pub fn get_fperiod(&mut self) -> usize {
-        self.condition.fperiod
-    }
-
-    pub fn set_volume(&mut self, f: f64) {
-        self.condition.volume = (f * DB).exp();
-    }
-
-    pub fn get_volume(&self) -> f64 {
-        self.condition.volume.ln() / DB
-    }
-
-    pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
-        self.condition.msd_threshold[stream_index] = f.min(1.0).max(0.0);
-    }
-
-    pub fn get_msd_threshold(&self, stream_index: usize) -> f64 {
-        self.condition.msd_threshold[stream_index]
-    }
-
-    pub fn set_gv_weight(&mut self, stream_index: usize, f: f64) {
-        self.condition.gv_weight[stream_index] = f.max(0.0);
-    }
-
-    pub fn get_gv_weight(&self, stream_index: usize) -> f64 {
-        self.condition.gv_weight[stream_index]
-    }
-
-    pub fn set_speed(&mut self, f: f64) {
-        self.condition.speed = f.max(1.0E-06);
-    }
-
-    pub fn set_phoneme_alignment_flag(&mut self, b: bool) {
-        self.condition.phoneme_alignment_flag = b;
-    }
-
-    pub fn set_alpha(&mut self, f: f64) {
-        self.condition.alpha = f.max(0.0).min(1.0);
-    }
-
-    pub fn get_alpha(&self) -> f64 {
-        self.condition.alpha
-    }
-
-    pub fn set_beta(&mut self, f: f64) {
-        self.condition.beta = f.max(0.0).min(1.0);
-    }
-
-    pub fn get_beta(&self) -> f64 {
-        self.condition.beta
-    }
-
-    pub fn add_half_tone(&mut self, f: f64) {
-        self.condition.additional_half_tone = f;
-    }
-
-    pub fn get_interporation_weight(&self) -> &InterporationWeight {
-        &self.condition.interporation_weight
-    }
-    pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
-        &mut self.condition.interporation_weight
     }
 
     pub fn get_total_state(&mut self) -> usize {
