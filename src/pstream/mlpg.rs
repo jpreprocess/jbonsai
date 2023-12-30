@@ -42,6 +42,7 @@ impl MlpgMatrix {
             self.wuw.push(vec![0.0; self.width]);
             self.wum.push(0.0);
 
+            #[allow(clippy::needless_range_loop)]
             for i in 0..self.win_size {
                 for shift in sss.get_window_left_width(stream_index, i)
                     ..=sss.get_window_right_width(stream_index, i)
@@ -180,6 +181,8 @@ impl<'a> MlpgGlobalVariance<'a> {
     }
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
         let mut g = vec![0.0; self.mtx.length];
+
+        #[allow(clippy::needless_range_loop)]
         for t in 0..self.mtx.length {
             g[t] = self.mtx.wuw[t][0] * self.par[t];
             for i in 1..self.mtx.width {
@@ -194,6 +197,8 @@ impl<'a> MlpgGlobalVariance<'a> {
 
         let w = 1.0 / ((self.mtx.win_size * self.mtx.length) as f64);
         let mut hmmobj = 0.0;
+
+        #[allow(clippy::needless_range_loop)]
         for t in 0..self.mtx.length {
             hmmobj += W1 * w * self.par[t] * (self.mtx.wum[t] - 0.5 * g[t]);
         }
@@ -213,6 +218,8 @@ impl<'a> MlpgGlobalVariance<'a> {
 
         let w = 1.0 / ((self.mtx.win_size * length) as f64);
         let dv = -2.0 * gv_vari * (vari - gv_mean) / self.mtx.length as f64;
+
+        #[allow(clippy::needless_range_loop)]
         for t in 0..length {
             let h = -W1 * w * self.mtx.wuw[t][0]
                 - W2 * 2.0 / (length * length) as f64
