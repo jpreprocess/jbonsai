@@ -60,8 +60,8 @@ impl Condition {
         /* global */
         self.sampling_frequency = ms.get_sampling_frequency();
         self.fperiod = ms.get_fperiod();
-        self.msd_threshold = (0..nstream).map(|_| 0.5).collect();
-        self.gv_weight = (0..nstream).map(|_| 1.0).collect();
+        self.msd_threshold = [0.5].repeat(nstream);
+        self.gv_weight = [1.0].repeat(nstream);
 
         /* spectrum */
         for option in ms.get_option(0) {
