@@ -77,7 +77,9 @@ impl MelLogSpectrumApproximation {
         *x += out;
     }
 
-    // Code optimization was done in [#12](https://github.com/jpreprocess/jbonsai/pull/12)
+    // Code optimization was done in
+    // [#12](https://github.com/jpreprocess/jbonsai/pull/12)
+    // [#16](https://github.com/jpreprocess/jbonsai/pull/16)
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
         // This ensures the unsafe code will not cause undefined behavior
         assert_eq!(d.len(), coefficients.len() + 1);
