@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //     },
     // )?;
     // for i in 0..engine.get_total_nsamples() {
-    //     let value = engine.get_generated_speech(i);
+    //     let value = engine.get_generated_speech_with_index(i);
     //     writer.write_sample(value as i16)?;
     // }
 

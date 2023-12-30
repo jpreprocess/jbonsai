@@ -214,11 +214,13 @@ impl Engine {
     }
 
     pub fn get_total_nsamples(&self) -> usize {
-        self.gss.as_ref().unwrap().get_total_nsamples()
+        self.gss.as_ref().unwrap().get_speech().len()
     }
-
-    pub fn get_generated_speech(&self, index: usize) -> f64 {
-        self.gss.as_ref().unwrap().get_speech(index)
+    pub fn get_generated_speech(&self) -> &[f64] {
+        self.gss.as_ref().unwrap().get_speech()
+    }
+    pub fn get_generated_speech_with_index(&self, index: usize) -> f64 {
+        self.gss.as_ref().unwrap().get_speech()[index]
     }
 
     pub fn synthesize_from_strings(&mut self, lines: &[String]) {

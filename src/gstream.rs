@@ -68,12 +68,8 @@ impl GenerateSpeechStreamSet {
         GenerateSpeechStreamSet { speech }
     }
 
-    /// Get total number of sample
-    pub fn get_total_nsamples(&self) -> usize {
-        self.speech.len()
-    }
-    /// Get synthesized speech parameter
-    pub fn get_speech(&self, sample_index: usize) -> f64 {
-        self.speech[sample_index]
+    /// Get synthesized speech waveform
+    pub fn get_speech(&self) -> &[f64] {
+        &self.speech
     }
 }

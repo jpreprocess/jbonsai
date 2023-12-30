@@ -35,9 +35,9 @@ mod tests {
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 66480);
-        let l2000 = engine.get_generated_speech(2000);
+        let l2000 = engine.get_generated_speech_with_index(2000);
         approx::assert_abs_diff_eq!(l2000, 19.35141137623778, epsilon = 1.0e-10);
-        let l30000 = engine.get_generated_speech(30000);
+        let l30000 = engine.get_generated_speech_with_index(30000);
         approx::assert_abs_diff_eq!(l30000, -980.6757547598129, epsilon = 1.0e-10);
     }
 
@@ -78,13 +78,13 @@ mod tests {
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 100800);
-        let l2000 = engine.get_generated_speech(2000);
+        let l2000 = engine.get_generated_speech_with_index(2000);
         approx::assert_abs_diff_eq!(l2000, 17.15977345625943, epsilon = 1.0e-10);
-        let l30000 = engine.get_generated_speech(30000);
+        let l30000 = engine.get_generated_speech_with_index(30000);
         approx::assert_abs_diff_eq!(l30000, 2566.2058730889985, epsilon = 1.0e-10);
-        let l70000 = engine.get_generated_speech(70000);
+        let l70000 = engine.get_generated_speech_with_index(70000);
         approx::assert_abs_diff_eq!(l70000, -1898.2890228814217, epsilon = 1.0e-10);
-        let l100799 = engine.get_generated_speech(100799);
+        let l100799 = engine.get_generated_speech_with_index(100799);
         approx::assert_abs_diff_eq!(l100799, -13.514971382534956, epsilon = 1.0e-10);
     }
 
@@ -97,13 +97,13 @@ mod tests {
 
         engine.synthesize_from_strings(&lines);
         assert_eq!(engine.get_total_nsamples(), 72000);
-        let l2000 = engine.get_generated_speech(2000);
+        let l2000 = engine.get_generated_speech_with_index(2000);
         approx::assert_abs_diff_eq!(l2000, 15.0481014871396, epsilon = 1.0e-10);
-        let l30000 = engine.get_generated_speech(30000);
+        let l30000 = engine.get_generated_speech_with_index(30000);
         approx::assert_abs_diff_eq!(l30000, -56.77163803227678, epsilon = 1.0e-10);
-        let l70000 = engine.get_generated_speech(70000);
+        let l70000 = engine.get_generated_speech_with_index(70000);
         approx::assert_abs_diff_eq!(l70000, -9.15409432584658, epsilon = 1.0e-10);
-        let l71199 = engine.get_generated_speech(71199);
+        let l71199 = engine.get_generated_speech_with_index(71199);
         approx::assert_abs_diff_eq!(l71199, 7.840225089163972, epsilon = 1.0e-10);
     }
 
