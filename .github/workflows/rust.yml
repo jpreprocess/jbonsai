@@ -12,14 +12,10 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-    - name: Use stable in CI
-      run: echo 'stable' > rust-toolchain
 
     - name: Cache Cargo dependencies
       uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
@@ -30,9 +26,28 @@ jobs:
       run: cargo test --verbose -- --include-ignored
 
     - name: Run Clippy
-      run: cargo clippy --all-targets
+      run: |
+        rustup component add clippy --toolchain nightly-x86_64-unknown-linux-gnu
+        cargo clippy --all-targets
     - name: Run Format Check
       run: cargo fmt --check
+
+  build-stable:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+    - name: Use stable
+      run: echo 'stable' > rust-toolchain
+
+    - name: Cache Cargo dependencies
+      uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose -- --include-ignored
 
   check-msrv:
     runs-on: ubuntu-latest
