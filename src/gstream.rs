@@ -27,7 +27,7 @@ impl GenerateSpeechStreamSet {
 
         // create speech buffer
         let total_frame = pss.get_total_frame();
-        let mut speech = Vec::with_capacity(total_frame * fperiod);
+        let mut speech = vec![0.0; total_frame * fperiod];
 
         // synthesize speech waveform
         let mut frame_skipped_index = vec![0; pss.get_nstream()];
@@ -55,8 +55,15 @@ impl GenerateSpeechStreamSet {
                 .map(|vector_index| get_parameter(0, vector_index))
                 .collect();
 
-            let rawdata = v.synthesize(get_parameter(1, 0), &spectrum, &lpf, alpha, beta, volume);
-            speech.extend(rawdata);
+            v.synthesize(
+                get_parameter(1, 0),
+                &spectrum,
+                &lpf,
+                alpha,
+                beta,
+                volume,
+                &mut speech[i * fperiod..(i + 1) * fperiod],
+            );
 
             for (j, index) in frame_skipped_index.iter_mut().enumerate() {
                 if pss.get_msd_flag(j, i) {
