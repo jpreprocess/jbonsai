@@ -188,31 +188,6 @@ impl Engine {
         self.sss.as_ref().unwrap().get_total_state()
     }
 
-    pub fn set_state_mean(
-        &mut self,
-        stream_index: usize,
-        state_index: usize,
-        vector_index: usize,
-        f: f64,
-    ) {
-        self.sss
-            .as_mut()
-            .unwrap()
-            .set_mean(stream_index, state_index, vector_index, f);
-    }
-
-    pub fn get_state_mean(
-        &self,
-        stream_index: usize,
-        state_index: usize,
-        vector_index: usize,
-    ) -> f64 {
-        self.sss
-            .as_ref()
-            .unwrap()
-            .get_mean(stream_index, state_index, vector_index)
-    }
-
     pub fn get_state_duration(&self, state_index: usize) -> usize {
         self.sss.as_ref().unwrap().get_duration(state_index)
     }
@@ -284,6 +259,26 @@ impl Engine {
                 self.set_state_mean(1, i, 0, f);
             }
         }
+    }
+
+    fn set_state_mean(
+        &mut self,
+        stream_index: usize,
+        state_index: usize,
+        vector_index: usize,
+        f: f64,
+    ) {
+        self.sss
+            .as_mut()
+            .unwrap()
+            .set_mean(stream_index, state_index, vector_index, f);
+    }
+
+    fn get_state_mean(&self, stream_index: usize, state_index: usize, vector_index: usize) -> f64 {
+        self.sss
+            .as_ref()
+            .unwrap()
+            .get_mean(stream_index, state_index, vector_index)
     }
 
     fn generate_parameter_sequence(&mut self) {
