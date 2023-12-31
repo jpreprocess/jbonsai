@@ -164,8 +164,8 @@ impl ModelParameter {
             self.parameters[i].0 += weight * p.0;
             self.parameters[i].1 += weight * p.1;
         }
-        if let (Some(ref mut msd), Some(rhs)) = (self.msd, rhs.msd) {
-            *msd += weight * rhs
+        if let (Some(msd), Some(rhs)) = (self.msd.as_mut(), rhs.msd) {
+            *msd += weight * rhs;
         }
     }
 }

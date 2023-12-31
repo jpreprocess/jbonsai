@@ -203,19 +203,12 @@ impl ModelSet {
     }
     /// Get duration using interpolation weight
     pub fn get_duration(&self, string: &str, iw: &[f64]) -> ModelParameter {
-        self.voices
-            .iter()
-            .enumerate()
-            .fold(None::<ModelParameter>, |mut acc, (i, curr)| {
-                let params = curr.duration_model.get_parameter(2, string);
-                if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i], params);
-                } else {
-                    acc = Some(params.clone());
-                }
-                acc
-            })
-            .unwrap()
+        let mut params = ModelParameter::new(self.get_nstate(), false);
+        for (voice, weight) in self.voices.iter().zip(iw) {
+            let curr_params = voice.duration_model.get_parameter(2, string);
+            params.add_assign(*weight, curr_params);
+        }
+        params
     }
     /// Get paramter PDF & tree index
     pub fn get_parameter_index(
@@ -237,21 +230,17 @@ impl ModelSet {
         string: &str,
         iw: &[f64],
     ) -> ModelParameter {
-        self.voices
-            .iter()
-            .enumerate()
-            .fold(None::<ModelParameter>, |mut acc, (i, curr)| {
-                let params = curr.stream_models[stream_index]
-                    .stream_model
-                    .get_parameter(state_index, string);
-                if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i], params);
-                } else {
-                    acc = Some(params.clone());
-                }
-                acc
-            })
-            .unwrap()
+        let mut params = ModelParameter::new(
+            self.get_vector_length(stream_index) * self.get_window_size(stream_index),
+            self.is_msd(stream_index),
+        );
+        for (voice, weight) in self.voices.iter().zip(iw) {
+            let curr_params = voice.stream_models[stream_index]
+                .stream_model
+                .get_parameter(state_index, string);
+            params.add_assign(*weight, curr_params);
+        }
+        params
     }
     /// Get gv PDF & tree index
     pub fn get_gv_index(
@@ -268,23 +257,16 @@ impl ModelSet {
     }
     /// Get GV using interpolation weight
     pub fn get_gv(&self, stream_index: usize, string: &str, iw: &[f64]) -> ModelParameter {
-        self.voices
-            .iter()
-            .enumerate()
-            .fold(None::<ModelParameter>, |mut acc, (i, curr)| {
-                let params = curr.stream_models[stream_index]
-                    .gv_model
-                    .as_ref()
-                    .unwrap()
-                    .get_parameter(2, string);
-                if let Some(ref mut acc) = acc {
-                    acc.add_assign(iw[i], params);
-                } else {
-                    acc = Some(params.clone());
-                }
-                acc
-            })
-            .unwrap()
+        let mut params = ModelParameter::new(self.get_vector_length(stream_index), false);
+        for (voice, weight) in self.voices.iter().zip(iw) {
+            let curr_params = voice.stream_models[stream_index]
+                .gv_model
+                .as_ref()
+                .unwrap()
+                .get_parameter(2, string);
+            params.add_assign(*weight, curr_params);
+        }
+        params
     }
 }
 
