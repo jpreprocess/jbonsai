@@ -322,7 +322,9 @@ impl Display for Voice {
 mod tests {
     use crate::{
         model::{stream::ModelParameter, ModelSet},
-        tests::{MODEL_NITECH_ATR503, SAMPLE_SENTENCE_1},
+        tests::{
+            MODEL_NITECH_ATR503, MODEL_TOHOKU_F01_HAPPY, MODEL_TOHOKU_F01_NORMAL, SAMPLE_SENTENCE_1,
+        },
     };
 
     fn load_models() -> ModelSet {
@@ -413,6 +415,37 @@ mod tests {
         assert_eq!(jsyn.get_window_coefficient(0, 1, 0), 0.0);
         assert_eq!(jsyn.get_window_coefficient(0, 1, 1), 0.5);
         assert_eq!(jsyn.get_window_max_width(0), 1);
+    }
+
+    #[test]
+    fn multiple_models() {
+        let modelset =
+            ModelSet::load_htsvoice_files(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY])
+                .unwrap();
+        assert_eq!(
+            modelset.get_duration(SAMPLE_SENTENCE_1[2], &[0.7, 0.3]),
+            ModelParameter {
+                parameters: vec![
+                    (3.345043873786926, 6.943870377540589),
+                    (9.866290760040282, 59.23959312438964),
+                    (5.616884994506836, 16.154539680480955),
+                    (1.7678393721580503, 0.9487730085849762),
+                    (1.3566675186157227, 1.2509666562080382)
+                ],
+                msd: None
+            }
+        );
+        assert_eq!(
+            modelset.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &[0.7, 0.3]),
+            ModelParameter {
+                parameters: vec![
+                    (5.354794883728027, 0.00590993594378233),
+                    (-0.004957371624186635, 0.00017984867736231536),
+                    (0.010301648452877997, 0.00044686400215141473)
+                ],
+                msd: Some(0.9955164790153503)
+            }
+        );
     }
 
     #[test]

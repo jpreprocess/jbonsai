@@ -14,6 +14,8 @@ mod tests {
 
     pub const MODEL_NITECH_ATR503: &str =
         "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice";
+    pub const MODEL_TOHOKU_F01_NORMAL: &str = "models/tohoku-f01/tohoku-f01-neutral.htsvoice";
+    pub const MODEL_TOHOKU_F01_HAPPY: &str = "models/tohoku-f01/tohoku-f01-happy.htsvoice";
 
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
     pub const SAMPLE_SENTENCE_1: [&str;8]= [
