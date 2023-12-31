@@ -46,11 +46,13 @@ impl MelLogSpectrumApproximation {
         }
     }
 
+    #[inline(always)]
     pub fn df(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         self.df1(x, alpha, coefficients);
         self.df2(x, alpha, coefficients);
     }
 
+    #[inline(always)]
     fn df1(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let aa = 1.0 - alpha * alpha;
         let mut out = 0.0;
@@ -65,6 +67,7 @@ impl MelLogSpectrumApproximation {
         *x += out;
     }
 
+    #[inline(always)]
     fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let mut out = 0.0;
         for i in (1..=self.pd).rev() {
@@ -80,6 +83,7 @@ impl MelLogSpectrumApproximation {
     // Code optimization was done in
     // [#12](https://github.com/jpreprocess/jbonsai/pull/12)
     // [#16](https://github.com/jpreprocess/jbonsai/pull/16)
+    #[inline(always)]
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
         // This ensures the unsafe code will not cause undefined behavior
         assert_eq!(d.len(), coefficients.len() + 1);
