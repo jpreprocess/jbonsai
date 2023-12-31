@@ -197,6 +197,17 @@ impl Condition {
     pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
         &mut self.interporation_weight
     }
+
+    /// Set multithread chunk size
+    #[cfg(feature = "multithread")]
+    pub fn set_multithread_chunk_size(&mut self, i: usize) {
+        self.chunk_size = i;
+    }
+    /// Get multithread chunk size
+    #[cfg(feature = "multithread")]
+    pub fn get_multithread_chunk_size(&self) -> usize {
+        self.chunk_size
+    }
 }
 
 pub struct Engine {
@@ -335,6 +346,7 @@ impl Engine {
             self.pss.as_ref().unwrap(),
             vocoder,
             self.condition.fperiod,
+            self.condition.chunk_size,
         ));
     }
 }

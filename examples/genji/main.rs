@@ -7,6 +7,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut engine = Engine::load(&vec![
         "models/tohoku-f01/tohoku-f01-sad.htsvoice".to_string()
     ]);
+
+    engine.condition.set_multithread_chunk_size(1000);
+
     engine.synthesize_from_strings(&lines);
 
     println!(
