@@ -104,7 +104,7 @@ impl Condition {
         self.fperiod = i.max(1);
     }
     /// Get frame shift (point)
-    pub fn get_fperiod(&mut self) -> usize {
+    pub fn get_fperiod(&self) -> usize {
         self.fperiod
     }
 
