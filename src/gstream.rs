@@ -6,14 +6,7 @@ pub struct GenerateSpeechStreamSet {
 
 impl GenerateSpeechStreamSet {
     /// Generate speech
-    pub fn create(
-        pss: &ParameterStreamSet,
-        mut v: Vocoder,
-        fperiod: usize,
-        alpha: f64,
-        beta: f64,
-        volume: f64,
-    ) -> Self {
+    pub fn create(pss: &ParameterStreamSet, mut v: Vocoder, fperiod: usize) -> Self {
         // check
         if pss.get_nstream() != 2 && pss.get_nstream() != 3 {
             panic!("The number of streams must be 2 or 3.");
@@ -59,9 +52,6 @@ impl GenerateSpeechStreamSet {
                 get_parameter(1, 0),
                 &spectrum,
                 &lpf,
-                alpha,
-                beta,
-                volume,
                 &mut speech[i * fperiod..(i + 1) * fperiod],
             );
 

@@ -39,6 +39,9 @@ pub struct Condition {
 
     /// Interporation weights
     interporation_weight: InterporationWeight,
+
+    /// Vocoder chunk size
+    chunk_size: usize,
 }
 
 impl Default for Condition {
@@ -57,6 +60,7 @@ impl Default for Condition {
             beta: 0.0f64,
             additional_half_tone: 0.0f64,
             interporation_weight: InterporationWeight::default(),
+            chunk_size: usize::MAX,
         }
     }
 }
@@ -323,14 +327,14 @@ impl Engine {
             self.condition.use_log_gain,
             self.condition.sampling_frequency,
             self.condition.fperiod,
+            self.condition.alpha,
+            self.condition.beta,
+            self.condition.volume,
         );
         self.gss = Some(GenerateSpeechStreamSet::create(
             self.pss.as_ref().unwrap(),
             vocoder,
             self.condition.fperiod,
-            self.condition.alpha,
-            self.condition.beta,
-            self.condition.volume,
         ));
     }
 }
