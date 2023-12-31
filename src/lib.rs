@@ -14,6 +14,8 @@ mod tests {
 
     pub const MODEL_NITECH_ATR503: &str =
         "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice";
+    pub const MODEL_TOHOKU_F01_NORMAL: &str = "models/tohoku-f01/tohoku-f01-neutral.htsvoice";
+    pub const MODEL_TOHOKU_F01_HAPPY: &str = "models/tohoku-f01/tohoku-f01-happy.htsvoice";
 
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
     pub const SAMPLE_SENTENCE_1: [&str;8]= [
@@ -39,6 +41,25 @@ mod tests {
         approx::assert_abs_diff_eq!(l2000, 19.35141137623778, epsilon = 1.0e-10);
         let l30000 = engine.get_generated_speech_with_index(30000);
         approx::assert_abs_diff_eq!(l30000, -980.6757547598129, epsilon = 1.0e-10);
+    }
+
+    #[test]
+    fn bonsai_multi() {
+        let lines: Vec<String> = SAMPLE_SENTENCE_1.iter().map(|l| l.to_string()).collect();
+
+        let mut engine = Engine::load(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY]);
+        let iw = engine.condition.get_interporation_weight_mut();
+        iw.set_duration(vec![0.7, 0.3]);
+        iw.set_parameter(0, vec![0.7, 0.3]);
+        iw.set_parameter(1, vec![0.7, 0.3]);
+        iw.set_parameter(2, vec![1.0, 0.0]);
+
+        engine.synthesize_from_strings(&lines);
+        assert_eq!(engine.get_total_nsamples(), 74880);
+        let l2000 = engine.get_generated_speech_with_index(2000);
+        approx::assert_abs_diff_eq!(l2000, 2.3158134981607754e-5, epsilon = 1.0e-10);
+        let l30000 = engine.get_generated_speech_with_index(30000);
+        approx::assert_abs_diff_eq!(l30000, 6459.375032316974, epsilon = 1.0e-10);
     }
 
     // これ,名詞,代名詞,一般,*,*,*,これ,コレ,コレ,0/2,C3,-1
