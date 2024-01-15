@@ -5,10 +5,18 @@ use crate::constants::{DB, HALF_TONE, MAX_LF0, MIN_LF0};
 use crate::gstream::GenerateSpeechStreamSet;
 use crate::label::Label;
 use crate::model::interporation_weight::InterporationWeight;
-use crate::model::ModelSet;
+use crate::model::{ModelError, ModelSet};
 use crate::pstream::ParameterStreamSet;
 use crate::sstream::StateStreamSet;
 use crate::vocoder::Vocoder;
+
+#[derive(Debug, thiserror::Error)]
+pub enum EngineError {
+    #[error("Model error")]
+    ModelError(#[from] ModelError),
+    #[error("Failed to parse option {0}")]
+    ParseOptionError(String),
+}
 
 #[derive(Debug, Clone)]
 pub struct Condition {
@@ -62,7 +70,7 @@ impl Default for Condition {
 }
 
 impl Condition {
-    pub fn load_model(&mut self, ms: &ModelSet) {
+    pub fn load_model(&mut self, ms: &ModelSet) -> Result<(), EngineError> {
         let nvoices = ms.get_nvoices();
         let nstream = ms.get_nstream();
 
@@ -79,15 +87,25 @@ impl Condition {
                 continue;
             };
             match key {
-                "GAMMA" => self.stage = value.parse().unwrap(),
+                "GAMMA" => {
+                    self.stage = value
+                        .parse()
+                        .map_err(|_| EngineError::ParseOptionError(key.to_string()))?
+                }
                 "LN_GAIN" => self.use_log_gain = value == "1",
-                "ALPHA" => self.alpha = value.parse().unwrap(),
+                "ALPHA" => {
+                    self.alpha = value
+                        .parse()
+                        .map_err(|_| EngineError::ParseOptionError(key.to_string()))?
+                }
                 _ => eprintln!("Skipped unrecognized option {}.", option),
             }
         }
 
         /* interpolation weights */
         self.interporation_weight = InterporationWeight::new(nvoices, nstream);
+
+        Ok(())
     }
 
     /// Set sampling frequency (Hz), 1 <= i
@@ -198,125 +216,70 @@ impl Condition {
 pub struct Engine {
     pub condition: Condition,
     pub ms: Arc<ModelSet>,
-    pub label: Option<Label>,
-    pub sss: Option<StateStreamSet>,
-    pub pss: Option<ParameterStreamSet>,
-    pub gss: Option<GenerateSpeechStreamSet>,
 }
 
 impl Engine {
-    pub fn load<P: AsRef<Path>>(voices: &[P]) -> Engine {
+    pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Engine, EngineError> {
         let ms = ModelSet::load_htsvoice_files(voices).unwrap();
         let mut condition = Condition::default();
-        condition.load_model(&ms);
-        Self::new(Arc::new(ms), condition)
+        condition.load_model(&ms)?;
+        Ok(Self::new(Arc::new(ms), condition))
     }
     pub fn new(ms: Arc<ModelSet>, condition: Condition) -> Engine {
-        Engine {
-            condition,
-            ms,
-            label: None,
-            sss: None,
-            pss: None,
-            gss: None,
-        }
+        Engine { condition, ms }
     }
 
-    pub fn get_total_state(&self) -> usize {
-        self.sss.as_ref().unwrap().get_total_state()
+    pub fn synthesize_from_strings(&self, lines: &[String]) -> GenerateSpeechStreamSet {
+        let labels = self.load_labels(lines);
+        let state_sequence = self.generate_state_sequence(&labels);
+        let parameter_sequence = self.generate_parameter_sequence(&state_sequence);
+        self.generate_sample_sequence(&parameter_sequence)
     }
 
-    pub fn get_state_duration(&self, state_index: usize) -> usize {
-        self.sss.as_ref().unwrap().get_duration(state_index)
-    }
-
-    pub fn get_nvoices(&self) -> usize {
-        self.ms.get_nvoices()
-    }
-
-    pub fn get_nstream(&self) -> usize {
-        self.ms.get_nstream()
-    }
-
-    pub fn get_nstate(&self) -> usize {
-        self.ms.get_nstate()
-    }
-
-    pub fn get_fullcontext_label_format(&self) -> &str {
-        self.ms.get_fullcontext_label_format()
-    }
-
-    pub fn get_fullcontext_label_version(&self) -> &str {
-        self.ms.get_fullcontext_label_version()
-    }
-
-    pub fn get_total_nsamples(&self) -> usize {
-        self.gss.as_ref().unwrap().get_speech().len()
-    }
-    pub fn get_generated_speech(&self) -> &[f64] {
-        self.gss.as_ref().unwrap().get_speech()
-    }
-    pub fn get_generated_speech_with_index(&self, index: usize) -> f64 {
-        self.gss.as_ref().unwrap().get_speech()[index]
-    }
-
-    pub fn synthesize_from_strings(&mut self, lines: &[String]) {
-        self.refresh();
-        self.load_labels(lines);
-        self.generate_state_sequence();
-        self.generate_parameter_sequence();
-        self.generate_sample_sequence();
-    }
-
-    fn refresh(&mut self) {
-        self.label = None;
-        self.sss = None;
-        self.pss = None;
-        self.gss = None;
-    }
-
-    fn load_labels(&mut self, lines: &[String]) {
-        self.label = Some(Label::load_from_strings(
+    fn load_labels(&self, lines: &[String]) -> Label {
+        Label::load_from_strings(
             self.condition.sampling_frequency,
             self.condition.fperiod,
             lines,
-        ));
+        )
     }
 
-    fn generate_state_sequence(&mut self) {
-        self.sss = StateStreamSet::create(
+    fn generate_state_sequence(&self, label: &Label) -> StateStreamSet {
+        let mut sss = StateStreamSet::create(
             self.ms.clone(),
-            self.label.as_ref().unwrap(),
+            label,
             self.condition.phoneme_alignment_flag,
             self.condition.speed,
             &self.condition.interporation_weight,
         );
-        self.apply_additional_half_tone();
+        self.apply_additional_half_tone(&mut sss);
+        sss
     }
 
-    fn apply_additional_half_tone(&mut self) {
+    fn apply_additional_half_tone(&self, sss: &mut StateStreamSet) {
         if self.condition.additional_half_tone == 0.0 {
             return;
         }
-        if let Some(ref mut sss) = self.sss {
-            for i in 0..sss.get_total_state() {
-                let mut f = sss.get_mean(1, i, 0);
-                f += self.condition.additional_half_tone * HALF_TONE;
-                f = f.max(MIN_LF0).min(MAX_LF0);
-                sss.set_mean(1, i, 0, f);
-            }
+        for i in 0..sss.get_total_state() {
+            let mut f = sss.get_mean(1, i, 0);
+            f += self.condition.additional_half_tone * HALF_TONE;
+            f = f.max(MIN_LF0).min(MAX_LF0);
+            sss.set_mean(1, i, 0, f);
         }
     }
 
-    fn generate_parameter_sequence(&mut self) {
-        self.pss = Some(ParameterStreamSet::create(
-            self.sss.as_ref().unwrap(),
+    fn generate_parameter_sequence(&self, state_sequence: &StateStreamSet) -> ParameterStreamSet {
+        ParameterStreamSet::create(
+            state_sequence,
             &self.condition.msd_threshold,
             &self.condition.gv_weight,
-        ));
+        )
     }
 
-    fn generate_sample_sequence(&mut self) {
+    fn generate_sample_sequence(
+        &self,
+        parameter_sequence: &ParameterStreamSet,
+    ) -> GenerateSpeechStreamSet {
         let vocoder = Vocoder::new(
             self.ms.get_vector_length(0) - 1,
             self.condition.stage,
@@ -324,13 +287,13 @@ impl Engine {
             self.condition.sampling_frequency,
             self.condition.fperiod,
         );
-        self.gss = Some(GenerateSpeechStreamSet::create(
-            self.pss.as_ref().unwrap(),
+        GenerateSpeechStreamSet::create(
+            parameter_sequence,
             vocoder,
             self.condition.fperiod,
             self.condition.alpha,
             self.condition.beta,
             self.condition.volume,
-        ));
+        )
     }
 }
