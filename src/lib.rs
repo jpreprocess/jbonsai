@@ -49,13 +49,13 @@ mod tests {
 
         let mut engine = Engine::load(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY]).unwrap();
         let iw = engine.condition.get_interporation_weight_mut();
-        iw.set_duration(Weights::new(&vec![0.7, 0.3]).unwrap())
+        iw.set_duration(Weights::new(&[0.7, 0.3]).unwrap())
             .unwrap();
-        iw.set_parameter(0, Weights::new(&vec![0.7, 0.3]).unwrap())
+        iw.set_parameter(0, Weights::new(&[0.7, 0.3]).unwrap())
             .unwrap();
-        iw.set_parameter(1, Weights::new(&vec![0.7, 0.3]).unwrap())
+        iw.set_parameter(1, Weights::new(&[0.7, 0.3]).unwrap())
             .unwrap();
-        iw.set_parameter(2, Weights::new(&vec![1.0, 0.0]).unwrap())
+        iw.set_parameter(2, Weights::new(&[1.0, 0.0]).unwrap())
             .unwrap();
 
         let speech_stream = engine.synthesize_from_strings(&lines);
