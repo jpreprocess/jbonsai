@@ -1,6 +1,9 @@
 use std::{fmt::Display, path::Path};
 
-use self::stream::{Model, ModelParameter, Pattern, StreamModels};
+use self::{
+    interporation_weight::Weights,
+    stream::{Model, ModelParameter, Pattern, StreamModels},
+};
 
 pub mod interporation_weight;
 pub mod stream;
@@ -202,9 +205,9 @@ impl ModelSet {
         self.voices[voice_index].duration_model.get_index(2, string)
     }
     /// Get duration using interpolation weight
-    pub fn get_duration(&self, string: &str, iw: &[f64]) -> ModelParameter {
+    pub fn get_duration(&self, string: &str, iw: &Weights) -> ModelParameter {
         let mut params = ModelParameter::new(self.get_nstate(), false);
-        for (voice, weight) in self.voices.iter().zip(iw) {
+        for (voice, weight) in self.voices.iter().zip(iw.get_weights()) {
             let curr_params = voice.duration_model.get_parameter(2, string);
             params.add_assign(*weight, curr_params);
         }
@@ -228,13 +231,13 @@ impl ModelSet {
         stream_index: usize,
         state_index: usize,
         string: &str,
-        iw: &[f64],
+        iw: &Weights,
     ) -> ModelParameter {
         let mut params = ModelParameter::new(
             self.get_vector_length(stream_index) * self.get_window_size(stream_index),
             self.is_msd(stream_index),
         );
-        for (voice, weight) in self.voices.iter().zip(iw) {
+        for (voice, weight) in self.voices.iter().zip(iw.get_weights()) {
             let curr_params = voice.stream_models[stream_index]
                 .stream_model
                 .get_parameter(state_index, string);
@@ -256,9 +259,9 @@ impl ModelSet {
             .get_index(2, string)
     }
     /// Get GV using interpolation weight
-    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &[f64]) -> ModelParameter {
+    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &Weights) -> ModelParameter {
         let mut params = ModelParameter::new(self.get_vector_length(stream_index), false);
-        for (voice, weight) in self.voices.iter().zip(iw) {
+        for (voice, weight) in self.voices.iter().zip(iw.get_weights()) {
             let curr_params = voice.stream_models[stream_index]
                 .gv_model
                 .as_ref()
@@ -321,7 +324,7 @@ impl Display for Voice {
 #[cfg(all(test, feature = "htsvoice"))]
 mod tests {
     use crate::{
-        model::{stream::ModelParameter, ModelSet},
+        model::{interporation_weight::Weights, stream::ModelParameter, ModelSet},
         tests::{
             MODEL_NITECH_ATR503, MODEL_TOHOKU_F01_HAPPY, MODEL_TOHOKU_F01_NORMAL, SAMPLE_SENTENCE_1,
         },
@@ -347,7 +350,7 @@ mod tests {
         assert_eq!(jsyn_tree_index.unwrap(), 2);
         assert_eq!(jsyn_pdf_index.unwrap(), 144);
 
-        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &[1.0]);
+        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &Weights::new(&[1.0]).unwrap());
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -372,16 +375,21 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(234));
 
-        let jsyn_param = jsyn.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &[1.0, 1.0]);
+        let jsyn_param = jsyn.get_parameter(
+            1,
+            2,
+            SAMPLE_SENTENCE_1[2],
+            &Weights::new(&[0.5, 0.5]).unwrap(),
+        );
         assert_eq!(
             jsyn_param,
             ModelParameter {
                 parameters: vec![
-                    (4.806920528411865, 0.005436264909803867),
-                    (0.005690717604011297, 8.830774459056556e-5),
-                    (-0.00019663637795019895, 0.00024312522145919502)
+                    (2.4034602642059326, 0.0027181324549019337),
+                    (0.0028453588020056486, 4.415387229528278e-5),
+                    (-9.831818897509947e-5, 0.00012156261072959751)
                 ],
-                msd: Some(0.949999988079071),
+                msd: Some(0.4749999940395355),
             }
         );
     }
@@ -396,11 +404,11 @@ mod tests {
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(3));
 
-        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &[1.0, 1.0]);
+        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &Weights::new(&[0.5, 0.5]).unwrap());
         assert_eq!(
             jsyn_param,
             ModelParameter {
-                parameters: vec![(0.03621548041701317, 0.00010934889724012464)],
+                parameters: vec![(0.018107740208506584, 5.467444862006232e-5)],
                 msd: None,
             }
         );
@@ -423,7 +431,7 @@ mod tests {
             ModelSet::load_htsvoice_files(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY])
                 .unwrap();
         assert_eq!(
-            modelset.get_duration(SAMPLE_SENTENCE_1[2], &[0.7, 0.3]),
+            modelset.get_duration(SAMPLE_SENTENCE_1[2], &Weights::new(&[0.7, 0.3]).unwrap()),
             ModelParameter {
                 parameters: vec![
                     (3.345043873786926, 6.943870377540589),
@@ -436,7 +444,12 @@ mod tests {
             }
         );
         assert_eq!(
-            modelset.get_parameter(1, 2, SAMPLE_SENTENCE_1[2], &[0.7, 0.3]),
+            modelset.get_parameter(
+                1,
+                2,
+                SAMPLE_SENTENCE_1[2],
+                &Weights::new(&[0.7, 0.3]).unwrap()
+            ),
             ModelParameter {
                 parameters: vec![
                     (5.354794883728027, 0.00590993594378233),
