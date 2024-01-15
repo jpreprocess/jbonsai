@@ -81,7 +81,7 @@ impl Condition {
         self.gv_weight = [1.0].repeat(nstream);
 
         /* spectrum */
-        for option in ms.get_option(0) {
+        for option in ms.get_option(0).unwrap_or(&[]) {
             let Some((key, value)) = option.split_once('=') else {
                 eprintln!("Skipped unrecognized option {}.", option);
                 continue;

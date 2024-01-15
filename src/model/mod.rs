@@ -13,6 +13,7 @@ mod parser;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ModelErrorKind {
+    ZeroVoices,
     Io,
     NomError,
     MetadataError,
@@ -39,6 +40,7 @@ pub struct ModelError {
 
 pub struct ModelSet {
     metadata: GlobalModelMetadata,
+    /// ensured to have at least one element
     voices: Vec<Voice>,
 }
 
@@ -55,31 +57,51 @@ impl Display for ModelSet {
 impl ModelSet {
     #[cfg(feature = "htsvoice")]
     pub fn load_htsvoice_files<P: AsRef<Path>>(paths: &[P]) -> Result<Self, ModelError> {
-        let mut metadata = None;
+        let first = paths.first().ok_or_else(|| {
+            ModelErrorKind::ZeroVoices.with_error(anyhow::anyhow!("No HTS voices are given."))
+        })?;
+        let (first_metadata, first_voice) = Self::load_htsvoice_file(first)?;
+
         let mut voices = Vec::with_capacity(paths.len());
-        for p in paths {
-            let f = std::fs::read(p).map_err(|err| ModelErrorKind::Io.with_error(err))?;
+        voices.push(first_voice);
 
-            let (_, (new_metadata, voice)) =
-                parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f).map_err(|err| {
-                    ModelErrorKind::NomError
-                        .with_error(anyhow::anyhow!("Parser returned error:\n{}", err))
-                })?;
-
-            if let Some(ref metadata) = metadata {
-                if *metadata != new_metadata {
-                    return Err(ModelErrorKind::MetadataError
-                        .with_error(anyhow::anyhow!("The global metadata does not match.")));
-                }
-            } else {
-                metadata = Some(new_metadata);
+        for p in &paths[1..] {
+            let (metadata, voice) = Self::load_htsvoice_file(p)?;
+            if metadata != first_metadata {
+                return Err(ModelErrorKind::MetadataError
+                    .with_error(anyhow::anyhow!("The global metadata does not match.")));
             }
             voices.push(voice);
         }
+
         Ok(Self {
-            metadata: metadata.unwrap(),
+            metadata: first_metadata,
             voices,
         })
+    }
+
+    fn load_htsvoice_file<P: AsRef<Path>>(
+        path: &P,
+    ) -> Result<(GlobalModelMetadata, Voice), ModelError> {
+        let f = std::fs::read(path).map_err(|err| ModelErrorKind::Io.with_error(err))?;
+
+        let (_, pair) =
+            parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f).map_err(|err| {
+                ModelErrorKind::NomError
+                    .with_error(anyhow::anyhow!("Parser returned error:\n{}", err))
+            })?;
+
+        Ok(pair)
+    }
+
+    fn get_first_voice(&self) -> &Voice {
+        // ensured to have at least one element
+        self.voices.first().unwrap()
+    }
+
+    fn get_last_voice(&self) -> &Voice {
+        // ensured to have at least one element
+        self.voices.last().unwrap()
     }
 
     /// Get sampling frequency of HTS voices
@@ -91,9 +113,11 @@ impl ModelSet {
         self.metadata.frame_period
     }
     /// Get stream option
-    pub fn get_option(&self, stream_index: usize) -> &[String] {
-        // TODO: option
-        &self.voices[0].stream_models[stream_index].metadata.option
+    pub fn get_option(&self, stream_index: usize) -> Option<&[String]> {
+        self.get_first_voice()
+            .stream_models
+            .get(stream_index)
+            .map(|m| m.metadata.option.as_slice())
     }
     /// Get GV flag
     pub fn get_gv_flag(&self, string: &str) -> bool {
@@ -131,34 +155,33 @@ impl ModelSet {
 
     /// Get vector length
     pub fn get_vector_length(&self, stream_index: usize) -> usize {
-        self.voices[0].stream_models[stream_index]
+        self.get_first_voice().stream_models[stream_index]
             .metadata
             .vector_length
     }
     /// Get MSD flag
     pub fn is_msd(&self, stream_index: usize) -> bool {
-        self.voices[0].stream_models[stream_index].metadata.is_msd
+        self.get_first_voice().stream_models[stream_index]
+            .metadata
+            .is_msd
     }
 
     /// Get dynamic window size
     pub fn get_window_size(&self, stream_index: usize) -> usize {
-        // TODO: check implementation
-        self.voices.last().unwrap().stream_models[stream_index]
+        self.get_last_voice().stream_models[stream_index]
             .windows
             .len()
     }
     /// Get left width of dynamic window
     pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
-        // TODO: check implementation
-        let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
-            .len() as isize;
+        let fsize =
+            self.get_last_voice().stream_models[stream_index].windows[window_index].len() as isize;
         -fsize / 2
     }
     /// Get right width of dynamic window
     pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
-        // TODO: check implementation
-        let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
-            .len() as isize;
+        let fsize =
+            self.get_last_voice().stream_models[stream_index].windows[window_index].len() as isize;
         if fsize % 2 == 0 {
             fsize / 2 - 1
         } else {
@@ -172,14 +195,12 @@ impl ModelSet {
         window_index: usize,
         coefficient_index: isize,
     ) -> f64 {
-        // TODO: check implementation
-        let row = &self.voices.last().unwrap().stream_models[stream_index].windows[window_index];
+        let row = &self.get_last_voice().stream_models[stream_index].windows[window_index];
         row[((row.len() / 2) as isize + coefficient_index) as usize]
     }
     /// Get max width of dynamic window
     pub fn get_window_max_width(&self, stream_index: usize) -> usize {
-        // TODO: check implementation; important
-        let max_width = self.voices.last().unwrap().stream_models[stream_index]
+        let max_width = self.get_last_voice().stream_models[stream_index]
             .windows
             .iter()
             .map(Vec::len)
@@ -190,8 +211,7 @@ impl ModelSet {
 
     /// Get GV flag
     pub fn use_gv(&self, stream_index: usize) -> bool {
-        // TODO: check implementation
-        self.voices[0].stream_models[stream_index]
+        self.get_first_voice().stream_models[stream_index]
             .gv_model
             .is_some()
     }
