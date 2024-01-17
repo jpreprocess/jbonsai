@@ -29,13 +29,14 @@ impl Window {
         Self { coefficients }
     }
 
-    pub fn iter(&self) -> impl '_ + Iterator<Item = (WindowIndex, f64)> {
+    pub fn iter_rev(&self, start: usize) -> impl '_ + Iterator<Item = (WindowIndex, f64)> {
         let width = self.width();
-        self.coefficients
+        self.coefficients[start..]
             .iter()
             .enumerate()
-            .zip(std::iter::repeat(width))
-            .map(|((idx, coef), width)| (WindowIndex::new(idx, width), *coef))
+            .rev()
+            .zip(std::iter::repeat((start, width)))
+            .map(|((idx, coef), (start, width))| (WindowIndex::new(start + idx, width), *coef))
     }
 
     #[inline(always)]
@@ -96,18 +97,18 @@ mod tests {
     #[test]
     fn iterator() {
         let window = Window::new(vec![-1.0, 0.0, 1.0]);
-        let iterated = window.iter().collect::<Vec<_>>();
+        let iterated = window.iter_rev(0).collect::<Vec<_>>();
 
-        assert_eq!(iterated[0].1, -1.0);
+        assert_eq!(iterated[2].1, -1.0);
         assert_eq!(iterated[1].1, 0.0);
-        assert_eq!(iterated[2].1, 1.0);
+        assert_eq!(iterated[0].1, 1.0);
 
-        assert_eq!(iterated[0].0.index(), 0);
+        assert_eq!(iterated[2].0.index(), 0);
         assert_eq!(iterated[1].0.index(), 1);
-        assert_eq!(iterated[2].0.index(), 2);
+        assert_eq!(iterated[0].0.index(), 2);
 
-        assert_eq!(iterated[0].0.position(), -1);
+        assert_eq!(iterated[2].0.position(), -1);
         assert_eq!(iterated[1].0.position(), 0);
-        assert_eq!(iterated[2].0.position(), 1);
+        assert_eq!(iterated[0].0.position(), 1);
     }
 }

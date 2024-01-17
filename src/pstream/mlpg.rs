@@ -38,7 +38,7 @@ impl MlpgMatrix {
             self.wum.push(0.0);
 
             for (i, window) in windows.iter().enumerate() {
-                for (index, coef) in window.iter() {
+                for (index, coef) in window.iter_rev(0) {
                     if coef == 0.0 {
                         continue;
                     }
@@ -50,7 +50,7 @@ impl MlpgMatrix {
                     let wu = coef * parameters[i][idx as usize].1;
                     self.wum[t] += wu * parameters[i][idx as usize].0;
 
-                    for (inner_index, coef) in window.iter().skip(index.index()) {
+                    for (inner_index, coef) in window.iter_rev(index.index()) {
                         if coef == 0.0 {
                             continue;
                         }
