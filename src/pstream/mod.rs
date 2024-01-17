@@ -85,7 +85,7 @@ impl ParameterStreamSet {
                     .collect();
 
                 let mut mtx = MlpgMatrix::new();
-                mtx.calc_wuw_and_wum(sss, i, parameters);
+                mtx.calc_wuw_and_wum(sss.get_windows(i), parameters);
 
                 let par = if sss.use_gv(i) {
                     let mtx_before = mtx.clone();

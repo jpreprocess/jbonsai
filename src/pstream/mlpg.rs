@@ -1,4 +1,4 @@
-use crate::sstream::StateStreamSet;
+use crate::model::window::Windows;
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
@@ -25,14 +25,7 @@ impl MlpgMatrix {
 
     /// Calculate W^T U^{-1} W and W^T U^{-1} \mu
     /// (preparation for calculation of dynamic feature)
-    pub fn calc_wuw_and_wum(
-        &mut self,
-        sss: &StateStreamSet,
-        stream_index: usize,
-        parameters: Vec<Vec<(f64, f64)>>,
-    ) {
-        let windows = sss.get_windows(stream_index);
-
+    pub fn calc_wuw_and_wum(&mut self, windows: &Windows, parameters: Vec<Vec<(f64, f64)>>) {
         self.win_size = windows.size();
         self.length = parameters[0].len();
         self.width = windows.max_width() * 2 + 1;
