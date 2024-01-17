@@ -4,6 +4,7 @@ use self::stream::{Model, ModelParameter, Pattern, StreamModels};
 
 pub mod interporation_weight;
 pub mod stream;
+pub mod window;
 
 #[cfg(feature = "htsvoice")]
 mod parser;
