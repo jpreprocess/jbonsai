@@ -1,6 +1,9 @@
 use std::{fmt::Display, path::Path};
 
-use self::stream::{Model, ModelParameter, Pattern, StreamModels};
+use self::{
+    stream::{Model, ModelParameter, Pattern, StreamModels},
+    window::Windows,
+};
 
 pub mod interporation_weight;
 pub mod stream;
@@ -138,52 +141,10 @@ impl ModelSet {
         self.voices[0].stream_models[stream_index].metadata.is_msd
     }
 
-    /// Get dynamic window size
-    pub fn get_window_size(&self, stream_index: usize) -> usize {
+    /// Get dynamic window
+    pub fn get_windows(&self, stream_index: usize) -> &Windows {
         // TODO: check implementation
-        self.voices.last().unwrap().stream_models[stream_index]
-            .windows
-            .len()
-    }
-    /// Get left width of dynamic window
-    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
-        // TODO: check implementation
-        let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
-            .len() as isize;
-        -fsize / 2
-    }
-    /// Get right width of dynamic window
-    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
-        // TODO: check implementation
-        let fsize = self.voices.last().unwrap().stream_models[stream_index].windows[window_index]
-            .len() as isize;
-        if fsize % 2 == 0 {
-            fsize / 2 - 1
-        } else {
-            fsize / 2
-        }
-    }
-    /// Get coefficient of dynamic window
-    pub fn get_window_coefficient(
-        &self,
-        stream_index: usize,
-        window_index: usize,
-        coefficient_index: isize,
-    ) -> f64 {
-        // TODO: check implementation
-        let row = &self.voices.last().unwrap().stream_models[stream_index].windows[window_index];
-        row[((row.len() / 2) as isize + coefficient_index) as usize]
-    }
-    /// Get max width of dynamic window
-    pub fn get_window_max_width(&self, stream_index: usize) -> usize {
-        // TODO: check implementation; important
-        let max_width = self.voices.last().unwrap().stream_models[stream_index]
-            .windows
-            .iter()
-            .map(Vec::len)
-            .max()
-            .unwrap();
-        max_width / 2
+        &self.voices.last().unwrap().stream_models[stream_index].windows
     }
 
     /// Get GV flag
@@ -232,7 +193,7 @@ impl ModelSet {
         iw: &[f64],
     ) -> ModelParameter {
         let mut params = ModelParameter::new(
-            self.get_vector_length(stream_index) * self.get_window_size(stream_index),
+            self.get_vector_length(stream_index) * self.get_windows(stream_index).size(),
             self.is_msd(stream_index),
         );
         for (voice, weight) in self.voices.iter().zip(iw) {
@@ -322,7 +283,7 @@ impl Display for Voice {
 #[cfg(all(test, feature = "htsvoice"))]
 mod tests {
     use crate::{
-        model::{stream::ModelParameter, ModelSet},
+        model::{stream::ModelParameter, window::Window, ModelSet},
         tests::{
             MODEL_NITECH_ATR503, MODEL_TOHOKU_F01_HAPPY, MODEL_TOHOKU_F01_NORMAL, SAMPLE_SENTENCE_1,
         },
@@ -410,12 +371,17 @@ mod tests {
     #[test]
     fn window() {
         let jsyn = load_models();
-        assert_eq!(jsyn.get_window_size(0), 3);
-        assert_eq!(jsyn.get_window_left_width(0, 1), -1);
-        assert_eq!(jsyn.get_window_right_width(0, 1), 1);
-        assert_eq!(jsyn.get_window_coefficient(0, 1, 0), 0.0);
-        assert_eq!(jsyn.get_window_coefficient(0, 1, 1), 0.5);
-        assert_eq!(jsyn.get_window_max_width(0), 1);
+        let windows = jsyn.get_windows(0);
+
+        assert_eq!(windows.size(), 3);
+        assert_eq!(windows.max_width(), 1);
+
+        let window = windows.get(1).unwrap();
+
+        assert_eq!(window.left_width(), 1);
+        assert_eq!(window.right_width(), 1);
+
+        assert_eq!(window, &Window::new(vec![-0.5, 0.0, 0.5]));
     }
 
     #[test]

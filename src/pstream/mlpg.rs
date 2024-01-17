@@ -31,9 +31,11 @@ impl MlpgMatrix {
         stream_index: usize,
         parameters: Vec<Vec<(f64, f64)>>,
     ) {
-        self.win_size = sss.get_window_size(stream_index);
+        let windows = sss.get_windows(stream_index);
+
+        self.win_size = windows.size();
         self.length = parameters[0].len();
-        self.width = sss.get_window_max_width(stream_index) * 2 + 1;
+        self.width = windows.max_width() * 2 + 1;
 
         self.wuw = Vec::new();
         self.wum = Vec::new();
@@ -42,32 +44,26 @@ impl MlpgMatrix {
             self.wuw.push(vec![0.0; self.width]);
             self.wum.push(0.0);
 
-            #[allow(clippy::needless_range_loop)]
-            for i in 0..self.win_size {
-                for shift in sss.get_window_left_width(stream_index, i)
-                    ..=sss.get_window_right_width(stream_index, i)
-                {
-                    let idx = (t as isize) + shift;
-                    if idx < 0 || idx >= self.length as isize {
-                        continue;
-                    }
-                    let coef = sss.get_window_coefficient(stream_index, i, -shift);
+            for (i, window) in windows.iter().enumerate() {
+                for (index, coef) in window.iter() {
                     if coef == 0.0 {
                         continue;
                     }
 
+                    let idx = (t as isize) - index.position();
+                    if idx < 0 || idx >= self.length as isize {
+                        continue;
+                    }
                     let wu = coef * parameters[i][idx as usize].1;
                     self.wum[t] += wu * parameters[i][idx as usize].0;
 
-                    for j in 0..self.width {
-                        if t + j >= self.length
-                            || j as isize > sss.get_window_right_width(stream_index, i) + shift
-                        {
-                            break;
-                        }
-                        let coef = sss.get_window_coefficient(stream_index, i, j as isize - shift);
+                    for (inner_index, coef) in window.iter().skip(index.index()) {
                         if coef == 0.0 {
                             continue;
+                        }
+                        let j = inner_index.index() - index.index();
+                        if t + j >= self.length {
+                            break;
                         }
 
                         self.wuw[t][j] += wu * coef;
