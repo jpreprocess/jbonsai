@@ -376,7 +376,7 @@ mod tests {
         assert_eq!(windows.size(), 3);
         assert_eq!(windows.max_width(), 1);
 
-        let window = windows.get(1).unwrap();
+        let window = windows.iter().nth(1).unwrap();
 
         assert_eq!(window.left_width(), 1);
         assert_eq!(window.right_width(), 1);

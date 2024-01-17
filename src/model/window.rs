@@ -11,9 +11,6 @@ impl Windows {
     pub fn iter(&self) -> impl '_ + Iterator<Item = &Window> {
         self.windows.iter()
     }
-    pub fn get(&self, index: usize) -> Option<&Window> {
-        self.windows.get(index)
-    }
     pub fn size(&self) -> usize {
         self.windows.len()
     }
@@ -39,9 +36,6 @@ impl Window {
             .enumerate()
             .zip(std::iter::repeat(width))
             .map(|((idx, coef), width)| (WindowIndex::new(idx, width), *coef))
-    }
-    pub fn get(&self, index: usize) -> Option<&f64> {
-        self.coefficients.get(index)
     }
 
     #[inline(always)]
