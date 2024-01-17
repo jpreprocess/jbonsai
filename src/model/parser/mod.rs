@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use nom::{
     bytes::complete::tag,
     combinator::{all_consuming, map},
-    error::{ContextError, ErrorKind, ParseError},
+    error::{ContextError, ErrorKind, FromExternalError, ParseError},
     multi::many_m_n,
     number::complete::{le_f32, le_u32},
     sequence::{pair, preceded, terminated},
@@ -20,19 +20,25 @@ use self::{
 };
 
 use super::{
-    stream::{Model, Pattern, StreamModelMetadata, StreamModels},
+    stream::{Model, StreamModelMetadata, StreamModels},
     GlobalModelMetadata, Voice,
 };
 
 mod base;
 mod header;
 mod header_entry;
+pub mod question;
 mod tree;
 mod window;
 
 mod convert;
 
-pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
+pub fn parse_htsvoice<
+    'a,
+    E: ParseError<&'a [u8]>
+        + ContextError<&'a [u8]>
+        + FromExternalError<&'a [u8], nom::Err<jlabel_question::ParseError>>,
+>(
     input: &'a [u8],
 ) -> IResult<&'a [u8], (GlobalModelMetadata, Voice), E> {
     let (input, global) = HeaderParser::parse_global(input)?;
@@ -53,7 +59,12 @@ pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     Ok((input, (global, voice)))
 }
 
-fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
+fn parse_data_section<
+    'a,
+    E: ParseError<&'a [u8]>
+        + ContextError<&'a [u8]>
+        + FromExternalError<&'a [u8], nom::Err<jlabel_question::ParseError>>,
+>(
     input: &'a [u8],
     global: &GlobalModelMetadata,
     stream: &Stream,
@@ -129,7 +140,12 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     Ok((b"", (duration_model, stream_models)))
 }
 
-pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
+pub fn parse_model<
+    'a,
+    E: ParseError<&'a [u8]>
+        + ContextError<&'a [u8]>
+        + FromExternalError<&'a [u8], nom::Err<jlabel_question::ParseError>>,
+>(
     input: &'a [u8],
     tree_range: (usize, usize),
     pdf_range: (usize, usize),
@@ -146,10 +162,10 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         tree_range,
     )(input)?;
 
-    let question_lut: BTreeMap<&String, &Vec<Pattern>> = BTreeMap::from_iter(
+    let question_lut: BTreeMap<&String, &question::Question> = BTreeMap::from_iter(
         questions
             .iter()
-            .map(|Question { name, patterns }| (name, patterns)),
+            .map(|Question { name, question }| (name, question)),
     );
 
     let (_, pdf) = parse_all(

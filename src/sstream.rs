@@ -30,7 +30,7 @@ impl StateStreamSet {
     ) -> Self {
         let duration_params: Vec<(f64, f64)> = (0..label.get_size())
             .flat_map(|i| {
-                ms.get_duration(label.get_string(i), iw.get_duration())
+                ms.get_duration(label.get_label(i), iw.get_duration())
                     .parameters
             })
             .collect();
@@ -85,7 +85,7 @@ impl StateStreamSet {
                                 ms.get_parameter(
                                     stream_idx,
                                     state_idx,
-                                    label.get_string(label_idx),
+                                    label.get_label(label_idx),
                                     iw.get_parameter(stream_idx),
                                 )
                             })
@@ -96,12 +96,12 @@ impl StateStreamSet {
                 let gv_switch = (0..label.get_size())
                     .flat_map(|label_idx| {
                         let sw =
-                            !ms.use_gv(stream_idx) || ms.get_gv_flag(label.get_string(label_idx));
+                            !ms.use_gv(stream_idx) || ms.get_gv_flag(label.get_label(label_idx));
                         [sw].repeat(ms.get_nstate())
                     })
                     .collect();
                 let gv_params = if ms.use_gv(stream_idx) && label.get_size() > 0 {
-                    Some(ms.get_gv(stream_idx, label.get_string(0), iw.get_gv(stream_idx)))
+                    Some(ms.get_gv(stream_idx, label.get_label(0), iw.get_gv(stream_idx)))
                 } else {
                     None
                 };

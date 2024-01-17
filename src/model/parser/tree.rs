@@ -5,19 +5,16 @@ use nom::{
     bytes::complete::tag,
     character::complete::digit1,
     combinator::{cut, map, opt, peek, recognize},
-    error::{context, ContextError, ErrorKind, ParseError},
+    error::{context, ContextError, ErrorKind, FromExternalError, ParseError},
     multi::{many_m_n, separated_list0},
     sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
     AsChar, IResult,
 };
 
-use crate::model::stream::Pattern;
-
-use super::base::ParseTarget;
+use super::{base::ParseTarget, question};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tree {
-    pub pattern: Vec<Pattern>,
     pub state: usize,
     pub nodes: Vec<Node>,
 }
@@ -39,7 +36,7 @@ pub enum TreeIndex {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Question {
     pub name: String,
-    pub patterns: Vec<Pattern>,
+    pub question: question::Question,
 }
 
 pub struct TreeParser<T>(PhantomData<T>);
@@ -65,20 +62,30 @@ where
     fn parse_question_ident<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
         i.parse_template1(|c| c.is_ascii() && !" \n".contains(c))
     }
-    fn parse_pattern_list_section<E: ParseError<S> + ContextError<S>>(
+    fn parse_pattern_list_section<
+        E: ParseError<S>
+            + ContextError<S>
+            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
+    >(
         i: S,
-    ) -> IResult<S, Vec<Pattern>, E> {
+    ) -> IResult<S, question::Question, E> {
         use nom::character::complete::char;
         context(
             "pattern",
             cut(delimited(
                 pair(char('{'), S::sp),
-                S::parse_pattern_list,
+                S::parse_question,
                 pair(S::sp, char('}')),
             )),
         )(i)
     }
-    fn parse_question<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Question, E> {
+    fn parse_question<
+        E: ParseError<S>
+            + ContextError<S>
+            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
+    >(
+        i: S,
+    ) -> IResult<S, Question, E> {
         context(
             "question",
             preceded(
@@ -90,17 +97,21 @@ where
                 ),
             ),
         )(i)
-        .and_then(|(rest, (name, patterns))| {
+        .and_then(|(rest, (name, question))| {
             Ok((
                 rest,
                 Question {
                     name: name.parse_ascii_to_string()?.1,
-                    patterns,
+                    question,
                 },
             ))
         })
     }
-    pub fn parse_questions<E: ParseError<S> + ContextError<S>>(
+    pub fn parse_questions<
+        E: ParseError<S>
+            + ContextError<S>
+            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
+    >(
         i: S,
     ) -> IResult<S, Vec<Question>, E> {
         use nom::character::complete::{char, space0};
@@ -160,12 +171,18 @@ where
             ))
         })
     }
-    fn parse_tree<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Tree, E> {
+    fn parse_tree<
+        E: ParseError<S>
+            + ContextError<S>
+            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
+    >(
+        i: S,
+    ) -> IResult<S, Tree, E> {
         use nom::character::complete::{char, space0};
         context(
             "tree",
             cut(tuple((
-                preceded(S::sp, Self::parse_pattern_list_section),
+                preceded(S::sp, tag("{*}")),
                 preceded(
                     S::sp,
                     cut(delimited(char('['), Self::parse_signed_digits, char(']'))),
@@ -195,18 +212,23 @@ where
                 ),
             ))),
         )(i)
-        .map(|(rest, (pattern, state, nodes))| {
+        .map(|(rest, (_, state, nodes))| {
             (
                 rest,
                 Tree {
-                    pattern,
                     state: state as usize,
                     nodes,
                 },
             )
         })
     }
-    pub fn parse_trees<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, Vec<Tree>, E> {
+    pub fn parse_trees<
+        E: ParseError<S>
+            + ContextError<S>
+            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
+    >(
+        i: S,
+    ) -> IResult<S, Vec<Tree>, E> {
         use nom::character::complete::{char, none_of, space0};
         context(
             "trees",
@@ -220,9 +242,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use jlabel_question::{position::SignedRangePosition, AllQuestion};
     use nom::error::VerboseError;
 
-    use crate::model::stream::Pattern;
+    use crate::model::parser::question;
 
     use super::{Node, Question, Tree, TreeIndex, TreeParser};
 
@@ -236,11 +259,12 @@ mod tests {
                 "",
                 Question {
                     name: "C-Mora_diff_Acc-Type<=0".to_string(),
-                    patterns: vec![
-                        Pattern::from_pattern_string("*/A:-??+*").unwrap(),
-                        Pattern::from_pattern_string("*/A:-?+*").unwrap(),
-                        Pattern::from_pattern_string("*/A:0+*").unwrap()
-                    ]
+                    question: question::Question::AllQustion(AllQuestion::SignedRange(
+                        jlabel_question::Question {
+                            position: SignedRangePosition::A1,
+                            range: Some(-99..1),
+                        }
+                    ))
                 }
             ))
         );
@@ -278,7 +302,6 @@ mod tests {
             Ok((
                 "",
                 Tree {
-                    pattern: vec![Pattern::from_pattern_string("*").unwrap()],
                     state: 2,
                     nodes: vec![
                         Node {
@@ -302,7 +325,6 @@ mod tests {
             Ok((
                 "",
                 Tree {
-                    pattern: vec![Pattern::from_pattern_string("*").unwrap()],
                     state: 2,
                     nodes: vec![Node {
                         id: 0,

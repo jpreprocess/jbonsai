@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
 
-use crate::model::stream::Pattern;
-
-use super::tree::{Tree, TreeIndex};
+use super::{
+    question,
+    tree::{Tree, TreeIndex},
+};
 
 pub fn convert_tree(
     orig_tree: Tree,
-    question_lut: &BTreeMap<&String, &Vec<Pattern>>,
+    question_lut: &BTreeMap<&String, &question::Question>,
 ) -> crate::model::stream::Tree {
     let node_lut = BTreeMap::from_iter(orig_tree.nodes.iter().enumerate().map(|(i, n)| (n.id, i)));
 
@@ -15,7 +16,6 @@ pub fn convert_tree(
             todo!("Malformed model file. Should not reach here.");
         };
         return crate::model::stream::Tree {
-            patterns: orig_tree.pattern,
             nodes: vec![crate::model::stream::TreeNode::Leaf {
                 pdf_index: i as usize,
             }],
@@ -54,7 +54,7 @@ pub fn convert_tree(
         .unwrap();
 
         nodes.push(crate::model::stream::TreeNode::Node {
-            patterns: question_lut.get(&node.question_name).unwrap().to_vec(),
+            question: (*question_lut.get(&node.question_name).unwrap()).clone(),
             yes: yes_id,
             no: no_id,
         });
@@ -67,7 +67,6 @@ pub fn convert_tree(
     );
 
     crate::model::stream::Tree {
-        patterns: orig_tree.pattern,
         nodes,
         state: orig_tree.state,
     }

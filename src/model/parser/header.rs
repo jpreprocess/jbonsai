@@ -48,7 +48,7 @@ impl ApplyParsed for GlobalModelMetadata {
             "FULLCONTEXT_FORMAT" => self.fullcontext_format = entry.value().to_string(),
             "FULLCONTEXT_VERSION" => self.fullcontext_version = entry.value().to_string(),
             "GV_OFF_CONTEXT" => {
-                self.gv_off_context = ParseTarget::parse_pattern_list::<()>(entry.value())
+                self.gv_off_context = ParseTarget::parse_question::<()>(entry.value())
                     .or(Err(ParseApplyError::Value))?
                     .1
             }
@@ -238,7 +238,7 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::{parser::header::HeaderEntry, stream::Pattern};
+    use crate::model::parser::{header::HeaderEntry, question};
 
     use super::{HeaderParser, PositionData, StreamModelMetadata};
 
@@ -326,10 +326,7 @@ GV_TREE[LF0]:1167968-1168282
         assert_eq!(global.hts_voice_version, "1.0");
         assert_eq!(
             global.gv_off_context,
-            vec![
-                Pattern::from_pattern_string("*-sil+*").unwrap(),
-                Pattern::from_pattern_string("*-pau+*").unwrap(),
-            ]
+            question::Question::parse(&["*-sil+*", "*-pau+*"]).unwrap()
         );
     }
     #[test]
@@ -374,10 +371,7 @@ GV_TREE[LF0]:1167968-1168282
         assert_eq!(global.hts_voice_version, "1.0");
         assert_eq!(
             global.gv_off_context,
-            vec![
-                Pattern::from_pattern_string("*-sil+*").unwrap(),
-                Pattern::from_pattern_string("*-pau+*").unwrap(),
-            ]
+            question::Question::parse(&["*-sil+*", "*-pau+*"]).unwrap()
         );
     }
 }

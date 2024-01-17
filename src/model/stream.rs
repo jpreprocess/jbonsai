@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-use regex::Regex;
+use jlabel::Label;
+
+use super::parser::question;
 
 pub struct StreamModels {
     pub metadata: StreamModelMetadata,
@@ -69,18 +71,16 @@ impl Display for Model {
             self.trees.iter().fold(String::new(), |acc, curr| {
                 if acc.is_empty() {
                     format!(
-                        "    #{}: [{}] {} -> {}",
+                        "    #{}: {} -> {}",
                         curr.state,
-                        curr.patterns.len(),
                         curr.nodes.len(),
                         self.pdf[curr.state - 2].len()
                     )
                 } else {
                     format!(
-                        "{}\n    #{}: [{}] {} -> {}",
+                        "{}\n    #{}: {} -> {}",
                         acc,
                         curr.state,
-                        curr.patterns.len(),
                         curr.nodes.len(),
                         self.pdf[curr.state - 2].len()
                     )
@@ -98,15 +98,15 @@ impl Model {
 
     /// Get index of tree and PDF
     /// Returns (tree_index, pdf_index)
-    pub fn get_index(&self, state_index: usize, string: &str) -> (Option<usize>, Option<usize>) {
-        let tree_index = self.find_tree_index(state_index, string);
+    pub fn get_index(&self, state_index: usize, label: &Label) -> (Option<usize>, Option<usize>) {
+        let tree_index = self.find_tree_index(state_index);
 
         let tree = match tree_index {
             Some(idx) => &self.trees[idx],
             None => &self.trees[0],
         };
 
-        let pdf_index = tree.search_node(string);
+        let pdf_index = tree.search_node(label);
 
         (
             tree_index
@@ -115,16 +115,16 @@ impl Model {
             pdf_index,
         )
     }
-    fn find_tree_index(&self, state_index: usize, string: &str) -> Option<usize> {
+    fn find_tree_index(&self, state_index: usize) -> Option<usize> {
         self.trees
             .iter()
             .enumerate()
-            .position(|(_, tree)| tree.state == state_index && tree.matches_pattern(string))
+            .position(|(_, tree)| tree.state == state_index)
     }
 
     /// Get parameter using interpolation weight
-    pub fn get_parameter(&self, state_index: usize, string: &str) -> &ModelParameter {
-        let (Some(tree_index), Some(pdf_index)) = self.get_index(state_index, string) else {
+    pub fn get_parameter(&self, state_index: usize, label: &Label) -> &ModelParameter {
+        let (Some(tree_index), Some(pdf_index)) = self.get_index(state_index, label) else {
             todo!("index not found!")
         };
 
@@ -173,29 +173,19 @@ impl ModelParameter {
 #[derive(Debug, Clone)]
 pub struct Tree {
     pub state: usize,
-    pub patterns: Vec<Pattern>,
     pub nodes: Vec<TreeNode>,
 }
 
 impl Tree {
-    /// Pattern match
-    #[inline]
-    pub fn matches_pattern(&self, string: &str) -> bool {
-        self.patterns.iter().any(|p| p.is_match(string))
-    }
     /// Tree search
-    pub fn search_node(&self, string: &str) -> Option<usize> {
+    pub fn search_node(&self, label: &Label) -> Option<usize> {
         let mut node_index = 0;
 
         while let Some(node) = self.nodes.get(node_index) {
             match node {
                 TreeNode::Leaf { pdf_index } => return Some(*pdf_index),
-                TreeNode::Node { patterns, yes, no } => {
-                    node_index = if patterns.iter().any(|p| p.is_match(string)) {
-                        *yes
-                    } else {
-                        *no
-                    }
+                TreeNode::Node { question, yes, no } => {
+                    node_index = if question.test(label) { *yes } else { *no }
                 }
             }
         }
@@ -207,59 +197,11 @@ impl Tree {
 #[derive(Debug, Clone)]
 pub enum TreeNode {
     Node {
-        patterns: Vec<Pattern>,
+        question: question::Question,
         yes: usize,
         no: usize,
     },
     Leaf {
         pdf_index: usize,
     },
-}
-
-#[derive(Debug, Clone)]
-pub enum Pattern {
-    All,
-    Contains(String),
-    Regex(Regex),
-}
-
-impl Pattern {
-    pub fn from_pattern_string<T: AsRef<str>>(pattern: T) -> Result<Self, regex::Error> {
-        let pattern = pattern.as_ref();
-        if pattern == "*" {
-            Ok(Self::All)
-        } else if pattern.starts_with('*')
-            && pattern.ends_with('*')
-            && !pattern[1..pattern.len() - 1].contains(['*', '?'])
-        {
-            Ok(Self::Contains(pattern[1..pattern.len() - 1].to_string()))
-        } else {
-            Ok(Self::Regex(Regex::new(&format!(
-                "^{}$",
-                pattern
-                    .replace('+', "\\+")
-                    .replace('^', "\\^")
-                    .replace('|', "\\|")
-                    .replace('*', ".*")
-                    .replace('?', ".")
-            ))?))
-        }
-    }
-    pub fn is_match(&self, label: &str) -> bool {
-        match self {
-            Self::All => true,
-            Self::Contains(s) => label.contains(s),
-            Self::Regex(r) => r.is_match(label),
-        }
-    }
-}
-
-impl PartialEq for Pattern {
-    fn eq(&self, other: &Self) -> bool {
-        match self {
-            Self::All => matches!(other, Self::All),
-            Self::Contains(s1) => matches!(other,Self::Contains(s2) if s1==s2),
-            Self::Regex(r1) => matches!(other,Self::Regex(r2) if r1.as_str()==r2.as_str()),
-        }
-    }
 }
