@@ -187,18 +187,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_seq(CommaSeparated::new(self))
+        visitor.visit_seq(List::new(self, ','))
     }
 
-    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
+    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        if len == 2 {
-            todo!()
-        } else {
-            self.deserialize_seq(visitor)
-        }
+        visitor.visit_seq(List::new(self, '-'))
     }
 
     fn deserialize_tuple_struct<V>(
@@ -247,18 +243,23 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 }
 
-struct CommaSeparated<'a, 'de: 'a> {
+struct List<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
     first: bool,
+    delim: char,
 }
 
-impl<'a, 'de> CommaSeparated<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>) -> Self {
-        CommaSeparated { de, first: true }
+impl<'a, 'de> List<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>, delim: char) -> Self {
+        List {
+            de,
+            first: true,
+            delim,
+        }
     }
 }
 
-impl<'de, 'a> SeqAccess<'de> for CommaSeparated<'a, 'de> {
+impl<'de, 'a> SeqAccess<'de> for List<'a, 'de> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
@@ -267,7 +268,7 @@ impl<'de, 'a> SeqAccess<'de> for CommaSeparated<'a, 'de> {
     {
         if !self.first {
             match self.de.peek_char() {
-                Ok(',') => (),
+                Ok(c) if c == self.delim => (),
                 Ok('\n') => return Ok(None),
                 Err(Error::Eof) => return Ok(None),
                 _ => return Err(Error::ExpectedArrayComma),
@@ -336,17 +337,20 @@ fn test_struct() {
         fullcontext_version: String,
         gv_off_context: Vec<String>,
         sampling_frequency: usize,
+        stream_win: Vec<(usize, usize)>,
     }
 
     let j = r#"
 FULLCONTEXT_VERSION:1.0
 GV_OFF_CONTEXT:"*-sil+*","*-pau+*"
 SAMPLING_FREQUENCY:48000
+STREAM_WIN:40880-40885,40886-40900
 "#;
     let expected = Test {
         fullcontext_version: "1.0".to_string(),
         gv_off_context: vec!["*-sil+*".to_owned(), "*-pau+*".to_owned()],
         sampling_frequency: 48000,
+        stream_win: vec![(40880, 40885), (40886, 40900)],
     };
     assert_eq!(expected, from_str(j).unwrap());
 }
