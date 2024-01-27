@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::newline,
     combinator::{all_consuming, map},
-    error::{ContextError, ParseError},
+    error::{ContextError, ErrorKind, ParseError},
     multi::{many1, many_m_n},
     number::complete::{le_f32, le_u32},
     sequence::{pair, preceded, terminated},
@@ -74,8 +74,16 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         .stream_type
         .iter()
         .map(|key| {
-            let pos = position.position.get(key).unwrap();
-            let stream_data: StreamModelMetadata = stream.stream.get(key).unwrap().clone().into();
+            let pos = position
+                .position
+                .get(key)
+                .ok_or_else(|| nom::Err::Error(E::from_error_kind(input, ErrorKind::Verify)))?;
+            let stream_data = stream
+                .stream
+                .get(key)
+                .ok_or_else(|| nom::Err::Error(E::from_error_kind(input, ErrorKind::Verify)))?
+                .clone()
+                .into();
 
             let (_, stream_model) =
                 parse_model(input, pos.stream_tree, pos.stream_pdf, &stream_data)?;
