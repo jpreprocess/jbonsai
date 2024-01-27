@@ -270,7 +270,7 @@ impl ModelSet {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GlobalModelMetadata {
     pub hts_voice_version: String,
     pub sampling_frequency: usize,

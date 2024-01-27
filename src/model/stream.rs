@@ -47,7 +47,7 @@ impl StreamModels {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StreamModelMetadata {
     pub vector_length: usize,
     pub num_windows: usize,
