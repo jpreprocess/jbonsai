@@ -1,20 +1,21 @@
 use std::collections::BTreeMap;
 
 use nom::{
-    bytes::complete::tag,
+    bytes::complete::{tag, take_until},
+    character::complete::newline,
     combinator::{all_consuming, map},
-    error::{ContextError, ParseError},
-    multi::many_m_n,
+    error::{context, ContextError, ParseError},
+    multi::{many0, many1, many_m_n},
     number::complete::{le_f32, le_u32},
-    sequence::{pair, preceded, terminated},
+    sequence::{pair, preceded, terminated, tuple},
     IResult, Parser,
 };
 
-use crate::model::parser::base::ParseTarget;
+use crate::model::parser::{base::ParseTarget, header::from_str};
 
 use self::{
     convert::convert_tree,
-    header::{HeaderParser, Position, Stream},
+    header::{Global, Position, Stream},
     tree::{Question, TreeParser},
     window::WindowParser,
 };
@@ -34,27 +35,37 @@ mod convert;
 pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
 ) -> IResult<&'a [u8], (GlobalModelMetadata, Voice), E> {
-    let (input, global) = HeaderParser::parse_global(input)?;
-    let (input, stream) = HeaderParser::parse_stream(input)?;
-    let (input, position) = HeaderParser::parse_position(input)?;
+    let (in_data, (in_global, in_stream, in_position)) = context(
+        "header",
+        tuple((
+            preceded(pair(many0(newline), tag("[GLOBAL]\n")), take_until("\n[")),
+            preceded(pair(many1(newline), tag("[STREAM]\n")), take_until("\n[")),
+            preceded(pair(many1(newline), tag("[POSITION]\n")), take_until("\n[")),
+        )),
+    )(input)?;
+
+    let global: Global = from_str(std::str::from_utf8(in_global).unwrap()).unwrap();
+    let stream: Stream = from_str(std::str::from_utf8(in_stream).unwrap()).unwrap();
+    let position: Position = from_str(std::str::from_utf8(in_position).unwrap()).unwrap();
 
     // TODO: verify
 
-    let (input, (duration_model, stream_models)) = preceded(tag("[DATA]\n"), |i| {
-        parse_data_section(i, &global, &stream, &position)
-    })(input)?;
+    let (input, (duration_model, stream_models)) =
+        preceded(pair(many1(newline), tag("[DATA]\n")), |i| {
+            parse_data_section(i, &global, &stream, &position)
+        })(in_data)?;
 
     let voice = Voice {
         duration_model,
         stream_models,
     };
 
-    Ok((input, (global, voice)))
+    Ok((input, (global.try_into().unwrap(), voice)))
 }
 
 fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
-    global: &GlobalModelMetadata,
+    global: &Global,
     stream: &Stream,
     position: &Position,
 ) -> IResult<&'a [u8], (Model, Vec<StreamModels>), E> {
@@ -75,16 +86,16 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         .iter()
         .map(|key| {
             let pos = position.position.get(key).unwrap();
-            let stream_data = stream.stream.get(key).unwrap();
+            let stream_data: StreamModelMetadata = stream.stream.get(key).unwrap().clone().into();
 
             let (_, stream_model) =
-                parse_model(input, pos.stream_tree, pos.stream_pdf, stream_data)?;
+                parse_model(input, pos.stream_tree, pos.stream_pdf, &stream_data)?;
 
             let gv_model = if stream_data.use_gv {
                 let (_, gv_model) = parse_model(
                     input,
-                    pos.gv_tree,
-                    pos.gv_pdf,
+                    pos.gv_tree.unwrap(),
+                    pos.gv_pdf.unwrap(),
                     &StreamModelMetadata {
                         vector_length: stream_data.vector_length,
                         num_windows: 1,
