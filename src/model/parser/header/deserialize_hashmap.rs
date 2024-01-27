@@ -83,7 +83,7 @@ impl<'de, 'a> MapAccess<'de> for AlreadySeparated<'a, 'de> {
             return Ok(None);
         };
 
-        seed.deserialize(&mut super::de::Deserializer::from_str(&k))
+        seed.deserialize(&mut super::de::Deserializer::from_str(k))
             .map(Some)
     }
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
@@ -92,7 +92,7 @@ impl<'de, 'a> MapAccess<'de> for AlreadySeparated<'a, 'de> {
     {
         let (_, v) = &self.de.inner[self.index - 1];
 
-        seed.deserialize(&mut super::de::Deserializer::from_str(&v))
+        seed.deserialize(&mut super::de::Deserializer::from_str(v))
     }
 }
 
