@@ -36,7 +36,7 @@ impl InterporationWeight {
     /// weights.len() == nvoices
     /// weights.iter().sum() == 1.0
     pub fn set_duration(&mut self, weights: Weights) -> Result<(), WeightError> {
-        weights.assert_length(self.nvoices)?;
+        weights.check_length(self.nvoices)?;
         self.duration = weights;
         Ok(())
     }
@@ -48,7 +48,7 @@ impl InterporationWeight {
         stream_index: usize,
         weights: Weights,
     ) -> Result<(), WeightError> {
-        weights.assert_length(self.nvoices)?;
+        weights.check_length(self.nvoices)?;
         self.parameter[stream_index] = weights;
         Ok(())
     }
@@ -56,7 +56,7 @@ impl InterporationWeight {
     /// weights.len() == nvoices
     /// weights.iter().sum() == 1.0
     pub fn set_gv(&mut self, stream_index: usize, weights: Weights) -> Result<(), WeightError> {
-        weights.assert_length(self.nvoices)?;
+        weights.check_length(self.nvoices)?;
         self.gv[stream_index] = weights;
         Ok(())
     }
@@ -102,7 +102,7 @@ impl Weights {
         }
     }
 
-    fn assert_length(&self, length: usize) -> Result<(), WeightError> {
+    fn check_length(&self, length: usize) -> Result<(), WeightError> {
         if self.weights.len() != length {
             return Err(WeightError::InvalidLength(length, self.weights.len()));
         }
