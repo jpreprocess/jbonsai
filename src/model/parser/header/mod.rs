@@ -1,8 +1,8 @@
-mod header_entry;
-
-pub mod de;
-pub mod deserialize_hashmap;
+mod de;
+mod deserialize_hashmap;
 pub mod error;
+
+pub use de::from_str;
 
 use std::collections::HashMap;
 
