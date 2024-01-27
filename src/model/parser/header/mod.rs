@@ -1,5 +1,8 @@
 mod header_entry;
-mod header_serde;
+
+pub mod de;
+pub mod deserialize_hashmap;
+pub mod error;
 
 use std::{collections::HashMap, marker::PhantomData, str::FromStr};
 
@@ -380,5 +383,52 @@ GV_TREE[LF0]:1167968-1168282
                 Pattern::from_pattern_string("*-pau+*").unwrap(),
             ]
         );
+    }
+
+    use std::collections::HashMap;
+
+    use serde::Deserialize;
+
+    use crate::model::parser::header::{de::from_str, deserialize_hashmap};
+
+    #[derive(Deserialize, PartialEq, Debug)]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+    struct Test {
+        fullcontext_version: String,
+        gv_off_context: Vec<String>,
+        sampling_frequency: usize,
+        stream_win: Vec<(usize, usize)>,
+        #[serde(flatten, with = "deserialize_hashmap")]
+        test: HashMap<String, TestInner>,
+    }
+
+    #[derive(Deserialize, PartialEq, Debug, Clone)]
+    #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+    struct TestInner {
+        stream_pdf: (usize, usize),
+    }
+
+    #[test]
+    fn test_struct() {
+        let j = r#"
+    FULLCONTEXT_VERSION:1.0
+    GV_OFF_CONTEXT:"*-sil+*","*-pau+*"
+    SAMPLING_FREQUENCY:48000
+    STREAM_WIN:40880-40885,40886-40900
+    STREAM_PDF[LF0]:788578-848853
+    "#;
+        let expected = Test {
+            fullcontext_version: "1.0".to_string(),
+            gv_off_context: vec!["*-sil+*".to_owned(), "*-pau+*".to_owned()],
+            sampling_frequency: 48000,
+            stream_win: vec![(40880, 40885), (40886, 40900)],
+            test: HashMap::from([(
+                "LF0".to_string(),
+                TestInner {
+                    stream_pdf: (788578, 848853),
+                },
+            )]),
+        };
+        assert_eq!(expected, from_str(j).unwrap());
     }
 }
