@@ -8,6 +8,41 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
+use nom::{
+    bytes::complete::{tag, take_until},
+    character::complete::newline,
+    error::{context, ContextError, ParseError},
+    multi::{many0, many1},
+    sequence::{pair, preceded, tuple},
+    IResult,
+};
+
+use super::base::ParseTarget;
+
+pub fn parse_header<'a, S, E>(input: S) -> IResult<S, (Global, Stream, Position), E>
+where
+    S: ParseTarget,
+    E: ParseError<S> + ContextError<S>,
+    <S as nom::InputIter>::Item: nom::AsChar + Clone + Copy,
+    <S as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
+    for<'b> &'b str: nom::FindToken<<S as nom::InputIter>::Item>,
+{
+    let (in_data, (in_global, in_stream, in_position)) = context(
+        "header",
+        tuple((
+            preceded(pair(many0(newline), tag("[GLOBAL]\n")), take_until("\n[")),
+            preceded(pair(many1(newline), tag("[STREAM]\n")), take_until("\n[")),
+            preceded(pair(many1(newline), tag("[POSITION]\n")), take_until("\n[")),
+        )),
+    )(input)?;
+
+    let global: Global = from_str(in_global.parse_utf8().unwrap()).unwrap();
+    let stream: Stream = from_str(in_stream.parse_utf8().unwrap()).unwrap();
+    let position: Position = from_str(in_position.parse_utf8().unwrap()).unwrap();
+
+    Ok((in_data, (global, stream, position)))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct Global {
@@ -97,7 +132,8 @@ pub struct PositionData {
 #[cfg(test)]
 mod tests {
     use super::{
-        de::from_str, deserialize_hashmap, Global, Position, PositionData, Stream, StreamData,
+        de::from_str, deserialize_hashmap, parse_header, Global, Position, PositionData, Stream,
+        StreamData,
     };
 
     use std::collections::HashMap;
@@ -143,7 +179,9 @@ STREAM_PDF[LF0]:788578-848853
         assert_eq!(expected, from_str(j).unwrap());
     }
 
-    const CONTENT: &str = "
+    #[test]
+    fn split() {
+        const CONTENT: &str = "
 [GLOBAL]
 HTS_VOICE_VERSION:1.0
 SAMPLING_FREQUENCY:48000
@@ -187,7 +225,11 @@ GV_PDF[MCP]:1167198-1167761
 GV_PDF[LF0]:1167762-1167789
 GV_TREE[MCP]:1167790-1167967
 GV_TREE[LF0]:1167968-1168282
+[DATA]
 ";
+        parse_header::<&str, nom::error::VerboseError<&str>>(CONTENT).unwrap();
+    }
+
     #[test]
     fn global() {
         const GLOBAL: &str = r#"
@@ -218,6 +260,7 @@ COMMENT:
             }
         );
     }
+
     #[test]
     fn stream() {
         const STREAM: &str = r#"
@@ -275,6 +318,7 @@ OPTION[LPF]:
             }
         );
     }
+
     #[test]
     fn position() {
         const POSITION: &str = r#"
@@ -334,19 +378,4 @@ GV_TREE[LF0]:1167968-1168282
             }
         );
     }
-
-    // #[test]
-    // fn global_bin() {
-    //     let (rest, global) =
-    //         HeaderParser::parse_global::<VerboseError<&[u8]>>(CONTENT.as_bytes()).unwrap();
-    //     assert_eq!(rest.len(), 751);
-    //     assert_eq!(global.hts_voice_version, "1.0");
-    //     assert_eq!(
-    //         global.gv_off_context,
-    //         vec![
-    //             Pattern::from_pattern_string("*-sil+*").unwrap(),
-    //             Pattern::from_pattern_string("*-pau+*").unwrap(),
-    //         ]
-    //     );
-    // }
 }

@@ -1,21 +1,21 @@
 use std::collections::BTreeMap;
 
 use nom::{
-    bytes::complete::{tag, take_until},
+    bytes::complete::tag,
     character::complete::newline,
     combinator::{all_consuming, map},
-    error::{context, ContextError, ParseError},
-    multi::{many0, many1, many_m_n},
+    error::{ContextError, ParseError},
+    multi::{many1, many_m_n},
     number::complete::{le_f32, le_u32},
-    sequence::{pair, preceded, terminated, tuple},
+    sequence::{pair, preceded, terminated},
     IResult, Parser,
 };
 
-use crate::model::parser::{base::ParseTarget, header::from_str};
+use crate::model::parser::base::ParseTarget;
 
 use self::{
     convert::convert_tree,
-    header::{Global, Position, Stream},
+    header::{parse_header, Global, Position, Stream},
     tree::{Question, TreeParser},
     window::WindowParser,
 };
@@ -35,18 +35,7 @@ mod convert;
 pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
 ) -> IResult<&'a [u8], (GlobalModelMetadata, Voice), E> {
-    let (in_data, (in_global, in_stream, in_position)) = context(
-        "header",
-        tuple((
-            preceded(pair(many0(newline), tag("[GLOBAL]\n")), take_until("\n[")),
-            preceded(pair(many1(newline), tag("[STREAM]\n")), take_until("\n[")),
-            preceded(pair(many1(newline), tag("[POSITION]\n")), take_until("\n[")),
-        )),
-    )(input)?;
-
-    let global: Global = from_str(std::str::from_utf8(in_global).unwrap()).unwrap();
-    let stream: Stream = from_str(std::str::from_utf8(in_stream).unwrap()).unwrap();
-    let position: Position = from_str(std::str::from_utf8(in_position).unwrap()).unwrap();
+    let (in_data, (global, stream, position)) = parse_header(input)?;
 
     // TODO: verify
 
