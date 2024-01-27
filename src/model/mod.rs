@@ -11,31 +11,16 @@ pub mod stream;
 #[cfg(feature = "htsvoice")]
 mod parser;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum ModelErrorKind {
-    ZeroVoices,
-    Io,
-    NomError,
+#[derive(Debug, thiserror::Error)]
+pub enum ModelError {
+    #[error("No HTS voice was given.")]
+    EmptyVoice,
+    #[error("The global metadata does not match.")]
     MetadataError,
-}
-
-impl ModelErrorKind {
-    pub fn with_error<E>(self, source: E) -> ModelError
-    where
-        anyhow::Error: From<E>,
-    {
-        ModelError {
-            kind: self,
-            source: From::from(source),
-        }
-    }
-}
-
-#[derive(thiserror::Error, Debug)]
-#[error("ModelError(kind={kind:?}, source={source})")]
-pub struct ModelError {
-    pub kind: ModelErrorKind,
-    source: anyhow::Error,
+    #[error("Io failed: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Parser returned error:\n{0}")]
+    NomError(String),
 }
 
 pub struct ModelSet {
@@ -57,9 +42,7 @@ impl Display for ModelSet {
 impl ModelSet {
     #[cfg(feature = "htsvoice")]
     pub fn load_htsvoice_files<P: AsRef<Path>>(paths: &[P]) -> Result<Self, ModelError> {
-        let first = paths.first().ok_or_else(|| {
-            ModelErrorKind::ZeroVoices.with_error(anyhow::anyhow!("No HTS voices are given."))
-        })?;
+        let first = paths.first().ok_or(ModelError::EmptyVoice)?;
         let (first_metadata, first_voice) = Self::load_htsvoice_file(first)?;
 
         let mut voices = Vec::with_capacity(paths.len());
@@ -68,8 +51,7 @@ impl ModelSet {
         for p in &paths[1..] {
             let (metadata, voice) = Self::load_htsvoice_file(p)?;
             if metadata != first_metadata {
-                return Err(ModelErrorKind::MetadataError
-                    .with_error(anyhow::anyhow!("The global metadata does not match.")));
+                return Err(ModelError::MetadataError);
             }
             voices.push(voice);
         }
@@ -83,15 +65,34 @@ impl ModelSet {
     fn load_htsvoice_file<P: AsRef<Path>>(
         path: &P,
     ) -> Result<(GlobalModelMetadata, Voice), ModelError> {
-        let f = std::fs::read(path).map_err(|err| ModelErrorKind::Io.with_error(err))?;
+        let f = std::fs::read(path)?;
 
-        let (_, pair) =
-            parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f).map_err(|err| {
-                ModelErrorKind::NomError
-                    .with_error(anyhow::anyhow!("Parser returned error:\n{}", err))
-            })?;
-
-        Ok(pair)
+        match parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f) {
+            Ok((_, pair)) => Ok(pair),
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                let message = e
+                    .errors
+                    .iter()
+                    .fold(String::new(), |acc: String, (src, kind)| {
+                        let input = std::string::String::from_utf8_lossy(&src[..src.len().min(20)]);
+                        match kind {
+                            nom::error::VerboseErrorKind::Nom(e) => {
+                                format!("{}\n{:?} at: {}", acc, e, input)
+                            }
+                            nom::error::VerboseErrorKind::Char(c) => {
+                                format!("{}\nexpected '{}' at: {}", acc, c, input)
+                            }
+                            nom::error::VerboseErrorKind::Context(s) => {
+                                format!("{}\nin section '{}', at: {}", acc, s, input)
+                            }
+                        }
+                    });
+                Err(ModelError::NomError(message))
+            }
+            Err(nom::Err::Incomplete(_)) => {
+                Err(ModelError::NomError("Not enough data".to_string()))
+            }
+        }
     }
 
     fn get_first_voice(&self) -> &Voice {
