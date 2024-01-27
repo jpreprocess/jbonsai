@@ -300,7 +300,6 @@ impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
     where
         K: DeserializeSeed<'de>,
     {
-        dbg!(&self.de.input);
         let mut newline = false;
         loop {
             let char = self.de.peek_char();
@@ -341,7 +340,7 @@ struct Test {
     test: HashMap<String, TestInner>,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 struct TestInner {
     stream_pdf: (usize, usize),
@@ -361,41 +360,126 @@ STREAM_PDF[LF0]:788578-848853
         gv_off_context: vec!["*-sil+*".to_owned(), "*-pau+*".to_owned()],
         sampling_frequency: 48000,
         stream_win: vec![(40880, 40885), (40886, 40900)],
-        test: HashMap::new(),
+        test: HashMap::from([(
+            "LF0".to_string(),
+            TestInner {
+                stream_pdf: (788578, 848853),
+            },
+        )]),
     };
     assert_eq!(expected, from_str(j).unwrap());
 }
 
 mod with {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, marker::PhantomData};
 
-    use serde::{de::Visitor, Deserialize, Deserializer};
+    use serde::{
+        de::{MapAccess, Visitor},
+        forward_to_deserialize_any, Deserialize, Deserializer,
+    };
+
+    struct StrMapVisitor<'de, T>(PhantomData<&'de T>)
+    where
+        T: Deserialize<'de>;
+    impl<'de, T: Deserialize<'de>> Visitor<'de> for StrMapVisitor<'de, T> {
+        type Value = HashMap<String, T>;
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("StrMap")
+        }
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            let mut data = HashMap::new();
+
+            while let Some((key, value)) = map.next_entry::<&str, &str>()? {
+                if !key.ends_with(']') {
+                    continue;
+                }
+                let Some(start) = key.find('[') else {
+                    continue;
+                };
+
+                let key_sub = &key[start + 1..key.len() - 1];
+                let key_main = &key[..start];
+
+                data.entry(key_sub)
+                    .or_insert(Vec::new())
+                    .push((key_main, value));
+            }
+
+            let mut result = HashMap::with_capacity(data.len());
+
+            for (k, v) in data {
+                let t = T::deserialize(&mut MapDeserializer::new(v)).unwrap();
+                result.insert(k.to_string(), t);
+            }
+
+            Ok(result)
+        }
+    }
+
+    struct MapDeserializer<'de> {
+        inner: Vec<(&'de str, &'de str)>,
+    }
+    impl<'de> MapDeserializer<'de> {
+        pub fn new(inner: Vec<(&'de str, &'de str)>) -> Self {
+            MapDeserializer { inner }
+        }
+    }
+    impl<'de, 'a> serde::de::Deserializer<'de> for &'a mut MapDeserializer<'de> {
+        type Error = super::Error;
+        fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+        where
+            V: Visitor<'de>,
+        {
+            visitor.visit_map(AlreadySeparated::new(self))
+        }
+        forward_to_deserialize_any! {
+            bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+            bytes byte_buf option unit unit_struct newtype_struct seq tuple
+            tuple_struct enum map struct identifier ignored_any
+        }
+    }
+
+    struct AlreadySeparated<'a, 'de: 'a> {
+        de: &'a MapDeserializer<'de>,
+        index: usize,
+    }
+    impl<'a, 'de> AlreadySeparated<'a, 'de> {
+        fn new(de: &'a MapDeserializer<'de>) -> Self {
+            Self { de, index: 0 }
+        }
+    }
+    impl<'de, 'a> MapAccess<'de> for AlreadySeparated<'a, 'de> {
+        type Error = super::Error;
+        fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
+        where
+            K: serde::de::DeserializeSeed<'de>,
+        {
+            self.index += 1;
+            let Some((k, _)) = self.de.inner.get(self.index - 1) else {
+                return Ok(None);
+            };
+
+            seed.deserialize(&mut super::Deserializer::from_str(&k))
+                .map(Some)
+        }
+        fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
+        where
+            V: serde::de::DeserializeSeed<'de>,
+        {
+            let (_, v) = &self.de.inner[self.index - 1];
+
+            seed.deserialize(&mut super::Deserializer::from_str(&v))
+        }
+    }
 
     pub fn deserialize<'de, D, T>(deserializer: D) -> Result<HashMap<String, T>, D::Error>
     where
         D: Deserializer<'de>,
-        T: Deserialize<'de> + std::fmt::Debug,
+        T: 'de + Deserialize<'de> + std::fmt::Debug + Clone,
     {
-        struct StrMapVisitor;
-        impl<'de> Visitor<'de> for StrMapVisitor {
-            type Value = Vec<(String, String)>;
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("StrMap")
-            }
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::MapAccess<'de>,
-            {
-                let mut result = Vec::new();
-                while let Some(entry) = map.next_entry()? {
-                    result.push(entry);
-                }
-                Ok(result)
-            }
-        }
-
-        let s = deserializer.deserialize_map(StrMapVisitor)?;
-        dbg!(s);
-        todo!()
+        deserializer.deserialize_map(StrMapVisitor::<'de, T>(PhantomData))
     }
 }
