@@ -30,7 +30,7 @@ impl StateStreamSet {
         phoneme_alignment_flag: bool,
         speed: f64,
         iw: &InterporationWeight,
-    ) -> Option<Self> {
+    ) -> Self {
         let duration_params: Vec<(f64, f64)> = (0..label.get_size())
             .flat_map(|i| {
                 ms.get_duration(label.get_string(i), iw.get_duration())
@@ -117,13 +117,13 @@ impl StateStreamSet {
             })
             .collect();
 
-        Some(Self {
+        Self {
             total_state: label.get_size() * ms.get_nstate(),
             total_frame: duration.iter().sum(),
             duration,
             ms,
             sstreams,
-        })
+        }
     }
 
     /// Estimate state duration

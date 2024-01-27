@@ -18,7 +18,6 @@ name = "genji"
 required-features = ["binary"]
 
 [dependencies]
-anyhow = "1.0.75"
 byteorder = "1.5.0"
 thiserror = "1.0"
 approx = "0.5.1"

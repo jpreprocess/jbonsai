@@ -10,7 +10,7 @@ pub mod vocoder;
 
 #[cfg(test)]
 mod tests {
-    use crate::engine::Engine;
+    use crate::{engine::Engine, model::interporation_weight::Weights};
 
     pub const MODEL_NITECH_ATR503: &str =
         "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice";
@@ -33,33 +33,36 @@ mod tests {
     fn bonsai() {
         let lines: Vec<String> = SAMPLE_SENTENCE_1.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
+        let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
 
-        engine.synthesize_from_strings(&lines);
-        assert_eq!(engine.get_total_nsamples(), 66480);
-        let l2000 = engine.get_generated_speech_with_index(2000);
-        approx::assert_abs_diff_eq!(l2000, 19.35141137623778, epsilon = 1.0e-10);
-        let l30000 = engine.get_generated_speech_with_index(30000);
-        approx::assert_abs_diff_eq!(l30000, -980.6757547598129, epsilon = 1.0e-10);
+        let speech_stream = engine.synthesize_from_strings(&lines);
+        let speech = speech_stream.get_speech();
+
+        assert_eq!(speech.len(), 66480);
+        approx::assert_abs_diff_eq!(speech[2000], 19.35141137623778, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], -980.6757547598129, epsilon = 1.0e-10);
     }
 
     #[test]
     fn bonsai_multi() {
         let lines: Vec<String> = SAMPLE_SENTENCE_1.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY]);
+        let mut engine = Engine::load(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY]).unwrap();
         let iw = engine.condition.get_interporation_weight_mut();
-        iw.set_duration(vec![0.7, 0.3]);
-        iw.set_parameter(0, vec![0.7, 0.3]);
-        iw.set_parameter(1, vec![0.7, 0.3]);
-        iw.set_parameter(2, vec![1.0, 0.0]);
+        iw.set_duration(Weights::new(&[0.7, 0.3]).unwrap()).unwrap();
+        iw.set_parameter(0, Weights::new(&[0.7, 0.3]).unwrap())
+            .unwrap();
+        iw.set_parameter(1, Weights::new(&[0.7, 0.3]).unwrap())
+            .unwrap();
+        iw.set_parameter(2, Weights::new(&[1.0, 0.0]).unwrap())
+            .unwrap();
 
-        engine.synthesize_from_strings(&lines);
-        assert_eq!(engine.get_total_nsamples(), 74880);
-        let l2000 = engine.get_generated_speech_with_index(2000);
-        approx::assert_abs_diff_eq!(l2000, 2.3158134981607754e-5, epsilon = 1.0e-10);
-        let l30000 = engine.get_generated_speech_with_index(30000);
-        approx::assert_abs_diff_eq!(l30000, 6459.375032316974, epsilon = 1.0e-10);
+        let speech_stream = engine.synthesize_from_strings(&lines);
+        let speech = speech_stream.get_speech();
+
+        assert_eq!(speech.len(), 74880);
+        approx::assert_abs_diff_eq!(speech[2000], 2.3158134981607754e-5, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], 6459.375032316974, epsilon = 1.0e-10);
     }
 
     // これ,名詞,代名詞,一般,*,*,*,これ,コレ,コレ,0/2,C3,-1
@@ -95,43 +98,40 @@ mod tests {
     fn is_this_bonsai() {
         let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
+        let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
 
-        engine.synthesize_from_strings(&lines);
-        assert_eq!(engine.get_total_nsamples(), 100800);
-        let l2000 = engine.get_generated_speech_with_index(2000);
-        approx::assert_abs_diff_eq!(l2000, 17.15977345625943, epsilon = 1.0e-10);
-        let l30000 = engine.get_generated_speech_with_index(30000);
-        approx::assert_abs_diff_eq!(l30000, 2566.2058730889985, epsilon = 1.0e-10);
-        let l70000 = engine.get_generated_speech_with_index(70000);
-        approx::assert_abs_diff_eq!(l70000, -1898.2890228814217, epsilon = 1.0e-10);
-        let l100799 = engine.get_generated_speech_with_index(100799);
-        approx::assert_abs_diff_eq!(l100799, -13.514971382534956, epsilon = 1.0e-10);
+        let speech_stream = engine.synthesize_from_strings(&lines);
+        let speech = speech_stream.get_speech();
+
+        assert_eq!(speech.len(), 100800);
+        approx::assert_abs_diff_eq!(speech[2000], 17.15977345625943, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], 2566.2058730889985, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[70000], -1898.2890228814217, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[100799], -13.514971382534956, epsilon = 1.0e-10);
     }
 
     #[test]
     fn is_this_bonsai_fast() {
         let lines: Vec<String> = SAMPLE_SENTENCE_2.iter().map(|l| l.to_string()).collect();
 
-        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
+        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
         engine.condition.set_speed(1.4);
 
-        engine.synthesize_from_strings(&lines);
-        assert_eq!(engine.get_total_nsamples(), 72000);
-        let l2000 = engine.get_generated_speech_with_index(2000);
-        approx::assert_abs_diff_eq!(l2000, 15.0481014871396, epsilon = 1.0e-10);
-        let l30000 = engine.get_generated_speech_with_index(30000);
-        approx::assert_abs_diff_eq!(l30000, -56.77163803227678, epsilon = 1.0e-10);
-        let l70000 = engine.get_generated_speech_with_index(70000);
-        approx::assert_abs_diff_eq!(l70000, -9.15409432584658, epsilon = 1.0e-10);
-        let l71199 = engine.get_generated_speech_with_index(71199);
-        approx::assert_abs_diff_eq!(l71199, 7.840225089163972, epsilon = 1.0e-10);
+        let speech_stream = engine.synthesize_from_strings(&lines);
+        let speech = speech_stream.get_speech();
+
+        assert_eq!(speech.len(), 72000);
+        approx::assert_abs_diff_eq!(speech[2000], 15.0481014871396, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], -56.77163803227678, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[70000], -9.15409432584658, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[71199], 7.840225089163972, epsilon = 1.0e-10);
     }
 
     #[test]
     fn empty() {
-        let mut engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]);
-        engine.synthesize_from_strings(&[]);
-        assert_eq!(engine.get_total_nsamples(), 0);
+        let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
+        let speech_stream = engine.synthesize_from_strings(&[]);
+        let speech = speech_stream.get_speech();
+        assert_eq!(speech.len(), 0);
     }
 }
