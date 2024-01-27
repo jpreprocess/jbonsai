@@ -371,18 +371,16 @@ STREAM_PDF[LF0]:788578-848853
 }
 
 mod with {
-    use std::{collections::HashMap, marker::PhantomData};
+    use std::collections::HashMap;
 
     use serde::{
         de::{MapAccess, Visitor},
         forward_to_deserialize_any, Deserialize, Deserializer,
     };
 
-    struct StrMapVisitor<'de, T>(PhantomData<&'de T>)
-    where
-        T: Deserialize<'de>;
-    impl<'de, T: Deserialize<'de>> Visitor<'de> for StrMapVisitor<'de, T> {
-        type Value = HashMap<String, T>;
+    struct StrMapVisitor;
+    impl<'de> Visitor<'de> for StrMapVisitor {
+        type Value = HashMap<&'de str, Vec<(&'de str, &'de str)>>;
         fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
             formatter.write_str("StrMap")
         }
@@ -390,7 +388,7 @@ mod with {
         where
             A: serde::de::MapAccess<'de>,
         {
-            let mut data = HashMap::new();
+            let mut result = HashMap::new();
 
             while let Some((key, value)) = map.next_entry::<&str, &str>()? {
                 if !key.ends_with(']') {
@@ -403,16 +401,10 @@ mod with {
                 let key_sub = &key[start + 1..key.len() - 1];
                 let key_main = &key[..start];
 
-                data.entry(key_sub)
+                result
+                    .entry(key_sub)
                     .or_insert(Vec::new())
                     .push((key_main, value));
-            }
-
-            let mut result = HashMap::with_capacity(data.len());
-
-            for (k, v) in data {
-                let t = T::deserialize(&mut MapDeserializer::new(v)).unwrap();
-                result.insert(k.to_string(), t);
             }
 
             Ok(result)
@@ -480,6 +472,17 @@ mod with {
         D: Deserializer<'de>,
         T: 'de + Deserialize<'de> + std::fmt::Debug + Clone,
     {
-        deserializer.deserialize_map(StrMapVisitor::<'de, T>(PhantomData))
+        let map = deserializer.deserialize_map(StrMapVisitor)?;
+
+        let mut result = HashMap::with_capacity(map.len());
+
+        for (k, v) in map {
+            result.insert(
+                k.to_string(),
+                T::deserialize(&mut MapDeserializer::new(v)).map_err(serde::de::Error::custom)?,
+            );
+        }
+
+        Ok(result)
     }
 }
