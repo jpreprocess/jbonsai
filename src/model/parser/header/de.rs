@@ -41,6 +41,14 @@ impl<'de> Deserializer<'de> {
         Ok(ch)
     }
 
+    fn parse_bool(&mut self) -> Result<bool> {
+        match self.next_char()? {
+            '0' => Ok(false),
+            '1' => Ok(true),
+            _ => Err(Error::ExpectedBool),
+        }
+    }
+
     fn parse_unsigned<T>(&mut self) -> Result<T>
     where
         T: AddAssign<T> + MulAssign<T> + From<u8>,
@@ -86,6 +94,13 @@ impl<'de> Deserializer<'de> {
             Ok(s)
         }
     }
+
+    fn str_until_lineend(&mut self) -> Result<&'de str> {
+        let len = self.input.find('\n').unwrap_or(self.input.len());
+        let s = &self.input[..len];
+        self.input = &self.input[len..];
+        Ok(s)
+    }
 }
 
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
@@ -95,13 +110,20 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        self.deserialize_str(visitor)
+        visitor.visit_borrowed_str(self.str_until_lineend()?)
     }
 
     forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 f32 f64 char
-        bytes byte_buf option unit unit_struct
+        i8 i16 i32 i64 i128 f32 f64 char
+        bytes byte_buf unit unit_struct
         enum
+    }
+
+    fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
+    where
+        V: Visitor<'de>,
+    {
+        visitor.visit_bool(self.parse_bool()?)
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
@@ -130,6 +152,16 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         visitor.visit_u64(self.parse_unsigned()?)
+    }
+
+    fn deserialize_option<V>(self, visitor: V) -> std::prelude::v1::Result<V::Value, Self::Error>
+    where
+        V: Visitor<'de>,
+    {
+        match self.peek_char() {
+            Ok('\n') | Err(Error::Eof) => visitor.visit_none(),
+            _ => visitor.visit_some(self),
+        }
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
@@ -236,14 +268,18 @@ impl<'de, 'a> SeqAccess<'de> for List<'a, 'de> {
     where
         T: DeserializeSeed<'de>,
     {
-        if !self.first {
-            match self.de.peek_char() {
-                Ok(c) if c == self.delim => (),
-                Ok('\n') => return Ok(None),
-                Err(Error::Eof) => return Ok(None),
-                _ => return Err(Error::ExpectedArrayComma),
+        let mut delim_ok = false;
+        loop {
+            let char = self.de.peek_char();
+            match char {
+                Ok(c) if c == self.delim => delim_ok = true,
+                Ok('\n') | Err(Error::Eof) => return Ok(None),
+                _ => break,
             }
             self.de.next_char()?;
+        }
+        if !self.first && !delim_ok {
+            return Err(Error::ExpectedArrayComma);
         }
         self.first = false;
 
@@ -282,6 +318,7 @@ impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
         if !self.first && !newline {
             return Err(Error::ExpectedMapNewline);
         }
+        self.first = false;
 
         seed.deserialize(&mut *self.de).map(Some)
     }

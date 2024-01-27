@@ -5,6 +5,7 @@ pub enum Error {
     Message(String),
 
     Eof,
+    ExpectedBool,
     ExpectedInteger,
     ExpectedString,
     ExpectedArrayComma,
