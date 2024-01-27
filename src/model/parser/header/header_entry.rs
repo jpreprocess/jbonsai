@@ -1,6 +1,6 @@
 use nom::{error::ParseError, IResult};
 
-use super::base::ParseTarget;
+use crate::model::parser::ParseTarget;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HeaderEntry<S> {

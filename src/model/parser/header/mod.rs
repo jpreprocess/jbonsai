@@ -1,3 +1,6 @@
+mod header_entry;
+mod header_serde;
+
 use std::{collections::HashMap, marker::PhantomData, str::FromStr};
 
 use nom::{
@@ -10,9 +13,8 @@ use nom::{
     IResult,
 };
 
-use crate::model::{
-    parser::header_entry::HeaderEntry, stream::StreamModelMetadata, GlobalModelMetadata,
-};
+use crate::model::{stream::StreamModelMetadata, GlobalModelMetadata};
+use header_entry::HeaderEntry;
 
 use super::base::ParseTarget;
 
@@ -95,7 +97,6 @@ pub struct Position {
     pub position: HashMap<String, PositionData>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PositionData {
     pub stream_win: Vec<(usize, usize)>,
     pub stream_pdf: (usize, usize),

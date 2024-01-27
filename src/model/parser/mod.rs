@@ -26,8 +26,6 @@ use super::{
 
 mod base;
 mod header;
-mod header_entry;
-mod header_serde;
 mod tree;
 mod window;
 
