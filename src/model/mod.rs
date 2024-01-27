@@ -19,7 +19,7 @@ pub enum ModelError {
     MetadataError,
     #[error("Io failed: {0}")]
     Io(#[from] std::io::Error),
-    #[error("Parser returned error:\n{0}")]
+    #[error("Parser returned error:{0}")]
     NomError(String),
 }
 
