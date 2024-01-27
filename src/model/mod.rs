@@ -171,7 +171,6 @@ impl ModelSet {
 
     /// Get dynamic window
     pub fn get_windows(&self, stream_index: usize) -> &Windows {
-        // TODO: check implementation
         &self.get_last_voice().stream_models[stream_index].windows
     }
 
