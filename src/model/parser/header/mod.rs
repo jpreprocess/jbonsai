@@ -66,7 +66,6 @@ impl TryFrom<Global> for crate::model::GlobalModelMetadata {
             hts_voice_version: value.hts_voice_version,
             sampling_frequency: value.sampling_frequency,
             frame_period: value.frame_period,
-            num_voices: 1,
             num_states: value.num_states,
             num_streams: value.num_streams,
             stream_type: value.stream_type,

@@ -299,7 +299,6 @@ pub struct GlobalModelMetadata {
     pub hts_voice_version: String,
     pub sampling_frequency: usize,
     pub frame_period: usize,
-    pub num_voices: usize,
     pub num_states: usize,
     pub num_streams: usize,
     pub stream_type: Vec<String>,
@@ -313,7 +312,6 @@ impl Display for GlobalModelMetadata {
         writeln!(f, "HTS Voice Version: {}", self.hts_voice_version)?;
         writeln!(f, "Sampling Frequency: {}", self.sampling_frequency)?;
         writeln!(f, "Frame Period: {}", self.frame_period)?;
-        writeln!(f, "Number of Voices: {}", self.num_voices)?;
         writeln!(f, "Number of States: {}", self.num_states)?;
         writeln!(f, "Number of Streams: {}", self.num_streams)?;
         writeln!(f, "Streams: {}", self.stream_type.join(", "))?;
