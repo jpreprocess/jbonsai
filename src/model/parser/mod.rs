@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use nom::{
-    error::{ContextError, ErrorKind, ParseError, VerboseError},
+    error::{ContextError, ParseError, VerboseError},
     IResult, Parser,
 };
 
@@ -36,6 +36,14 @@ pub enum ModelParseError {
     DeserializeError(#[from] DeserializeError),
     #[error("Failed to parse pattern")]
     PatternParseError,
+
+    #[error("Stream was not found")]
+    StreamNotFound,
+    #[error("Position was not found")]
+    PositionNotFound,
+
+    #[error("USE_GV is true, but positions for GV is not set")]
+    UseGvError,
 }
 
 impl<'a> From<nom::Err<VerboseError<&'a [u8]>>> for ModelParseError {
@@ -75,8 +83,7 @@ pub fn parse_htsvoice<'a>(
     let stream: Stream = parse_header(&in_stream)?;
     let position: Position = parse_header(&in_position)?;
 
-    let (_, (duration_model, stream_models)) =
-        parse_data_section(in_data, &global, &stream, &position)?;
+    let (duration_model, stream_models) = parse_data_section(in_data, &global, &stream, &position)?;
 
     // TODO: verify
 
@@ -116,15 +123,15 @@ where
     )(input)
 }
 
-fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
-    input: &'a [u8],
+fn parse_data_section(
+    input: &[u8],
     global: &Global,
     stream: &Stream,
     position: &Position,
-) -> IResult<&'a [u8], (Model, Vec<StreamModels>), E> {
+) -> Result<(Model, Vec<StreamModels>), ModelParseError> {
     use nom::{combinator::all_consuming, sequence::terminated};
 
-    let (_, duration_model) = parse_model(
+    let duration_model = parse_model(
         input,
         position.duration_tree,
         position.duration_pdf,
@@ -136,6 +143,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
             option: vec![],
         },
     )?;
+
     let stream_models: Vec<StreamModels> = global
         .stream_type
         .iter()
@@ -143,20 +151,19 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
             let pos = position
                 .position
                 .get(key)
-                .ok_or_else(|| nom::Err::Error(E::from_error_kind(input, ErrorKind::Verify)))?;
+                .ok_or(ModelParseError::PositionNotFound)?;
             let stream_data = stream
                 .stream
                 .get(key)
-                .ok_or_else(|| nom::Err::Error(E::from_error_kind(input, ErrorKind::Verify)))?;
+                .ok_or(ModelParseError::StreamNotFound)?;
 
-            let (_, stream_model) =
-                parse_model(input, pos.stream_tree, pos.stream_pdf, &stream_data)?;
+            let stream_model = parse_model(input, pos.stream_tree, pos.stream_pdf, &stream_data)?;
 
             let gv_model = if stream_data.use_gv {
-                let (_, gv_model) = parse_model(
+                let gv_model = parse_model(
                     input,
-                    pos.gv_tree.unwrap(),
-                    pos.gv_pdf.unwrap(),
+                    pos.gv_tree.ok_or(ModelParseError::UseGvError)?,
+                    pos.gv_pdf.ok_or(ModelParseError::UseGvError)?,
                     &StreamData {
                         vector_length: stream_data.vector_length,
                         num_windows: 1,
@@ -177,10 +184,10 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                         Ok(all_consuming(terminated(
                             WindowParser::parse_window_row,
                             ParseTarget::sp,
-                        ))(&input[win.0..win.1 + 1])?
+                        ))(&input[win.0..=win.1])?
                         .1)
                     })
-                    .collect::<Result<_, _>>()?;
+                    .collect::<Result<_, ModelParseError>>()?;
 
             Ok(StreamModels::new(
                 stream_data.clone().into(),
@@ -189,17 +196,17 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                 windows,
             ))
         })
-        .collect::<Result<_, _>>()?;
+        .collect::<Result<_, ModelParseError>>()?;
 
-    Ok((b"", (duration_model, stream_models)))
+    Ok((duration_model, stream_models))
 }
 
-pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
-    input: &'a [u8],
+pub fn parse_model(
+    input: &[u8],
     tree_range: (usize, usize),
     pdf_range: (usize, usize),
     stream_data: &StreamData,
-) -> IResult<&'a [u8], Model, E> {
+) -> Result<Model, ModelParseError> {
     use nom::{
         combinator::map,
         multi::many_m_n,
@@ -252,7 +259,7 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         .map(|t| convert_tree(t, &question_lut))
         .collect();
 
-    Ok((b"", Model::new(new_trees, pdf)))
+    Ok(Model::new(new_trees, pdf))
 }
 
 fn parse_all<'a, T, F, E>(
