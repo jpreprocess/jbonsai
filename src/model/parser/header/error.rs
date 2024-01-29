@@ -7,7 +7,6 @@ pub enum DeserializeError {
     Eof,
     ExpectedBool,
     ExpectedInteger,
-    ExpectedString,
     ExpectedArrayComma,
     ExpectedMapColon,
     ExpectedMapNewline,
@@ -24,8 +23,22 @@ impl Display for DeserializeError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self {
             DeserializeError::Message(msg) => formatter.write_str(msg),
+
             DeserializeError::Eof => formatter.write_str("unexpected end of input"),
-            _ => todo!(),
+            DeserializeError::ExpectedBool => formatter.write_str("expected bool (0 or 1)"),
+            DeserializeError::ExpectedInteger => formatter.write_str("expected integer value"),
+            DeserializeError::ExpectedArrayComma => {
+                formatter.write_str("expected comma as an array delimiter")
+            }
+            DeserializeError::ExpectedMapColon => {
+                formatter.write_str("expected colon as map delimiter")
+            }
+            DeserializeError::ExpectedMapNewline => {
+                formatter.write_str("expected newline as map delimiter")
+            }
+            DeserializeError::TrailingCharacters => {
+                formatter.write_str("some characters were not consumed")
+            }
         }
     }
 }
