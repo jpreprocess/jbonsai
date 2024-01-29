@@ -17,9 +17,9 @@ use nom::{
     IResult,
 };
 
-use super::base::ParseTarget;
+use super::{base::ParseTarget, ModelParseError};
 
-pub fn parse_header<'a, S, E>(input: S) -> IResult<S, (Global, Stream, Position), E>
+pub fn split_header<'a, S, E>(input: S) -> IResult<S, (S, S, S), E>
 where
     S: ParseTarget,
     E: ParseError<S> + ContextError<S>,
@@ -36,11 +36,20 @@ where
         )),
     )(input)?;
 
-    let global: Global = from_str(in_global.parse_utf8().unwrap()).unwrap();
-    let stream: Stream = from_str(in_stream.parse_utf8().unwrap()).unwrap();
-    let position: Position = from_str(in_position.parse_utf8().unwrap()).unwrap();
+    Ok((in_data, (in_global, in_stream, in_position)))
+}
 
-    Ok((in_data, (global, stream, position)))
+pub fn parse_header<'de, S, T>(input: &'de S) -> Result<T, ModelParseError>
+where
+    S: ParseTarget,
+    <S as nom::InputIter>::Item: nom::AsChar,
+    T: Deserialize<'de>,
+{
+    Ok(from_str(
+        input
+            .parse_utf8()
+            .or(Err(ModelParseError::HeaderUtf8Error))?,
+    )?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -59,7 +68,7 @@ pub struct Global {
 }
 
 impl TryFrom<Global> for crate::model::GlobalModelMetadata {
-    type Error = regex::Error;
+    type Error = ModelParseError;
     fn try_from(value: Global) -> Result<Self, Self::Error> {
         use crate::model::stream::Pattern;
         Ok(Self {
@@ -75,7 +84,8 @@ impl TryFrom<Global> for crate::model::GlobalModelMetadata {
                 .gv_off_context
                 .into_iter()
                 .map(Pattern::from_pattern_string)
-                .collect::<Result<_, _>>()?,
+                .collect::<Result<_, _>>()
+                .or(Err(ModelParseError::PatternParseError))?,
         })
     }
 }
@@ -131,7 +141,7 @@ pub struct PositionData {
 #[cfg(test)]
 mod tests {
     use super::{
-        de::from_str, deserialize_hashmap, parse_header, Global, Position, PositionData, Stream,
+        de::from_str, deserialize_hashmap, split_header, Global, Position, PositionData, Stream,
         StreamData,
     };
 
@@ -226,7 +236,7 @@ GV_TREE[MCP]:1167790-1167967
 GV_TREE[LF0]:1167968-1168282
 [DATA]
 ";
-        parse_header::<&str, nom::error::VerboseError<&str>>(CONTENT).unwrap();
+        split_header::<&str, nom::error::VerboseError<&str>>(CONTENT).unwrap();
     }
 
     #[test]

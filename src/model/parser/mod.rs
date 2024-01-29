@@ -4,24 +4,24 @@ use nom::{
     bytes::complete::tag,
     character::complete::newline,
     combinator::{all_consuming, map},
-    error::{ContextError, ErrorKind, ParseError},
+    error::{ContextError, ErrorKind, ParseError, VerboseError},
     multi::{many1, many_m_n},
     number::complete::{le_f32, le_u32},
     sequence::{pair, preceded, terminated},
     IResult, Parser,
 };
 
-use crate::model::parser::base::ParseTarget;
+use crate::model::parser::{base::ParseTarget, header::parse_header};
 
 use self::{
     convert::convert_tree,
-    header::{parse_header, Global, Position, Stream, StreamData},
+    header::{error::DeserializeError, split_header, Global, Position, Stream, StreamData},
     tree::{Question, TreeParser},
     window::WindowParser,
 };
 
 use super::{
-    stream::{Model, Pattern,  StreamModels},
+    stream::{Model, Pattern, StreamModels},
     GlobalModelMetadata, Voice,
 };
 
@@ -32,24 +32,68 @@ mod window;
 
 mod convert;
 
-pub fn parse_htsvoice<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
+#[derive(Debug, thiserror::Error)]
+pub enum ModelParseError {
+    #[error("Nom parser returned error:{0}")]
+    NomError(String),
+    #[error("Failed to parse Header as UTF-8")]
+    HeaderUtf8Error,
+    #[error("Failed to parse header:{0}")]
+    DeserializeError(#[from] DeserializeError),
+    #[error("Failed to parse pattern")]
+    PatternParseError,
+}
+
+impl<'a> From<nom::Err<VerboseError<&'a [u8]>>> for ModelParseError {
+    fn from(value: nom::Err<VerboseError<&'a [u8]>>) -> Self {
+        match value {
+            nom::Err::Error(e) | nom::Err::Failure(e) => {
+                let message = e
+                    .errors
+                    .iter()
+                    .fold(String::new(), |acc: String, (src, kind)| {
+                        let input = std::string::String::from_utf8_lossy(&src[..src.len().min(20)]);
+                        match kind {
+                            nom::error::VerboseErrorKind::Nom(e) => {
+                                format!("{}\n{:?} at: {}", acc, e, input)
+                            }
+                            nom::error::VerboseErrorKind::Char(c) => {
+                                format!("{}\nexpected '{}' at: {}", acc, c, input)
+                            }
+                            nom::error::VerboseErrorKind::Context(s) => {
+                                format!("{}\nin section '{}', at: {}", acc, s, input)
+                            }
+                        }
+                    });
+                Self::NomError(message)
+            }
+            nom::Err::Incomplete(_) => Self::NomError("Not enough data".to_string()),
+        }
+    }
+}
+
+pub fn parse_htsvoice<'a>(
     input: &'a [u8],
-) -> IResult<&'a [u8], (GlobalModelMetadata, Voice), E> {
-    let (in_data, (global, stream, position)) = parse_header(input)?;
+) -> Result<(GlobalModelMetadata, Voice), ModelParseError> {
+    let (in_data, (in_global, in_stream, in_position)) = split_header(input)?;
 
-    // TODO: verify
+    let global: Global = parse_header(&in_global)?;
+    let stream: Stream = parse_header(&in_stream)?;
+    let position: Position = parse_header(&in_position)?;
 
-    let (input, (duration_model, stream_models)) =
+    let (_, (duration_model, stream_models)) =
         preceded(pair(many1(newline), tag("[DATA]\n")), |i| {
             parse_data_section(i, &global, &stream, &position)
         })(in_data)?;
+
+    // TODO: verify
 
     let voice = Voice {
         duration_model,
         stream_models,
     };
 
-    Ok((input, (global.try_into().unwrap(), voice)))
+    Ok((global.try_into()?, voice))
 }
 
 fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
@@ -197,8 +241,6 @@ where
 mod tests {
     use std::fs;
 
-    use nom::error::VerboseError;
-
     use crate::tests::MODEL_NITECH_ATR503;
 
     use super::parse_htsvoice;
@@ -206,6 +248,6 @@ mod tests {
     #[test]
     fn load() {
         let model = fs::read(MODEL_NITECH_ATR503).unwrap();
-        parse_htsvoice::<VerboseError<&[u8]>>(&model).unwrap();
+        parse_htsvoice(&model).unwrap();
     }
 }

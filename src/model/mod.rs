@@ -19,8 +19,9 @@ pub enum ModelError {
     MetadataError,
     #[error("Io failed: {0}")]
     Io(#[from] std::io::Error),
+    #[cfg(feature = "htsvoice")]
     #[error("Parser returned error:{0}")]
-    NomError(String),
+    ParserError(#[from] parser::ModelParseError),
 }
 
 pub struct ModelSet {
@@ -67,32 +68,7 @@ impl ModelSet {
     ) -> Result<(GlobalModelMetadata, Voice), ModelError> {
         let f = std::fs::read(path)?;
 
-        match parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f) {
-            Ok((_, pair)) => Ok(pair),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let message = e
-                    .errors
-                    .iter()
-                    .fold(String::new(), |acc: String, (src, kind)| {
-                        let input = std::string::String::from_utf8_lossy(&src[..src.len().min(20)]);
-                        match kind {
-                            nom::error::VerboseErrorKind::Nom(e) => {
-                                format!("{}\n{:?} at: {}", acc, e, input)
-                            }
-                            nom::error::VerboseErrorKind::Char(c) => {
-                                format!("{}\nexpected '{}' at: {}", acc, c, input)
-                            }
-                            nom::error::VerboseErrorKind::Context(s) => {
-                                format!("{}\nin section '{}', at: {}", acc, s, input)
-                            }
-                        }
-                    });
-                Err(ModelError::NomError(message))
-            }
-            Err(nom::Err::Incomplete(_)) => {
-                Err(ModelError::NomError("Not enough data".to_string()))
-            }
-        }
+        Ok(parser::parse_htsvoice(&f)?)
     }
 
     fn get_first_voice(&self) -> &Voice {
