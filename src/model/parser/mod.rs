@@ -74,8 +74,8 @@ impl<'a> From<nom::Err<VerboseError<&'a [u8]>>> for ModelParseError {
     }
 }
 
-pub fn parse_htsvoice<'a>(
-    input: &'a [u8],
+pub fn parse_htsvoice(
+    input: &[u8],
 ) -> Result<(GlobalModelMetadata, Voice), ModelParseError> {
     let (_, (in_global, in_stream, in_position, in_data)) = split_sections(input)?;
 
@@ -157,7 +157,7 @@ fn parse_data_section(
                 .get(key)
                 .ok_or(ModelParseError::StreamNotFound)?;
 
-            let stream_model = parse_model(input, pos.stream_tree, pos.stream_pdf, &stream_data)?;
+            let stream_model = parse_model(input, pos.stream_tree, pos.stream_pdf, stream_data)?;
 
             let gv_model = if stream_data.use_gv {
                 let gv_model = parse_model(
