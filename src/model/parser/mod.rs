@@ -1,13 +1,7 @@
 use std::collections::BTreeMap;
 
 use nom::{
-    bytes::complete::tag,
-    character::complete::newline,
-    combinator::{all_consuming, map},
     error::{ContextError, ErrorKind, ParseError, VerboseError},
-    multi::{many1, many_m_n},
-    number::complete::{le_f32, le_u32},
-    sequence::{pair, preceded, terminated},
     IResult, Parser,
 };
 
@@ -15,7 +9,7 @@ use crate::model::parser::{base::ParseTarget, header::parse_header};
 
 use self::{
     convert::convert_tree,
-    header::{error::DeserializeError, split_header, Global, Position, Stream, StreamData},
+    header::{error::DeserializeError, Global, Position, Stream, StreamData},
     tree::{Question, TreeParser},
     window::WindowParser,
 };
@@ -75,16 +69,14 @@ impl<'a> From<nom::Err<VerboseError<&'a [u8]>>> for ModelParseError {
 pub fn parse_htsvoice<'a>(
     input: &'a [u8],
 ) -> Result<(GlobalModelMetadata, Voice), ModelParseError> {
-    let (in_data, (in_global, in_stream, in_position)) = split_header(input)?;
+    let (_, (in_global, in_stream, in_position, in_data)) = split_sections(input)?;
 
     let global: Global = parse_header(&in_global)?;
     let stream: Stream = parse_header(&in_stream)?;
     let position: Position = parse_header(&in_position)?;
 
     let (_, (duration_model, stream_models)) =
-        preceded(pair(many1(newline), tag("[DATA]\n")), |i| {
-            parse_data_section(i, &global, &stream, &position)
-        })(in_data)?;
+        parse_data_section(in_data, &global, &stream, &position)?;
 
     // TODO: verify
 
@@ -96,12 +88,42 @@ pub fn parse_htsvoice<'a>(
     Ok((global.try_into()?, voice))
 }
 
+pub fn split_sections<'a, S, E>(input: S) -> IResult<S, (S, S, S, S), E>
+where
+    S: ParseTarget,
+    E: ParseError<S> + ContextError<S>,
+    <S as nom::InputIter>::Item: nom::AsChar + Clone + Copy,
+    <S as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
+    for<'b> &'b str: nom::FindToken<<S as nom::InputIter>::Item>,
+{
+    use nom::{
+        bytes::complete::{tag, take_until},
+        character::complete::newline,
+        combinator::{all_consuming, rest},
+        error::context,
+        multi::{many0, many1},
+        sequence::{pair, preceded, tuple},
+    };
+
+    context(
+        "htsvoice_split",
+        all_consuming(tuple((
+            preceded(pair(many0(newline), tag("[GLOBAL]\n")), take_until("\n[")),
+            preceded(pair(many1(newline), tag("[STREAM]\n")), take_until("\n[")),
+            preceded(pair(many1(newline), tag("[POSITION]\n")), take_until("\n[")),
+            preceded(pair(many1(newline), tag("[DATA]\n")), rest),
+        ))),
+    )(input)
+}
+
 fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
     global: &Global,
     stream: &Stream,
     position: &Position,
 ) -> IResult<&'a [u8], (Model, Vec<StreamModels>), E> {
+    use nom::{combinator::all_consuming, sequence::terminated};
+
     let (_, duration_model) = parse_model(
         input,
         position.duration_tree,
@@ -178,6 +200,13 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     pdf_range: (usize, usize),
     stream_data: &StreamData,
 ) -> IResult<&'a [u8], Model, E> {
+    use nom::{
+        combinator::map,
+        multi::many_m_n,
+        number::complete::{le_f32, le_u32},
+        sequence::{pair, terminated},
+    };
+
     let pdf_len =
         stream_data.vector_length * stream_data.num_windows * 2 + (stream_data.is_msd as usize);
 
@@ -234,6 +263,8 @@ where
     E: ParseError<&'a [u8]> + ContextError<&'a [u8]>,
     F: Parser<&'a [u8], T, E>,
 {
+    use nom::combinator::all_consuming;
+
     move |input: &'a [u8]| all_consuming(f)(&input[range.0..range.1 + 1])
 }
 
@@ -241,7 +272,7 @@ where
 mod tests {
     use std::fs;
 
-    use crate::tests::MODEL_NITECH_ATR503;
+    use crate::{model::parser::split_sections, tests::MODEL_NITECH_ATR503};
 
     use super::parse_htsvoice;
 
@@ -249,5 +280,56 @@ mod tests {
     fn load() {
         let model = fs::read(MODEL_NITECH_ATR503).unwrap();
         parse_htsvoice(&model).unwrap();
+    }
+
+    #[test]
+    fn split() {
+        const CONTENT: &str = "
+[GLOBAL]
+HTS_VOICE_VERSION:1.0
+SAMPLING_FREQUENCY:48000
+FRAME_PERIOD:240
+NUM_STATES:5
+NUM_STREAMS:3
+STREAM_TYPE:MCP,LF0,LPF
+FULLCONTEXT_FORMAT:HTS_TTS_JPN
+FULLCONTEXT_VERSION:1.0
+GV_OFF_CONTEXT:\"*-sil+*\",\"*-pau+*\"
+COMMENT:
+[STREAM]
+VECTOR_LENGTH[MCP]:35
+VECTOR_LENGTH[LF0]:1
+VECTOR_LENGTH[LPF]:31
+IS_MSD[MCP]:0
+IS_MSD[LF0]:1
+IS_MSD[LPF]:0
+NUM_WINDOWS[MCP]:3
+NUM_WINDOWS[LF0]:3
+NUM_WINDOWS[LPF]:1
+USE_GV[MCP]:1
+USE_GV[LF0]:1
+USE_GV[LPF]:0
+OPTION[MCP]:ALPHA=0.55
+OPTION[LF0]:
+OPTION[LPF]:
+[POSITION]
+DURATION_PDF:0-9803
+DURATION_TREE:9804-40879
+STREAM_WIN[MCP]:40880-40885,40886-40900,40901-40915
+STREAM_WIN[LF0]:40916-40921,40922-40936,40937-40951
+STREAM_WIN[LPF]:40952-40957
+STREAM_PDF[MCP]:40958-788577
+STREAM_PDF[LF0]:788578-848853
+STREAM_PDF[LPF]:848854-850113
+STREAM_TREE[MCP]:850114-940979
+STREAM_TREE[LF0]:940980-1167092
+STREAM_TREE[LPF]:1167093-1167197
+GV_PDF[MCP]:1167198-1167761
+GV_PDF[LF0]:1167762-1167789
+GV_TREE[MCP]:1167790-1167967
+GV_TREE[LF0]:1167968-1168282
+[DATA]
+";
+        split_sections::<&str, nom::error::VerboseError<&str>>(CONTENT).unwrap();
     }
 }

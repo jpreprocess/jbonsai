@@ -8,36 +8,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use nom::{
-    bytes::complete::{tag, take_until},
-    character::complete::newline,
-    error::{context, ContextError, ParseError},
-    multi::{many0, many1},
-    sequence::{pair, preceded, tuple},
-    IResult,
-};
-
 use super::{base::ParseTarget, ModelParseError};
-
-pub fn split_header<'a, S, E>(input: S) -> IResult<S, (S, S, S), E>
-where
-    S: ParseTarget,
-    E: ParseError<S> + ContextError<S>,
-    <S as nom::InputIter>::Item: nom::AsChar + Clone + Copy,
-    <S as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
-    for<'b> &'b str: nom::FindToken<<S as nom::InputIter>::Item>,
-{
-    let (in_data, (in_global, in_stream, in_position)) = context(
-        "header",
-        tuple((
-            preceded(pair(many0(newline), tag("[GLOBAL]\n")), take_until("\n[")),
-            preceded(pair(many1(newline), tag("[STREAM]\n")), take_until("\n[")),
-            preceded(pair(many1(newline), tag("[POSITION]\n")), take_until("\n[")),
-        )),
-    )(input)?;
-
-    Ok((in_data, (in_global, in_stream, in_position)))
-}
 
 pub fn parse_header<'de, S, T>(input: &'de S) -> Result<T, ModelParseError>
 where
@@ -141,8 +112,7 @@ pub struct PositionData {
 #[cfg(test)]
 mod tests {
     use super::{
-        de::from_str, deserialize_hashmap, split_header, Global, Position, PositionData, Stream,
-        StreamData,
+        de::from_str, deserialize_hashmap, Global, Position, PositionData, Stream, StreamData,
     };
 
     use std::collections::HashMap;
@@ -186,57 +156,6 @@ STREAM_PDF[LF0]:788578-848853
             )]),
         };
         assert_eq!(expected, from_str(j).unwrap());
-    }
-
-    #[test]
-    fn split() {
-        const CONTENT: &str = "
-[GLOBAL]
-HTS_VOICE_VERSION:1.0
-SAMPLING_FREQUENCY:48000
-FRAME_PERIOD:240
-NUM_STATES:5
-NUM_STREAMS:3
-STREAM_TYPE:MCP,LF0,LPF
-FULLCONTEXT_FORMAT:HTS_TTS_JPN
-FULLCONTEXT_VERSION:1.0
-GV_OFF_CONTEXT:\"*-sil+*\",\"*-pau+*\"
-COMMENT:
-[STREAM]
-VECTOR_LENGTH[MCP]:35
-VECTOR_LENGTH[LF0]:1
-VECTOR_LENGTH[LPF]:31
-IS_MSD[MCP]:0
-IS_MSD[LF0]:1
-IS_MSD[LPF]:0
-NUM_WINDOWS[MCP]:3
-NUM_WINDOWS[LF0]:3
-NUM_WINDOWS[LPF]:1
-USE_GV[MCP]:1
-USE_GV[LF0]:1
-USE_GV[LPF]:0
-OPTION[MCP]:ALPHA=0.55
-OPTION[LF0]:
-OPTION[LPF]:
-[POSITION]
-DURATION_PDF:0-9803
-DURATION_TREE:9804-40879
-STREAM_WIN[MCP]:40880-40885,40886-40900,40901-40915
-STREAM_WIN[LF0]:40916-40921,40922-40936,40937-40951
-STREAM_WIN[LPF]:40952-40957
-STREAM_PDF[MCP]:40958-788577
-STREAM_PDF[LF0]:788578-848853
-STREAM_PDF[LPF]:848854-850113
-STREAM_TREE[MCP]:850114-940979
-STREAM_TREE[LF0]:940980-1167092
-STREAM_TREE[LPF]:1167093-1167197
-GV_PDF[MCP]:1167198-1167761
-GV_PDF[LF0]:1167762-1167789
-GV_TREE[MCP]:1167790-1167967
-GV_TREE[LF0]:1167968-1168282
-[DATA]
-";
-        split_header::<&str, nom::error::VerboseError<&str>>(CONTENT).unwrap();
     }
 
     #[test]
