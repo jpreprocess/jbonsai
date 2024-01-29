@@ -15,13 +15,13 @@ use crate::model::parser::base::ParseTarget;
 
 use self::{
     convert::convert_tree,
-    header::{parse_header, Global, Position, Stream},
+    header::{parse_header, Global, Position, Stream, StreamData},
     tree::{Question, TreeParser},
     window::WindowParser,
 };
 
 use super::{
-    stream::{Model, Pattern, StreamModelMetadata, StreamModels},
+    stream::{Model, Pattern,  StreamModels},
     GlobalModelMetadata, Voice,
 };
 
@@ -62,7 +62,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
         input,
         position.duration_tree,
         position.duration_pdf,
-        &StreamModelMetadata {
+        &StreamData {
             vector_length: global.num_states,
             num_windows: 1,
             is_msd: false,
@@ -81,9 +81,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
             let stream_data = stream
                 .stream
                 .get(key)
-                .ok_or_else(|| nom::Err::Error(E::from_error_kind(input, ErrorKind::Verify)))?
-                .clone()
-                .into();
+                .ok_or_else(|| nom::Err::Error(E::from_error_kind(input, ErrorKind::Verify)))?;
 
             let (_, stream_model) =
                 parse_model(input, pos.stream_tree, pos.stream_pdf, &stream_data)?;
@@ -93,7 +91,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                     input,
                     pos.gv_tree.unwrap(),
                     pos.gv_pdf.unwrap(),
-                    &StreamModelMetadata {
+                    &StreamData {
                         vector_length: stream_data.vector_length,
                         num_windows: 1,
                         is_msd: false,
@@ -119,7 +117,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                     .collect::<Result<_, _>>()?;
 
             Ok(StreamModels::new(
-                stream_data.clone(),
+                stream_data.clone().into(),
                 stream_model,
                 gv_model,
                 windows,
@@ -134,7 +132,7 @@ pub fn parse_model<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
     input: &'a [u8],
     tree_range: (usize, usize),
     pdf_range: (usize, usize),
-    stream_data: &StreamModelMetadata,
+    stream_data: &StreamData,
 ) -> IResult<&'a [u8], Model, E> {
     let pdf_len =
         stream_data.vector_length * stream_data.num_windows * 2 + (stream_data.is_msd as usize);
