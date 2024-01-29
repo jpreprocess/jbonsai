@@ -5,7 +5,7 @@ use serde::{
     forward_to_deserialize_any, Deserialize, Deserializer,
 };
 
-use super::error::Error;
+use super::error::DeserializeError;
 
 struct StrMapVisitor;
 impl<'de> Visitor<'de> for StrMapVisitor {
@@ -49,7 +49,7 @@ impl<'de> MapDeserializer<'de> {
     }
 }
 impl<'de, 'a> serde::de::Deserializer<'de> for &'a mut MapDeserializer<'de> {
-    type Error = Error;
+    type Error = DeserializeError;
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'de>,
@@ -73,7 +73,7 @@ impl<'a, 'de> AlreadySeparated<'a, 'de> {
     }
 }
 impl<'de, 'a> MapAccess<'de> for AlreadySeparated<'a, 'de> {
-    type Error = Error;
+    type Error = DeserializeError;
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
     where
         K: serde::de::DeserializeSeed<'de>,

@@ -3,9 +3,9 @@ use std::ops::{AddAssign, MulAssign};
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
 use serde::{forward_to_deserialize_any, Deserialize};
 
-use super::error::Error;
+use super::error::DeserializeError;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, DeserializeError>;
 
 pub struct Deserializer<'de> {
     input: &'de str,
@@ -26,13 +26,13 @@ where
     if deserializer.input.is_empty() {
         Ok(t)
     } else {
-        Err(Error::TrailingCharacters)
+        Err(DeserializeError::TrailingCharacters)
     }
 }
 
 impl<'de> Deserializer<'de> {
     fn peek_char(&self) -> Result<char> {
-        self.input.chars().next().ok_or(Error::Eof)
+        self.input.chars().next().ok_or(DeserializeError::Eof)
     }
 
     fn next_char(&mut self) -> Result<char> {
@@ -45,7 +45,7 @@ impl<'de> Deserializer<'de> {
         match self.next_char()? {
             '0' => Ok(false),
             '1' => Ok(true),
-            _ => Err(Error::ExpectedBool),
+            _ => Err(DeserializeError::ExpectedBool),
         }
     }
 
@@ -56,7 +56,7 @@ impl<'de> Deserializer<'de> {
         let mut int = match self.next_char()? {
             ch @ '0'..='9' => T::from(ch as u8 - b'0'),
             _ => {
-                return Err(Error::ExpectedInteger);
+                return Err(DeserializeError::ExpectedInteger);
             }
         };
         loop {
@@ -82,7 +82,7 @@ impl<'de> Deserializer<'de> {
                     self.input = &self.input[len + 1..];
                     Ok(s)
                 }
-                None => Err(Error::Eof),
+                None => Err(DeserializeError::Eof),
             }
         } else {
             let len = self
@@ -104,7 +104,7 @@ impl<'de> Deserializer<'de> {
 }
 
 impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
-    type Error = Error;
+    type Error = DeserializeError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where
@@ -159,7 +159,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         V: Visitor<'de>,
     {
         match self.peek_char() {
-            Ok('\n') | Err(Error::Eof) => visitor.visit_none(),
+            Ok('\n') | Err(DeserializeError::Eof) => visitor.visit_none(),
             _ => visitor.visit_some(self),
         }
     }
@@ -262,7 +262,7 @@ impl<'a, 'de> List<'a, 'de> {
 }
 
 impl<'de, 'a> SeqAccess<'de> for List<'a, 'de> {
-    type Error = Error;
+    type Error = DeserializeError;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
     where
@@ -273,13 +273,13 @@ impl<'de, 'a> SeqAccess<'de> for List<'a, 'de> {
             let char = self.de.peek_char();
             match char {
                 Ok(c) if c == self.delim => delim_ok = true,
-                Ok('\n') | Err(Error::Eof) => return Ok(None),
+                Ok('\n') | Err(DeserializeError::Eof) => return Ok(None),
                 _ => break,
             }
             self.de.next_char()?;
         }
         if !self.first && !delim_ok {
-            return Err(Error::ExpectedArrayComma);
+            return Err(DeserializeError::ExpectedArrayComma);
         }
         self.first = false;
 
@@ -299,7 +299,7 @@ impl<'a, 'de> NewlineSeparated<'a, 'de> {
 }
 
 impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
-    type Error = Error;
+    type Error = DeserializeError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
     where
@@ -310,13 +310,13 @@ impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
             let char = self.de.peek_char();
             match char {
                 Ok('\n') => newline = true,
-                Err(Error::Eof) => return Ok(None),
+                Err(DeserializeError::Eof) => return Ok(None),
                 _ => break,
             }
             self.de.next_char()?;
         }
         if !self.first && !newline {
-            return Err(Error::ExpectedMapNewline);
+            return Err(DeserializeError::ExpectedMapNewline);
         }
         self.first = false;
 
@@ -328,7 +328,7 @@ impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
         V: DeserializeSeed<'de>,
     {
         if self.de.next_char()? != ':' {
-            return Err(Error::ExpectedMapColon);
+            return Err(DeserializeError::ExpectedMapColon);
         }
         seed.deserialize(&mut *self.de)
     }

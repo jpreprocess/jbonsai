@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
-#[derive(Debug)]
-pub enum Error {
+#[derive(Debug, thiserror::Error)]
+pub enum DeserializeError {
     Message(String),
 
     Eof,
@@ -14,20 +14,18 @@ pub enum Error {
     TrailingCharacters,
 }
 
-impl serde::de::Error for Error {
+impl serde::de::Error for DeserializeError {
     fn custom<T: Display>(msg: T) -> Self {
-        Error::Message(msg.to_string())
+        DeserializeError::Message(msg.to_string())
     }
 }
 
-impl Display for Error {
+impl Display for DeserializeError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::Message(msg) => formatter.write_str(msg),
-            Error::Eof => formatter.write_str("unexpected end of input"),
+            DeserializeError::Message(msg) => formatter.write_str(msg),
+            DeserializeError::Eof => formatter.write_str("unexpected end of input"),
             _ => todo!(),
         }
     }
 }
-
-impl std::error::Error for Error {}
