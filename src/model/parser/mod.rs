@@ -279,7 +279,7 @@ mod tests {
 
     use crate::{model::parser::split_sections, tests::MODEL_NITECH_ATR503};
 
-    use super::parse_htsvoice;
+    use super::{parse_htsvoice, ModelParseError};
 
     #[test]
     fn load() {
@@ -287,54 +287,76 @@ mod tests {
         parse_htsvoice(&model).unwrap();
     }
 
+    const CONTENT: &str = "
+    [GLOBAL]
+    HTS_VOICE_VERSION:1.0
+    SAMPLING_FREQUENCY:48000
+    FRAME_PERIOD:240
+    NUM_STATES:5
+    NUM_STREAMS:3
+    STREAM_TYPE:MCP,LF0,LPF
+    FULLCONTEXT_FORMAT:HTS_TTS_JPN
+    FULLCONTEXT_VERSION:1.0
+    GV_OFF_CONTEXT:\"*-sil+*\",\"*-pau+*\"
+    COMMENT:
+    [STREAM]
+    VECTOR_LENGTH[MCP]:35
+    VECTOR_LENGTH[LF0]:1
+    VECTOR_LENGTH[LPF]:31
+    IS_MSD[MCP]:0
+    IS_MSD[LF0]:1
+    IS_MSD[LPF]:0
+    NUM_WINDOWS[MCP]:3
+    NUM_WINDOWS[LF0]:3
+    NUM_WINDOWS[LPF]:1
+    USE_GV[MCP]:1
+    USE_GV[LF0]:1
+    USE_GV[LPF]:0
+    OPTION[MCP]:ALPHA=0.55
+    OPTION[LF0]:
+    OPTION[LPF]:
+    [POSITION]
+    DURATION_PDF:0-9803
+    DURATION_TREE:9804-40879
+    STREAM_WIN[MCP]:40880-40885,40886-40900,40901-40915
+    STREAM_WIN[LF0]:40916-40921,40922-40936,40937-40951
+    STREAM_WIN[LPF]:40952-40957
+    STREAM_PDF[MCP]:40958-788577
+    STREAM_PDF[LF0]:788578-848853
+    STREAM_PDF[LPF]:848854-850113
+    STREAM_TREE[MCP]:850114-940979
+    STREAM_TREE[LF0]:940980-1167092
+    STREAM_TREE[LPF]:1167093-1167197
+    GV_PDF[MCP]:1167198-1167761
+    GV_PDF[LF0]:1167762-1167789
+    GV_TREE[MCP]:1167790-1167967
+    GV_TREE[LF0]:1167968-1168282
+    [DATA]
+    ";
+
     #[test]
     fn split() {
-        const CONTENT: &str = "
-[GLOBAL]
-HTS_VOICE_VERSION:1.0
-SAMPLING_FREQUENCY:48000
-FRAME_PERIOD:240
-NUM_STATES:5
-NUM_STREAMS:3
-STREAM_TYPE:MCP,LF0,LPF
-FULLCONTEXT_FORMAT:HTS_TTS_JPN
-FULLCONTEXT_VERSION:1.0
-GV_OFF_CONTEXT:\"*-sil+*\",\"*-pau+*\"
-COMMENT:
-[STREAM]
-VECTOR_LENGTH[MCP]:35
-VECTOR_LENGTH[LF0]:1
-VECTOR_LENGTH[LPF]:31
-IS_MSD[MCP]:0
-IS_MSD[LF0]:1
-IS_MSD[LPF]:0
-NUM_WINDOWS[MCP]:3
-NUM_WINDOWS[LF0]:3
-NUM_WINDOWS[LPF]:1
-USE_GV[MCP]:1
-USE_GV[LF0]:1
-USE_GV[LPF]:0
-OPTION[MCP]:ALPHA=0.55
-OPTION[LF0]:
-OPTION[LPF]:
-[POSITION]
-DURATION_PDF:0-9803
-DURATION_TREE:9804-40879
-STREAM_WIN[MCP]:40880-40885,40886-40900,40901-40915
-STREAM_WIN[LF0]:40916-40921,40922-40936,40937-40951
-STREAM_WIN[LPF]:40952-40957
-STREAM_PDF[MCP]:40958-788577
-STREAM_PDF[LF0]:788578-848853
-STREAM_PDF[LPF]:848854-850113
-STREAM_TREE[MCP]:850114-940979
-STREAM_TREE[LF0]:940980-1167092
-STREAM_TREE[LPF]:1167093-1167197
-GV_PDF[MCP]:1167198-1167761
-GV_PDF[LF0]:1167762-1167789
-GV_TREE[MCP]:1167790-1167967
-GV_TREE[LF0]:1167968-1168282
-[DATA]
-";
         split_sections::<&str, nom::error::VerboseError<&str>>(CONTENT).unwrap();
+    }
+
+    #[test]
+    fn nom_error() {
+        let err =
+            split_sections::<&[u8], nom::error::VerboseError<&[u8]>>(&CONTENT[..500].as_bytes())
+                .unwrap_err();
+
+        let ModelParseError::NomError(nomerr_str) = err.into() else {
+            unreachable!();
+        };
+
+        assert_eq!(
+            &nomerr_str,
+            r#"
+Tag at:     [GLOBAL]
+    HTS
+in section 'htsvoice_split', at: 
+    [GLOBAL]
+    HT"#
+        );
     }
 }
