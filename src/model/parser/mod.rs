@@ -74,9 +74,7 @@ impl<'a> From<nom::Err<VerboseError<&'a [u8]>>> for ModelParseError {
     }
 }
 
-pub fn parse_htsvoice(
-    input: &[u8],
-) -> Result<(GlobalModelMetadata, Voice), ModelParseError> {
+pub fn parse_htsvoice(input: &[u8]) -> Result<(GlobalModelMetadata, Voice), ModelParseError> {
     let (_, (in_global, in_stream, in_position, in_data)) = split_sections(input)?;
 
     let global: Global = parse_header(&in_global)?;
