@@ -1,44 +1,28 @@
-use std::fmt::{self, Display};
+use std::fmt::Display;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeserializeError {
+    #[error("{0}")]
     Message(String),
 
+    #[error("unexpected end of input")]
     Eof,
+    #[error("expected bool (0 or 1)")]
     ExpectedBool,
+    #[error("expected integer value")]
     ExpectedInteger,
+    #[error("expected comma as an array delimiter")]
     ExpectedArrayComma,
+    #[error("expected colon as map delimiter")]
     ExpectedMapColon,
+    #[error("expected newline as map delimiter")]
     ExpectedMapNewline,
+    #[error("some characters were not consumed")]
     TrailingCharacters,
 }
 
 impl serde::de::Error for DeserializeError {
     fn custom<T: Display>(msg: T) -> Self {
         DeserializeError::Message(msg.to_string())
-    }
-}
-
-impl Display for DeserializeError {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            DeserializeError::Message(msg) => formatter.write_str(msg),
-
-            DeserializeError::Eof => formatter.write_str("unexpected end of input"),
-            DeserializeError::ExpectedBool => formatter.write_str("expected bool (0 or 1)"),
-            DeserializeError::ExpectedInteger => formatter.write_str("expected integer value"),
-            DeserializeError::ExpectedArrayComma => {
-                formatter.write_str("expected comma as an array delimiter")
-            }
-            DeserializeError::ExpectedMapColon => {
-                formatter.write_str("expected colon as map delimiter")
-            }
-            DeserializeError::ExpectedMapNewline => {
-                formatter.write_str("expected newline as map delimiter")
-            }
-            DeserializeError::TrailingCharacters => {
-                formatter.write_str("some characters were not consumed")
-            }
-        }
     }
 }
