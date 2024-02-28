@@ -47,7 +47,7 @@ impl DeserializeContext {
         self.contexts.contains(&c)
     }
     fn test_noncurrent(&self, c: char) -> bool {
-        self.contexts.len() > 0 && self.contexts[..self.contexts.len() - 1].contains(&c)
+        !self.contexts.is_empty() && self.contexts[..self.contexts.len() - 1].contains(&c)
     }
     fn enter(&mut self, expect: char) {
         self.contexts.push(expect)
