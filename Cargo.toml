@@ -24,5 +24,5 @@ approx = "0.5.1"
 
 nom = { version = "7.1.3", optional = true }
 hound = { version = "3.5.1", optional = true }
-jlabel = "0.1.1"
-jlabel-question = { version = "0.1.1", features = ["regex"]}
+jlabel = "0.1.2"
+jlabel-question = { version = "0.1.2", features = ["regex"]}
