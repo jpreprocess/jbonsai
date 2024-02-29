@@ -105,8 +105,8 @@ impl<'de> Deserializer<'de> {
             self.next_char()?;
             match self.input.find('"') {
                 Some(len) => {
-                    let s = &self.input[..len];
-                    self.input = &self.input[len + 1..];
+                    let (s, rest) = self.input.split_at(len);
+                    self.input = &rest[1..];
                     Ok(s)
                 }
                 None => Err(DeserializeError::Eof),
@@ -122,8 +122,8 @@ impl<'de> Deserializer<'de> {
             .find(|c| self.context.test(c))
             .unwrap_or(self.input.len());
 
-        let s = &self.input[..len];
-        self.input = &self.input[len..];
+        let (s, rest) = self.input.split_at(len);
+        self.input = rest;
         Ok(s)
     }
 
@@ -333,7 +333,7 @@ impl<'de, 'a> SeqAccess<'de> for List<'a, 'de> {
                 self.de.context.exit();
                 return Ok(None);
             }
-            // No need to clear context if deserializing stops here
+            // No need to clear context because deserialization stops here
             None if !self.first => return Err(DeserializeError::ExpectedArrayComma),
             _ => (),
         }
@@ -369,7 +369,7 @@ impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
                 self.de.context.exit();
                 return Ok(None);
             }
-            // No need to clear context if deserializing stops here
+            // No need to clear context because deserialization stops here
             None if !self.first => return Err(DeserializeError::ExpectedMapNewline),
             _ => (),
         }
@@ -384,7 +384,7 @@ impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
         V: DeserializeSeed<'de>,
     {
         if self.de.next_char()? != ':' {
-            // No need to clear context if deserializing stops here
+            // No need to clear context because deserialization stops here
             return Err(DeserializeError::ExpectedMapColon);
         }
 

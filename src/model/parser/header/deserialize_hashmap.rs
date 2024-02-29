@@ -101,16 +101,14 @@ where
     D: Deserializer<'de>,
     T: 'de + Deserialize<'de> + std::fmt::Debug + Clone,
 {
-    let map = deserializer.deserialize_map(StrMapVisitor)?;
-
-    let mut result = HashMap::with_capacity(map.len());
-
-    for (k, v) in map {
-        result.insert(
-            k.to_string(),
-            T::deserialize(&mut MapDeserializer::new(v)).map_err(serde::de::Error::custom)?,
-        );
-    }
-
-    Ok(result)
+    deserializer
+        .deserialize_map(StrMapVisitor)?
+        .into_iter()
+        .map(|(k, v)| {
+            Ok((
+                k.to_string(),
+                T::deserialize(&mut MapDeserializer::new(v)).map_err(serde::de::Error::custom)?,
+            ))
+        })
+        .collect()
 }
