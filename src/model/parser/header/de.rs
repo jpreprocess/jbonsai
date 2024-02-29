@@ -46,9 +46,6 @@ impl DeserializeContext {
     fn test(&self, c: char) -> bool {
         self.contexts.contains(&c)
     }
-    fn test_noncurrent(&self, c: char) -> bool {
-        !self.contexts.is_empty() && self.contexts[..self.contexts.len() - 1].contains(&c)
-    }
     fn enter(&mut self, expect: char) {
         self.contexts.push(expect)
     }
@@ -112,11 +109,11 @@ impl<'de> Deserializer<'de> {
                 None => Err(DeserializeError::Eof),
             }
         } else {
-            self.str_until_expect()
+            self.until_delim()
         }
     }
 
-    fn str_until_expect(&mut self) -> Result<&'de str> {
+    fn until_delim(&mut self) -> Result<&'de str> {
         let len = self
             .input
             .find(|c| self.context.test(c))
@@ -127,38 +124,24 @@ impl<'de> Deserializer<'de> {
         Ok(s)
     }
 
-    /// Consume string until chars other than current delimiter appears.
+    /// Consume the next delimiter if present, and return the result.
     /// - `Some(true)`: Current delimiter found (sequence continues)
     /// - `Some(false)`: Current delimiter was not found, but other delimiters were found or the string reached EOF (sequence ends)
     /// - `None`: No delimiter found (syntax error)
-    fn consume_delimiters(&mut self) -> Option<bool> {
+    fn next_delimiter(&mut self) -> Option<bool> {
         let Some(current) = self.context.current() else {
             // Delimiter is empty
             return None;
         };
 
-        let Some(pos) = self.input.find(|c| c != current) else {
-            // Input was all delimiter (EOF)
-            // When EOF, clear buffer
-            self.input = "";
-            return Some(false);
-        };
-        let (prefix, rest) = self.input.split_at(pos);
-        if prefix.contains(|c| self.context.test_noncurrent(c)) {
-            // Other delimiters came earlier than current one
-            return Some(false);
+        if self.input.starts_with(current) {
+            self.input = &self.input[current.len_utf8()..];
+            Some(true)
+        } else if self.input.starts_with(|c| self.context.test(c)) || self.input.is_empty() {
+            Some(false)
+        } else {
+            None
         }
-        if prefix.is_empty() {
-            match rest.chars().next() {
-                // The first char was delimiter (end of sequence)
-                Some(c) if self.context.test_noncurrent(c) => return Some(false),
-                // The first char was not delimiter
-                _ => return None,
-            }
-        }
-
-        self.input = rest;
-        Some(true)
     }
 }
 
@@ -169,7 +152,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_borrowed_str(self.str_until_expect()?)
+        visitor.visit_borrowed_str(self.until_delim()?)
     }
 
     forward_to_deserialize_any! {
@@ -328,7 +311,7 @@ impl<'de, 'a> SeqAccess<'de> for List<'a, 'de> {
         T: DeserializeSeed<'de>,
     {
         self.de.context.enter(self.delim);
-        match self.de.consume_delimiters() {
+        match self.de.next_delimiter() {
             Some(false) => {
                 self.de.context.exit();
                 return Ok(None);
@@ -364,15 +347,26 @@ impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
         K: DeserializeSeed<'de>,
     {
         self.de.context.enter('\n');
-        match self.de.consume_delimiters() {
-            Some(false) => {
-                self.de.context.exit();
-                return Ok(None);
+
+        loop {
+            match self.de.next_delimiter() {
+                Some(false) => {
+                    self.de.context.exit();
+                    return Ok(None);
+                }
+                // No need to clear context because deserialization stops here
+                None if !self.first => return Err(DeserializeError::ExpectedMapNewline),
+                _ => (),
             }
-            // No need to clear context because deserialization stops here
-            None if !self.first => return Err(DeserializeError::ExpectedMapNewline),
-            _ => (),
+            // Allow empty lines
+            match self.de.peek_char() {
+                Ok('\n') => (),
+                // No need to clear context because deserialization stops here
+                Err(DeserializeError::Eof) => return Ok(None),
+                _ => break,
+            }
         }
+
         self.first = false;
 
         self.de.context.enter(':');
@@ -400,31 +394,31 @@ mod tests {
     use super::Deserializer;
 
     #[test]
-    fn consume_delimiters() {
+    fn get_delim() {
         {
             let mut de = Deserializer::from_str("\nFULL");
             de.context.enter('\n');
-            assert_eq!(de.consume_delimiters(), Some(true));
+            assert_eq!(de.next_delimiter(), Some(true));
             assert_eq!(de.input, "FULL");
         }
         {
             let mut de = Deserializer::from_str(",\nFULL");
             de.context.enter('\n');
             de.context.enter(',');
-            assert_eq!(de.consume_delimiters(), Some(true));
+            assert_eq!(de.next_delimiter(), Some(true));
             assert_eq!(de.input, "\nFULL");
         }
         {
             let mut de = Deserializer::from_str("\nFULL");
             de.context.enter('\n');
             de.context.enter(',');
-            assert_eq!(de.consume_delimiters(), Some(false));
+            assert_eq!(de.next_delimiter(), Some(false));
             assert_eq!(de.input, "\nFULL");
         }
         {
             let mut de = Deserializer::from_str("\nFULL");
             de.context.enter(',');
-            assert_eq!(de.consume_delimiters(), None);
+            assert_eq!(de.next_delimiter(), None);
             assert_eq!(de.input, "\nFULL");
         }
     }

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum DeserializeError {
     #[error("{0}")]
     Message(String),
