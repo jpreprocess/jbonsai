@@ -21,6 +21,7 @@ use self::{
 
 use super::{
     stream::{Model, Pattern, StreamModelMetadata, StreamModels},
+    window::Windows,
     GlobalModelMetadata, Voice,
 };
 
@@ -112,7 +113,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                         Ok(all_consuming(terminated(
                             WindowParser::parse_window_row,
                             ParseTarget::sp,
-                        ))(&input[win.0..win.1 + 1])?
+                        ))(&input[win.0..=win.1])?
                         .1)
                     })
                     .collect::<Result<_, _>>()?;
@@ -121,7 +122,7 @@ fn parse_data_section<'a, E: ParseError<&'a [u8]> + ContextError<&'a [u8]>>(
                 stream_data.clone(),
                 stream_model,
                 gv_model,
-                windows,
+                Windows::new(windows),
             ))
         })
         .collect::<Result<_, _>>()?;
