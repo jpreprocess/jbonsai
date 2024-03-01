@@ -16,6 +16,7 @@ use self::{
 
 use super::{
     stream::{Model, Pattern, StreamModels},
+    window::Windows,
     GlobalModelMetadata, Voice,
 };
 
@@ -191,7 +192,7 @@ fn parse_data_section(
                 stream_data.clone().into(),
                 stream_model,
                 gv_model,
-                windows,
+                Windows::new(windows),
             ))
         })
         .collect::<Result<_, ModelParseError>>()?;

@@ -2,12 +2,14 @@ use std::fmt::Display;
 
 use regex::Regex;
 
+use super::window::Windows;
+
 pub struct StreamModels {
     pub metadata: StreamModelMetadata,
 
     pub stream_model: Model,
     pub gv_model: Option<Model>,
-    pub windows: Vec<Vec<f64>>,
+    pub windows: Windows,
 }
 
 impl Display for StreamModels {
@@ -21,9 +23,9 @@ impl Display for StreamModels {
             "  Window Width: {}",
             self.windows.iter().fold(String::new(), |acc, curr| {
                 if acc.is_empty() {
-                    format!("{}", curr.len())
+                    format!("{}", curr.width())
                 } else {
-                    format!("{}, {}", acc, curr.len())
+                    format!("{}, {}", acc, curr.width())
                 }
             })
         )?;
@@ -36,7 +38,7 @@ impl StreamModels {
         metadata: StreamModelMetadata,
         stream_model: Model,
         gv_model: Option<Model>,
-        windows: Vec<Vec<f64>>,
+        windows: Windows,
     ) -> Self {
         StreamModels {
             metadata,
