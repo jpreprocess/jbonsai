@@ -15,7 +15,7 @@ use self::{
 };
 
 use super::{
-    stream::{Model, Pattern, StreamModels},
+    stream::{Model, StreamModels},
     window::Windows,
     GlobalModelMetadata, Voice,
 };
@@ -46,6 +46,9 @@ pub enum ModelParseError {
 
     #[error("USE_GV is true, but positions for GV is not set")]
     UseGvError,
+
+    #[error("Failed to parse question: {0}")]
+    QuestionParseError(#[from] jlabel_question::ParseError),
 }
 
 impl<'a> From<nom::Err<VerboseError<&'a [u8]>>> for ModelParseError {
