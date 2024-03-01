@@ -109,19 +109,19 @@ impl<'de> Deserializer<'de> {
                 None => Err(DeserializeError::Eof),
             }
         } else {
-            self.until_delim()
+            Ok(self.until_delim())
         }
     }
 
-    fn until_delim(&mut self) -> Result<&'de str> {
-        let len = self
-            .input
-            .find(|c| self.context.test(c))
-            .unwrap_or(self.input.len());
-
-        let (s, rest) = self.input.split_at(len);
-        self.input = rest;
-        Ok(s)
+    fn until_delim(&mut self) -> &'de str {
+        match self.input.find(|c| self.context.test(c)) {
+            Some(pos) => {
+                let (s, rest) = self.input.split_at(pos);
+                self.input = rest;
+                s
+            }
+            None => std::mem::take(&mut self.input),
+        }
     }
 
     /// Consume the next delimiter if present, and return the result.
@@ -152,7 +152,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_borrowed_str(self.until_delim()?)
+        visitor.visit_borrowed_str(self.until_delim())
     }
 
     forward_to_deserialize_any! {
