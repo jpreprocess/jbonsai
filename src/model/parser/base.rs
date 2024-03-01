@@ -33,9 +33,12 @@ where
         + nom::ParseTo<usize>
         + nom::ParseTo<f64>
         + nom::Compare<&'static str>
-        + for<'a> nom::Compare<&'a [u8]>,
+        + for<'a> nom::Compare<&'a [u8]>
+        + for<'a> nom::FindSubstring<&'a str>,
     <Self as nom::InputIter>::Item: nom::AsChar,
 {
+    fn parse_utf8(&self) -> Result<&str, std::str::Utf8Error>;
+
     fn parse_template<F, E>(self, cond: F) -> IResult<Self, Self, E>
     where
         F: Fn(char) -> bool,
@@ -102,6 +105,10 @@ where
 }
 
 impl ParseTarget for &str {
+    fn parse_utf8(&self) -> Result<&str, std::str::Utf8Error> {
+        Ok(self)
+    }
+
     #[inline(always)]
     fn parse_template<'a, F, E>(self, cond: F) -> IResult<Self, Self, E>
     where
@@ -125,6 +132,10 @@ impl ParseTarget for &str {
 }
 
 impl ParseTarget for &[u8] {
+    fn parse_utf8(&self) -> Result<&str, std::str::Utf8Error> {
+        std::str::from_utf8(self)
+    }
+
     #[inline(always)]
     fn parse_template<'a, F, E>(self, cond: F) -> IResult<Self, Self, E>
     where

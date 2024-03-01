@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use crate::{
     label::Label,
-    model::{interporation_weight::InterporationWeight, stream::ModelParameter, ModelSet},
+    model::{
+        interporation_weight::InterporationWeight, stream::ModelParameter, window::Windows,
+        ModelSet,
+    },
 };
 
 pub struct StateStreamSet {
@@ -212,31 +215,9 @@ impl StateStreamSet {
     pub fn get_msd(&self, stream_index: usize, state_index: usize) -> f64 {
         self.sstreams[stream_index].params[state_index].msd.unwrap()
     }
-    /// Get dynamic window size
-    pub fn get_window_size(&self, stream_index: usize) -> usize {
-        self.ms.get_window_size(stream_index)
-    }
-    /// Get left width of dynamic window
-    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
-        self.ms.get_window_left_width(stream_index, window_index)
-    }
-    /// Get right width of dynamic window
-    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
-        self.ms.get_window_right_width(stream_index, window_index)
-    }
-    /// Get coefficient of dynamic window
-    pub fn get_window_coefficient(
-        &self,
-        stream_index: usize,
-        window_index: usize,
-        coefficient_index: isize,
-    ) -> f64 {
-        self.ms
-            .get_window_coefficient(stream_index, window_index, coefficient_index)
-    }
-    /// Get max width of dynamic window
-    pub fn get_window_max_width(&self, stream_index: usize) -> usize {
-        self.ms.get_window_max_width(stream_index)
+    /// TODO: remove this
+    pub fn get_windows(&self, stream_index: usize) -> &Windows {
+        self.ms.get_windows(stream_index)
     }
     /// Get GV flag
     pub fn use_gv(&self, stream_index: usize) -> bool {

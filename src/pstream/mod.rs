@@ -36,8 +36,11 @@ impl ParameterStreamSet {
 
             let mut pars = Vec::with_capacity(sss.get_vector_length(i));
             for vector_index in 0..sss.get_vector_length(i) {
-                let parameters: Vec<Vec<(f64, f64)>> = (0..sss.get_window_size(i))
-                    .map(|window_index| {
+                let parameters: Vec<Vec<(f64, f64)>> = sss
+                    .get_windows(i)
+                    .iter()
+                    .enumerate()
+                    .map(|(window_index, window)| {
                         let m = sss.get_vector_length(i) * window_index + vector_index;
 
                         (0..sss.get_total_state())
@@ -65,10 +68,8 @@ impl ParameterStreamSet {
                             .map(|(frame, (mean, ivar))| {
                                 let (left, right) = msd_boundaries[frame];
 
-                                let is_left_msd_boundary =
-                                    sss.get_window_left_width(i, window_index) < -(left as isize);
-                                let is_right_msd_boundary =
-                                    (right as isize) < sss.get_window_right_width(i, window_index);
+                                let is_left_msd_boundary = left < window.left_width();
+                                let is_right_msd_boundary = right < window.right_width();
 
                                 // If the window includes non-msd frames, set the ivar to 0.0
                                 if (is_left_msd_boundary || is_right_msd_boundary)
@@ -84,7 +85,7 @@ impl ParameterStreamSet {
                     .collect();
 
                 let mut mtx = MlpgMatrix::new();
-                mtx.calc_wuw_and_wum(sss, i, parameters);
+                mtx.calc_wuw_and_wum(sss.get_windows(i), parameters);
 
                 let par = if sss.use_gv(i) {
                     let mtx_before = mtx.clone();

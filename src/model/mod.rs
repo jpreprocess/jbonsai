@@ -3,13 +3,15 @@ use std::{fmt::Display, path::Path};
 use self::{
     interporation_weight::Weights,
     parser::question,
-    stream::{Model, ModelParameter, StreamModels},
+    stream::{Model, ModelParameter, Pattern, StreamModels},
+    window::Windows,
 };
 use jlabel::Label;
 use jlabel_question::{position::PhonePosition, AllQuestion, Question};
 
 pub mod interporation_weight;
 pub mod stream;
+pub mod window;
 
 #[cfg(feature = "htsvoice")]
 mod parser;
@@ -22,8 +24,9 @@ pub enum ModelError {
     MetadataError,
     #[error("Io failed: {0}")]
     Io(#[from] std::io::Error),
+    #[cfg(feature = "htsvoice")]
     #[error("Parser returned error:{0}")]
-    NomError(String),
+    ParserError(#[from] parser::ModelParseError),
 }
 
 pub struct ModelSet {
@@ -70,32 +73,7 @@ impl ModelSet {
     ) -> Result<(GlobalModelMetadata, Voice), ModelError> {
         let f = std::fs::read(path)?;
 
-        match parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f) {
-            Ok((_, pair)) => Ok(pair),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let message = e
-                    .errors
-                    .iter()
-                    .fold(String::new(), |acc: String, (src, kind)| {
-                        let input = std::string::String::from_utf8_lossy(&src[..src.len().min(20)]);
-                        match kind {
-                            nom::error::VerboseErrorKind::Nom(e) => {
-                                format!("{}\n{:?} at: {}", acc, e, input)
-                            }
-                            nom::error::VerboseErrorKind::Char(c) => {
-                                format!("{}\nexpected '{}' at: {}", acc, c, input)
-                            }
-                            nom::error::VerboseErrorKind::Context(s) => {
-                                format!("{}\nin section '{}', at: {}", acc, s, input)
-                            }
-                        }
-                    });
-                Err(ModelError::NomError(message))
-            }
-            Err(nom::Err::Incomplete(_)) => {
-                Err(ModelError::NomError("Not enough data".to_string()))
-            }
-        }
+        Ok(parser::parse_htsvoice(&f)?)
     }
 
     fn get_first_voice(&self) -> &Voice {
@@ -162,47 +140,9 @@ impl ModelSet {
             .is_msd
     }
 
-    /// Get dynamic window size
-    pub fn get_window_size(&self, stream_index: usize) -> usize {
-        self.get_last_voice().stream_models[stream_index]
-            .windows
-            .len()
-    }
-    /// Get left width of dynamic window
-    pub fn get_window_left_width(&self, stream_index: usize, window_index: usize) -> isize {
-        let fsize =
-            self.get_last_voice().stream_models[stream_index].windows[window_index].len() as isize;
-        -fsize / 2
-    }
-    /// Get right width of dynamic window
-    pub fn get_window_right_width(&self, stream_index: usize, window_index: usize) -> isize {
-        let fsize =
-            self.get_last_voice().stream_models[stream_index].windows[window_index].len() as isize;
-        if fsize % 2 == 0 {
-            fsize / 2 - 1
-        } else {
-            fsize / 2
-        }
-    }
-    /// Get coefficient of dynamic window
-    pub fn get_window_coefficient(
-        &self,
-        stream_index: usize,
-        window_index: usize,
-        coefficient_index: isize,
-    ) -> f64 {
-        let row = &self.get_last_voice().stream_models[stream_index].windows[window_index];
-        row[((row.len() / 2) as isize + coefficient_index) as usize]
-    }
-    /// Get max width of dynamic window
-    pub fn get_window_max_width(&self, stream_index: usize) -> usize {
-        let max_width = self.get_last_voice().stream_models[stream_index]
-            .windows
-            .iter()
-            .map(Vec::len)
-            .max()
-            .unwrap();
-        max_width / 2
+    /// Get dynamic window
+    pub fn get_windows(&self, stream_index: usize) -> &Windows {
+        &self.get_last_voice().stream_models[stream_index].windows
     }
 
     /// Get GV flag
@@ -250,7 +190,7 @@ impl ModelSet {
         iw: &Weights,
     ) -> ModelParameter {
         let mut params = ModelParameter::new(
-            self.get_vector_length(stream_index) * self.get_window_size(stream_index),
+            self.get_vector_length(stream_index) * self.get_windows(stream_index).size(),
             self.is_msd(stream_index),
         );
         for (voice, weight) in self.voices.iter().zip(iw.get_weights()) {
@@ -294,7 +234,6 @@ pub struct GlobalModelMetadata {
     pub hts_voice_version: String,
     pub sampling_frequency: usize,
     pub frame_period: usize,
-    pub num_voices: usize,
     pub num_states: usize,
     pub num_streams: usize,
     pub stream_type: Vec<String>,
@@ -309,7 +248,6 @@ impl Default for GlobalModelMetadata {
             hts_voice_version: String::new(),
             sampling_frequency: 0,
             frame_period: 0,
-            num_voices: 0,
             num_states: 0,
             num_streams: 0,
             stream_type: Vec::new(),
@@ -327,7 +265,6 @@ impl Display for GlobalModelMetadata {
         writeln!(f, "HTS Voice Version: {}", self.hts_voice_version)?;
         writeln!(f, "Sampling Frequency: {}", self.sampling_frequency)?;
         writeln!(f, "Frame Period: {}", self.frame_period)?;
-        writeln!(f, "Number of Voices: {}", self.num_voices)?;
         writeln!(f, "Number of States: {}", self.num_states)?;
         writeln!(f, "Number of Streams: {}", self.num_streams)?;
         writeln!(f, "Streams: {}", self.stream_type.join(", "))?;
@@ -359,7 +296,7 @@ impl Display for Voice {
 #[cfg(all(test, feature = "htsvoice"))]
 mod tests {
     use crate::{
-        model::{interporation_weight::Weights, stream::ModelParameter, ModelSet},
+        model::{interporation_weight::Weights, stream::ModelParameter, window::Window, ModelSet},
         tests::{
             MODEL_NITECH_ATR503, MODEL_TOHOKU_F01_HAPPY, MODEL_TOHOKU_F01_NORMAL, SAMPLE_SENTENCE_1,
         },
@@ -448,12 +385,17 @@ mod tests {
     #[test]
     fn window() {
         let jsyn = load_models();
-        assert_eq!(jsyn.get_window_size(0), 3);
-        assert_eq!(jsyn.get_window_left_width(0, 1), -1);
-        assert_eq!(jsyn.get_window_right_width(0, 1), 1);
-        assert_eq!(jsyn.get_window_coefficient(0, 1, 0), 0.0);
-        assert_eq!(jsyn.get_window_coefficient(0, 1, 1), 0.5);
-        assert_eq!(jsyn.get_window_max_width(0), 1);
+        let windows = jsyn.get_windows(0);
+
+        assert_eq!(windows.size(), 3);
+        assert_eq!(windows.max_width(), 1);
+
+        let window = windows.iter().nth(1).unwrap();
+
+        assert_eq!(window.left_width(), 1);
+        assert_eq!(window.right_width(), 1);
+
+        assert_eq!(window, &Window::new(vec![-0.5, 0.0, 0.5]));
     }
 
     #[test]
