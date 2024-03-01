@@ -21,8 +21,9 @@ pub enum ModelError {
     MetadataError,
     #[error("Io failed: {0}")]
     Io(#[from] std::io::Error),
+    #[cfg(feature = "htsvoice")]
     #[error("Parser returned error:{0}")]
-    NomError(String),
+    ParserError(#[from] parser::ModelParseError),
 }
 
 pub struct ModelSet {
@@ -69,32 +70,7 @@ impl ModelSet {
     ) -> Result<(GlobalModelMetadata, Voice), ModelError> {
         let f = std::fs::read(path)?;
 
-        match parser::parse_htsvoice::<nom::error::VerboseError<&[u8]>>(&f) {
-            Ok((_, pair)) => Ok(pair),
-            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
-                let message = e
-                    .errors
-                    .iter()
-                    .fold(String::new(), |acc: String, (src, kind)| {
-                        let input = std::string::String::from_utf8_lossy(&src[..src.len().min(20)]);
-                        match kind {
-                            nom::error::VerboseErrorKind::Nom(e) => {
-                                format!("{}\n{:?} at: {}", acc, e, input)
-                            }
-                            nom::error::VerboseErrorKind::Char(c) => {
-                                format!("{}\nexpected '{}' at: {}", acc, c, input)
-                            }
-                            nom::error::VerboseErrorKind::Context(s) => {
-                                format!("{}\nin section '{}', at: {}", acc, s, input)
-                            }
-                        }
-                    });
-                Err(ModelError::NomError(message))
-            }
-            Err(nom::Err::Incomplete(_)) => {
-                Err(ModelError::NomError("Not enough data".to_string()))
-            }
-        }
+        Ok(parser::parse_htsvoice(&f)?)
     }
 
     fn get_first_voice(&self) -> &Voice {
@@ -258,12 +234,11 @@ impl ModelSet {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GlobalModelMetadata {
     pub hts_voice_version: String,
     pub sampling_frequency: usize,
     pub frame_period: usize,
-    pub num_voices: usize,
     pub num_states: usize,
     pub num_streams: usize,
     pub stream_type: Vec<String>,
@@ -277,7 +252,6 @@ impl Display for GlobalModelMetadata {
         writeln!(f, "HTS Voice Version: {}", self.hts_voice_version)?;
         writeln!(f, "Sampling Frequency: {}", self.sampling_frequency)?;
         writeln!(f, "Frame Period: {}", self.frame_period)?;
-        writeln!(f, "Number of Voices: {}", self.num_voices)?;
         writeln!(f, "Number of States: {}", self.num_states)?;
         writeln!(f, "Number of Streams: {}", self.num_streams)?;
         writeln!(f, "Streams: {}", self.stream_type.join(", "))?;
