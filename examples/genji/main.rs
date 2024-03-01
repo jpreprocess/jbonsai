@@ -1,4 +1,4 @@
-use jbonsai::engine::Engine;
+use jbonsai::{engine::Engine, model::interporation_weight::Weights};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let label_str = std::fs::read_to_string("examples/genji/genji.lab")?;
@@ -7,17 +7,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut engine = Engine::load(&vec![
         "models/tohoku-f01/tohoku-f01-sad.htsvoice",
         "models/tohoku-f01/tohoku-f01-happy.htsvoice",
-    ]);
+    ])?;
     let iw = engine.condition.get_interporation_weight_mut();
-    iw.set_duration(vec![0.5, 0.5]);
-    iw.set_parameter(0, vec![0.5, 0.5]);
-    iw.set_parameter(1, vec![0.5, 0.5]);
-    iw.set_parameter(2, vec![1.0, 0.0]);
-    engine.synthesize_from_strings(&lines);
+    iw.set_duration(Weights::new(&[0.5, 0.5])?)?;
+    iw.set_parameter(0, Weights::new(&[0.5, 0.5])?)?;
+    iw.set_parameter(1, Weights::new(&[0.5, 0.5])?)?;
+    iw.set_parameter(2, Weights::new(&[1.0, 0.0])?)?;
+
+    let gstream = engine.synthesize_from_strings(&lines);
+    let speech = gstream.get_speech();
 
     println!(
         "The synthesized voice has {} samples in total.",
-        engine.get_total_nsamples()
+        speech.len()
     );
 
     // let mut writer = hound::WavWriter::create(
@@ -29,9 +31,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //         sample_format: hound::SampleFormat::Int,
     //     },
     // )?;
-    // for i in 0..engine.get_total_nsamples() {
-    //     let value = engine.get_generated_speech_with_index(i);
-    //     writer.write_sample(value as i16)?;
+    // for &value in speech {
+    //     let clamped = value.min(i16::MAX as f64).max(i16::MIN as f64);
+    //     writer.write_sample(clamped as i16)?;
     // }
 
     Ok(())
