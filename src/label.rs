@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 struct LabelString {
     content: jlabel::Label,
     start: f64,
@@ -7,30 +9,8 @@ struct LabelString {
 impl LabelString {
     fn parse(s: &str, rate: f64) -> Self {
         Self::parse_digit_string(s, rate).unwrap_or(Self {
-            content: jlabel::Label {
-                phoneme: jlabel::Phoneme {
-                    p2: None,
-                    p1: None,
-                    c: None,
-                    n1: None,
-                    n2: None,
-                },
-                mora: None,
-                word_prev: None,
-                word_curr: None,
-                word_next: None,
-                accent_phrase_prev: None,
-                accent_phrase_curr: None,
-                accent_phrase_next: None,
-                breath_group_prev: None,
-                breath_group_curr: None,
-                breath_group_next: None,
-                utterance: jlabel::Utterance {
-                    breath_group_count: 0,
-                    accent_phrase_count: 0,
-                    mora_count: 0,
-                },
-            },
+            // TODO: remove this unwrap
+            content: jlabel::Label::from_str(s).unwrap(),
             start: -1.0,
             end: -1.0,
         })
