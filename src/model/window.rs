@@ -39,15 +39,15 @@ impl Window {
             .map(|((idx, coef), (start, width))| (WindowIndex::new(start + idx, width), *coef))
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn width(&self) -> usize {
         self.coefficients.len()
     }
-    #[inline(always)]
+    #[inline]
     pub fn left_width(&self) -> usize {
         self.width() / 2
     }
-    #[inline(always)]
+    #[inline]
     pub fn right_width(&self) -> usize {
         self.width() - self.left_width() - 1
     }
@@ -64,11 +64,11 @@ impl WindowIndex {
         Self { index, width }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn position(&self) -> isize {
         self.index as isize - (self.width / 2) as isize
     }
-    #[inline(always)]
+    #[inline]
     pub fn index(&self) -> usize {
         self.index
     }
