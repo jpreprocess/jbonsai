@@ -7,7 +7,6 @@ use self::{
     window::Windows,
 };
 use jlabel::Label;
-use jlabel_question::{position::PhonePosition, AllQuestion, Question};
 
 pub mod interporation_weight;
 pub mod stream;
@@ -240,24 +239,6 @@ pub struct GlobalModelMetadata {
     pub fullcontext_format: String,
     pub fullcontext_version: String,
     pub gv_off_context: question::Question,
-}
-
-impl Default for GlobalModelMetadata {
-    fn default() -> Self {
-        Self {
-            hts_voice_version: String::new(),
-            sampling_frequency: 0,
-            frame_period: 0,
-            num_states: 0,
-            num_streams: 0,
-            stream_type: Vec::new(),
-            fullcontext_format: String::new(),
-            fullcontext_version: String::new(),
-            gv_off_context: question::Question::AllQustion(AllQuestion::Phone(
-                Question::new(PhonePosition::P3, &["sil", "pau"]).unwrap(),
-            )),
-        }
-    }
 }
 
 impl Display for GlobalModelMetadata {
