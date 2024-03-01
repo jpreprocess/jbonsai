@@ -24,14 +24,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "k^a-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:7_5!1_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:2_10/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+2-10",
 ].iter().map(|l| l.to_string()).collect();
 
-    let mut engine = Engine::load(&vec![
+    let engine = Engine::load(&vec![
         "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice".to_string(),
-    ]);
-    engine.synthesize_from_strings(&lines);
+    ])?;
+    let gstream = engine.synthesize_from_strings(&lines);
+    let speech = gstream.get_speech();
 
     println!(
         "The synthesized voice has {} samples in total.",
-        engine.get_total_nsamples()
+        speech.len()
     );
 
     // let mut writer = hound::WavWriter::create(
@@ -43,9 +44,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //         sample_format: hound::SampleFormat::Int,
     //     },
     // )?;
-    // for i in 0..engine.get_total_nsamples() {
-    //     let value = engine.get_generated_speech_with_index(i);
-    //     writer.write_sample(value as i16)?;
+    // for &value in speech {
+    //     let clamped = value.min(i16::MAX as f64).max(i16::MIN as f64);
+    //     writer.write_sample(clamped as i16)?;
     // }
 
     Ok(())
