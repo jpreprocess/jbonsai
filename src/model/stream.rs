@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use jlabel::Label;
 
-use super::parser::question;
+use super::question;
 
 use super::window::Windows;
 

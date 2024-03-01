@@ -5,7 +5,7 @@ use nom::{
     IResult, Parser,
 };
 
-use crate::model::parser::{base::ParseTarget, header::parse_header};
+use crate::model::{parser::{base::ParseTarget, header::parse_header}, question};
 
 use self::{
     convert::convert_tree,
@@ -22,7 +22,6 @@ use super::{
 
 mod base;
 mod header;
-pub mod question;
 mod tree;
 mod window;
 

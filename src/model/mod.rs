@@ -2,13 +2,13 @@ use std::{fmt::Display, path::Path};
 
 use self::{
     interporation_weight::Weights,
-    parser::question,
     stream::{Model, ModelParameter, StreamModels},
     window::Windows,
 };
 use jlabel::Label;
 
 pub mod interporation_weight;
+pub mod question;
 pub mod stream;
 pub mod window;
 
