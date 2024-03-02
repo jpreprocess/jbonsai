@@ -52,7 +52,11 @@ impl TryFrom<Global> for crate::model::GlobalModelMetadata {
             fullcontext_format: value.fullcontext_format,
             fullcontext_version: value.fullcontext_version,
             gv_off_context: Question::parse(
-                &value.gv_off_context.iter().map(String::as_str).collect::<Vec<_>>(),
+                &value
+                    .gv_off_context
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>(),
             )?,
         })
     }

@@ -5,7 +5,10 @@ use nom::{
     IResult, Parser,
 };
 
-use crate::model::{parser::{base::ParseTarget, header::parse_header}, question};
+use crate::model::{
+    parser::{base::ParseTarget, header::parse_header},
+    question,
+};
 
 use self::{
     convert::convert_tree,
