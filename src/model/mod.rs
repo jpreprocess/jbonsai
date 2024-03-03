@@ -2,11 +2,13 @@ use std::{fmt::Display, path::Path};
 
 use self::{
     interporation_weight::Weights,
-    stream::{Model, ModelParameter, Pattern, StreamModels},
+    stream::{Model, ModelParameter, StreamModels},
     window::Windows,
 };
+use jlabel::Label;
 
 pub mod interporation_weight;
+pub mod question;
 pub mod stream;
 pub mod window;
 
@@ -99,16 +101,8 @@ impl ModelSet {
             .map(|m| m.metadata.option.as_slice())
     }
     /// Get GV flag
-    pub fn get_gv_flag(&self, string: &str) -> bool {
-        if self.metadata.gv_off_context.is_empty() {
-            true
-        } else {
-            !self
-                .metadata
-                .gv_off_context
-                .iter()
-                .any(|p| p.is_match(string))
-        }
+    pub fn get_gv_flag(&self, label: &Label) -> bool {
+        !self.metadata.gv_off_context.test(label)
     }
     /// Get number of state
     pub fn get_nstate(&self) -> usize {
@@ -161,15 +155,15 @@ impl ModelSet {
     pub fn get_duration_index(
         &self,
         voice_index: usize,
-        string: &str,
+        label: &Label,
     ) -> (Option<usize>, Option<usize>) {
-        self.voices[voice_index].duration_model.get_index(2, string)
+        self.voices[voice_index].duration_model.get_index(2, label)
     }
     /// Get duration using interpolation weight
-    pub fn get_duration(&self, string: &str, iw: &Weights) -> ModelParameter {
+    pub fn get_duration(&self, label: &Label, iw: &Weights) -> ModelParameter {
         let mut params = ModelParameter::new(self.get_nstate(), false);
         for (voice, weight) in self.voices.iter().zip(iw.get_weights()) {
-            let curr_params = voice.duration_model.get_parameter(2, string);
+            let curr_params = voice.duration_model.get_parameter(2, label);
             params.add_assign(*weight, curr_params);
         }
         params
@@ -180,18 +174,18 @@ impl ModelSet {
         voice_index: usize,
         stream_index: usize,
         state_index: usize,
-        string: &str,
+        label: &Label,
     ) -> (Option<usize>, Option<usize>) {
         self.voices[voice_index].stream_models[stream_index]
             .stream_model
-            .get_index(state_index, string)
+            .get_index(state_index, label)
     }
     /// Get parameter using interpolation weight
     pub fn get_parameter(
         &self,
         stream_index: usize,
         state_index: usize,
-        string: &str,
+        label: &Label,
         iw: &Weights,
     ) -> ModelParameter {
         let mut params = ModelParameter::new(
@@ -201,7 +195,7 @@ impl ModelSet {
         for (voice, weight) in self.voices.iter().zip(iw.get_weights()) {
             let curr_params = voice.stream_models[stream_index]
                 .stream_model
-                .get_parameter(state_index, string);
+                .get_parameter(state_index, label);
             params.add_assign(*weight, curr_params);
         }
         params
@@ -211,23 +205,23 @@ impl ModelSet {
         &self,
         voice_index: usize,
         stream_index: usize,
-        string: &str,
+        label: &Label,
     ) -> (Option<usize>, Option<usize>) {
         self.voices[voice_index].stream_models[stream_index]
             .gv_model
             .as_ref()
             .unwrap()
-            .get_index(2, string)
+            .get_index(2, label)
     }
     /// Get GV using interpolation weight
-    pub fn get_gv(&self, stream_index: usize, string: &str, iw: &Weights) -> ModelParameter {
+    pub fn get_gv(&self, stream_index: usize, label: &Label, iw: &Weights) -> ModelParameter {
         let mut params = ModelParameter::new(self.get_vector_length(stream_index), false);
         for (voice, weight) in self.voices.iter().zip(iw.get_weights()) {
             let curr_params = voice.stream_models[stream_index]
                 .gv_model
                 .as_ref()
                 .unwrap()
-                .get_parameter(2, string);
+                .get_parameter(2, label);
             params.add_assign(*weight, curr_params);
         }
         params
@@ -244,7 +238,7 @@ pub struct GlobalModelMetadata {
     pub stream_type: Vec<String>,
     pub fullcontext_format: String,
     pub fullcontext_version: String,
-    pub gv_off_context: Vec<Pattern>,
+    pub gv_off_context: question::Question,
 }
 
 impl Display for GlobalModelMetadata {
@@ -304,12 +298,13 @@ mod tests {
     #[test]
     fn get_duration() {
         let jsyn = load_models();
+        let label = SAMPLE_SENTENCE_1[2].parse().unwrap();
 
-        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_duration_index(0, SAMPLE_SENTENCE_1[2]);
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_duration_index(0, &label);
         assert_eq!(jsyn_tree_index.unwrap(), 2);
         assert_eq!(jsyn_pdf_index.unwrap(), 144);
 
-        let jsyn_param = jsyn.get_duration(SAMPLE_SENTENCE_1[2], &Weights::new(&[1.0]).unwrap());
+        let jsyn_param = jsyn.get_duration(&label, &Weights::new(&[1.0]).unwrap());
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -328,18 +323,13 @@ mod tests {
     #[test]
     fn get_parameter() {
         let jsyn = load_models();
+        let label = SAMPLE_SENTENCE_1[2].parse().unwrap();
 
-        let (jsyn_tree_index, jsyn_pdf_index) =
-            jsyn.get_parameter_index(0, 1, 2, SAMPLE_SENTENCE_1[2]);
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_parameter_index(0, 1, 2, &label);
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(234));
 
-        let jsyn_param = jsyn.get_parameter(
-            1,
-            2,
-            SAMPLE_SENTENCE_1[2],
-            &Weights::new(&[0.5, 0.5]).unwrap(),
-        );
+        let jsyn_param = jsyn.get_parameter(1, 2, &label, &Weights::new(&[0.5, 0.5]).unwrap());
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -356,14 +346,14 @@ mod tests {
     #[test]
     fn get_gv() {
         let jsyn = load_models();
+        let label = SAMPLE_SENTENCE_1[2].parse().unwrap();
 
         assert!(jsyn.use_gv(1));
 
-        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_gv_index(0, 1, SAMPLE_SENTENCE_1[2]);
+        let (jsyn_tree_index, jsyn_pdf_index) = jsyn.get_gv_index(0, 1, &label);
         assert_eq!(jsyn_tree_index, Some(2));
         assert_eq!(jsyn_pdf_index, Some(3));
-
-        let jsyn_param = jsyn.get_gv(1, SAMPLE_SENTENCE_1[2], &Weights::new(&[0.5, 0.5]).unwrap());
+        let jsyn_param = jsyn.get_gv(1, &label, &Weights::new(&[0.5, 0.5]).unwrap());
         assert_eq!(
             jsyn_param,
             ModelParameter {
@@ -394,8 +384,9 @@ mod tests {
         let modelset =
             ModelSet::load_htsvoice_files(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY])
                 .unwrap();
+        let label = SAMPLE_SENTENCE_1[2].parse().unwrap();
         assert_eq!(
-            modelset.get_duration(SAMPLE_SENTENCE_1[2], &Weights::new(&[0.7, 0.3]).unwrap()),
+            modelset.get_duration(&label, &Weights::new(&[0.7, 0.3]).unwrap()),
             ModelParameter {
                 parameters: vec![
                     (3.345043873786926, 6.943870377540589),
@@ -408,12 +399,7 @@ mod tests {
             }
         );
         assert_eq!(
-            modelset.get_parameter(
-                1,
-                2,
-                SAMPLE_SENTENCE_1[2],
-                &Weights::new(&[0.7, 0.3]).unwrap()
-            ),
+            modelset.get_parameter(1, 2, &label, &Weights::new(&[0.7, 0.3]).unwrap()),
             ModelParameter {
                 parameters: vec![
                     (5.354794883728027, 0.00590993594378233),
@@ -423,11 +409,5 @@ mod tests {
                 msd: Some(0.9955164790153503)
             }
         );
-    }
-
-    #[test]
-    fn display() {
-        let jsyn = load_models();
-        println!("{}", jsyn);
     }
 }

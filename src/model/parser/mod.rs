@@ -5,7 +5,10 @@ use nom::{
     IResult, Parser,
 };
 
-use crate::model::parser::{base::ParseTarget, header::parse_header};
+use crate::model::{
+    parser::{base::ParseTarget, header::parse_header},
+    question,
+};
 
 use self::{
     convert::convert_tree,
@@ -15,7 +18,7 @@ use self::{
 };
 
 use super::{
-    stream::{Model, Pattern, StreamModels},
+    stream::{Model, StreamModels},
     window::Windows,
     GlobalModelMetadata, Voice,
 };
@@ -45,6 +48,9 @@ pub enum ModelParseError {
 
     #[error("USE_GV is true, but positions for GV is not set")]
     UseGvError,
+
+    #[error("Failed to parse question: {0}")]
+    QuestionParseError(#[from] jlabel_question::ParseError),
 }
 
 impl<'a> From<nom::Err<VerboseError<&'a [u8]>>> for ModelParseError {
@@ -224,10 +230,10 @@ pub fn parse_model(
         tree_range,
     )(input)?;
 
-    let question_lut: BTreeMap<&String, &Vec<Pattern>> = BTreeMap::from_iter(
+    let question_lut: BTreeMap<&String, &question::Question> = BTreeMap::from_iter(
         questions
             .iter()
-            .map(|Question { name, patterns }| (name, patterns)),
+            .map(|Question { name, question }| (name, question)),
     );
 
     let (_, pdf) = parse_all(

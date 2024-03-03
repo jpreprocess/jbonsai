@@ -41,7 +41,7 @@ pub struct Global {
 impl TryFrom<Global> for crate::model::GlobalModelMetadata {
     type Error = ModelParseError;
     fn try_from(value: Global) -> Result<Self, Self::Error> {
-        use crate::model::stream::Pattern;
+        use crate::model::question::Question;
         Ok(Self {
             hts_voice_version: value.hts_voice_version,
             sampling_frequency: value.sampling_frequency,
@@ -51,12 +51,13 @@ impl TryFrom<Global> for crate::model::GlobalModelMetadata {
             stream_type: value.stream_type,
             fullcontext_format: value.fullcontext_format,
             fullcontext_version: value.fullcontext_version,
-            gv_off_context: value
-                .gv_off_context
-                .into_iter()
-                .map(Pattern::from_pattern_string)
-                .collect::<Result<_, _>>()
-                .or(Err(ModelParseError::PatternParseError))?,
+            gv_off_context: Question::parse(
+                &value
+                    .gv_off_context
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>(),
+            )?,
         })
     }
 }

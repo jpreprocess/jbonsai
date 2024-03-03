@@ -3,14 +3,14 @@ use std::ops::{Range, RangeFrom, RangeTo};
 use nom::{
     branch::alt,
     bytes::complete::{take_while, take_while1},
-    combinator::{cut, map},
-    error::{ErrorKind, ParseError},
+    combinator::{cut, map_res},
+    error::{ErrorKind, FromExternalError, ParseError},
     multi::separated_list0,
     sequence::{delimited, pair},
     IResult,
 };
 
-use crate::model::stream::Pattern;
+use super::question::Question;
 
 const SEPARATOR_CHARS: &str = " \n";
 const PATTERN_WILDCARD: &str = "*?";
@@ -77,20 +77,30 @@ where
         Self::parse_template(self, |c: char| c.is_ascii() && c != '\n')
     }
 
-    fn parse_pattern_list<E: ParseError<Self>>(self) -> IResult<Self, Vec<Pattern>, E> {
+    fn parse_question<
+        E: ParseError<Self> + FromExternalError<Self, nom::Err<jlabel_question::ParseError>>,
+    >(
+        self,
+    ) -> IResult<Self, Question, E> {
         use nom::character::complete::char;
         let parse_elem = move |s| {
             let (rest, s) = Self::parse_pattern(s)?;
             let (_, sstr) = Self::parse_ascii_to_string(&s)?;
             Ok((rest, sstr))
         };
-        cut(separated_list0(
-            pair(char(','), Self::sp),
-            cut(map(
-                alt((delimited(char('\"'), parse_elem, char('\"')), parse_elem)),
-                |p| Pattern::from_pattern_string(p).unwrap(),
+        map_res(
+            cut(separated_list0(
+                pair(char(','), Self::sp),
+                cut(alt((
+                    delimited(char('\"'), parse_elem, char('\"')),
+                    parse_elem,
+                ))),
             )),
-        ))(self)
+            |v| {
+                let slice: Vec<_> = v.iter().map(|s| s.as_str()).collect();
+                Question::parse(&slice).map_err(nom::Err::Failure)
+            },
+        )(self)
     }
 }
 
@@ -160,8 +170,6 @@ impl ParseTarget for &[u8] {
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::stream::Pattern;
-
     use super::ParseTarget;
 
     #[test]
@@ -169,32 +177,6 @@ mod tests {
         assert_eq!(
             "hogehoge\"\nfugafuga".parse_ascii::<VerboseError<&str>>(),
             Ok(("\nfugafuga", "hogehoge\""))
-        );
-    }
-
-    #[test]
-    fn pattern() {
-        assert_eq!(
-            "*=d/A:*".parse_pattern::<VerboseError<&str>>(),
-            Ok(("", "*=d/A:*"))
-        );
-        assert_eq!(
-            "*^i-*".parse_pattern::<VerboseError<&str>>(),
-            Ok(("", "*^i-*"))
-        );
-    }
-
-    #[test]
-    fn pattern_list() {
-        assert_eq!(
-            "\"*-sil+*\",\"*-pau+*\"".parse_pattern_list::<VerboseError<&str>>(),
-            Ok((
-                "",
-                vec![
-                    Pattern::from_pattern_string("*-sil+*").unwrap(),
-                    Pattern::from_pattern_string("*-pau+*").unwrap(),
-                ]
-            ))
         );
     }
 }
