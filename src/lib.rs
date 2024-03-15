@@ -8,6 +8,8 @@ pub mod pstream;
 pub mod sstream;
 pub mod vocoder;
 
+pub mod sequence;
+
 #[cfg(test)]
 mod tests {
     use crate::{engine::Engine, model::interporation_weight::Weights};
