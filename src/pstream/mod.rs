@@ -1,4 +1,4 @@
-use crate::{constants::NODATA, sequence::Mask, sstream::StateStreamSet};
+use crate::{constants::NODATA, model::Models, sequence::Mask};
 
 use self::mlpg::{MlpgGlobalVariance, MlpgMatrix};
 mod mlpg;
@@ -14,41 +14,43 @@ pub struct ParameterStream {
 impl ParameterStreamSet {
     /// Parameter generation using GV weight
     pub fn create(
-        sss: &StateStreamSet,
+        models: &Models<'_>,
+        durations: &[usize],
         msd_threshold: &[f64],
         gv_weight: &[f64],
     ) -> ParameterStreamSet {
-        let mut streams = Vec::with_capacity(sss.get_nstream());
-        for i in 0..sss.get_nstream() {
-            let msd_flag = if sss.is_msd(i) {
-                (0..sss.get_total_state())
-                    .flat_map(|state| {
-                        let flag = sss.get_msd(i, state) > msd_threshold[i];
-                        [flag].repeat(sss.get_duration(state))
-                    })
-                    .collect()
-            } else {
-                Mask::new([true].repeat(sss.get_total_frame()))
-            };
+        let mut streams = Vec::with_capacity(models.nstream());
+        for i in 0..models.nstream() {
+            let stream = models.stream(i);
+
+            let msd_flag: Mask = stream
+                .iter()
+                .zip(durations)
+                .flat_map(|((_, msd), duration)| {
+                    let flag = *msd > msd_threshold[i];
+                    [flag].repeat(*duration)
+                })
+                .collect();
 
             let msd_boundaries = msd_flag.boundary_distances();
 
-            let mut pars = Vec::with_capacity(sss.get_vector_length(i));
-            for vector_index in 0..sss.get_vector_length(i) {
-                let parameters: Vec<Vec<(f64, f64)>> = sss
-                    .get_windows(i)
+            let mut pars = Vec::with_capacity(models.vector_length(i));
+            for vector_index in 0..models.vector_length(i) {
+                let parameters: Vec<Vec<(f64, f64)>> = models
+                    .windows(i)
                     .iter()
                     .enumerate()
                     .map(|(window_index, window)| {
-                        let m = sss.get_vector_length(i) * window_index + vector_index;
+                        let m = models.vector_length(i) * window_index + vector_index;
 
                         let mut iter = msd_flag.mask().iter();
-                        (0..sss.get_total_state())
+                        stream
+                            .iter()
+                            .zip(durations)
                             // get mean and ivar, and spread it to its duration
-                            .flat_map(|state| {
-                                let mean = sss.get_mean(i, state, m);
+                            .flat_map(|((curr_stream, _), duration)| {
+                                let (mean, vari) = curr_stream[m];
                                 let ivar = {
-                                    let vari = sss.get_vari(i, state, m);
                                     if vari.abs() > 1e19 {
                                         0.0
                                     } else if vari.abs() < 1e-19 {
@@ -57,7 +59,7 @@ impl ParameterStreamSet {
                                         1.0 / vari
                                     }
                                 };
-                                [(mean, ivar)].repeat(sss.get_duration(state))
+                                [(mean, ivar)].repeat(*duration)
                             })
                             .zip(&msd_boundaries)
                             .map(|((mean, ivar), (left, right))| {
@@ -79,23 +81,21 @@ impl ParameterStreamSet {
                     .collect();
 
                 let mut mtx = MlpgMatrix::new();
-                mtx.calc_wuw_and_wum(sss.get_windows(i), parameters);
+                mtx.calc_wuw_and_wum(models.windows(i), parameters);
 
-                let par = if sss.use_gv(i) {
+                let par = if let Some((gv_param, gv_switch)) = models.gv(i) {
                     let mtx_before = mtx.clone();
                     let par = mtx.solve();
 
-                    let gv_mean = sss.get_gv_mean(i, vector_index) * gv_weight[i];
-                    let gv_vari = sss.get_gv_vari(i, vector_index);
+                    let gv_mean = gv_param[vector_index].0 * gv_weight[i];
+                    let gv_vari = gv_param[vector_index].1;
 
-                    let gv_switch: Vec<bool> = (0..sss.get_total_state())
-                        .flat_map(|state_index| {
-                            [sss.get_gv_switch(i, state_index)]
-                                .repeat(sss.get_duration(state_index))
-                        })
-                        .zip(msd_flag.mask())
-                        .filter(|(_, msd)| **msd)
-                        .map(|(data, _)| data)
+                    let mut iter = msd_flag.mask().iter();
+                    let gv_switch: Vec<bool> = gv_switch
+                        .iter()
+                        .zip(durations)
+                        .flat_map(|(switch, duration)| [*switch].repeat(*duration))
+                        .filter(|_| iter.next() == Some(&true))
                         .collect();
 
                     MlpgGlobalVariance::new(mtx_before, par, &gv_switch).apply_gv(gv_mean, gv_vari)

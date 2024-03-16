@@ -201,6 +201,10 @@ impl ModelSet {
         Ok(parser::parse_htsvoice(&f)?)
     }
 
+    pub fn temp_models<'a>(&'a self, labels: Vec<Label>, iw: &'a InterporationWeight) -> Models<'a> {
+        Models::new(labels, &self.metadata, &self.voices, iw).unwrap()
+    }
+
     fn get_first_voice(&self) -> &Voice {
         // ensured to have at least one element
         self.voices.first().unwrap()

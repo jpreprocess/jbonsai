@@ -79,4 +79,11 @@ impl Label {
     pub fn get_end_frame(&self, index: usize) -> f64 {
         self.strings[index].end
     }
+
+    pub fn get_jlabels(&self) -> Vec<jlabel::Label> {
+        self.strings
+            .iter()
+            .map(|LabelString { content, .. }| content.clone())
+            .collect()
+    }
 }

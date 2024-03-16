@@ -232,7 +232,8 @@ impl Engine {
     pub fn synthesize_from_strings(&self, lines: &[String]) -> GenerateSpeechStreamSet {
         let labels = self.load_labels(lines);
         let state_sequence = self.generate_state_sequence(&labels);
-        let parameter_sequence = self.generate_parameter_sequence(&state_sequence);
+        let parameter_sequence =
+            self.generate_parameter_sequence(labels.get_jlabels(), &state_sequence);
         self.generate_sample_sequence(&parameter_sequence)
     }
 
@@ -268,9 +269,16 @@ impl Engine {
         }
     }
 
-    fn generate_parameter_sequence(&self, state_sequence: &StateStreamSet) -> ParameterStreamSet {
+    fn generate_parameter_sequence(
+        &self,
+        labels: Vec<jlabel::Label>,
+        state_sequence: &StateStreamSet,
+    ) -> ParameterStreamSet {
         ParameterStreamSet::create(
-            state_sequence,
+            &self
+                .ms
+                .temp_models(labels, &self.condition.interporation_weight),
+            state_sequence.get_durations(),
             &self.condition.msd_threshold,
             &self.condition.gv_weight,
         )

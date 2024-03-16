@@ -223,6 +223,9 @@ impl StateStreamSet {
     pub fn use_gv(&self, stream_index: usize) -> bool {
         self.sstreams[stream_index].gv_params.is_some()
     }
+    pub fn get_durations(&self) -> &[usize] {
+        &self.duration
+    }
     /// Get state duration
     pub fn get_duration(&self, state_index: usize) -> usize {
         self.duration[state_index]
