@@ -133,7 +133,7 @@ impl<'a> Models<'a> {
             .labels
             .iter()
             .flat_map(|label| {
-                let switch = self.metadata.gv_off_context.test(label);
+                let switch = !self.metadata.gv_off_context.test(label);
                 [switch].repeat(self.metadata.num_states)
             })
             .collect();
