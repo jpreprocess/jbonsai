@@ -28,21 +28,42 @@ pub enum ModelError {
     ParserError(#[from] parser::ModelParseError),
 }
 
-pub enum StreamKind {
-    MCP,
-    LF0,
-    LPF,
-}
-
-pub struct Models {
-    metadata: GlobalModelMetadata,
+pub struct Models<'a> {
     labels: Vec<Label>,
-    /// ensured to have at least one element
-    voices: Vec<Voice>,
-    weights: InterporationWeight,
+
+    metadata: &'a GlobalModelMetadata,
+    /// Assumptions:
+    /// - Has at least one element
+    /// - Consistent with metadata
+    /// - Has identical stream metadata
+    voices: &'a [Voice],
+    weights: &'a InterporationWeight,
 }
 
-impl Models {
+impl<'a> Models<'a> {
+    pub fn new(
+        labels: Vec<Label>,
+        metadata: &'a GlobalModelMetadata,
+        voices: &'a [Voice],
+        weights: &'a InterporationWeight,
+    ) -> Result<Self, ModelError> {
+        if voices.is_empty() {
+            return Err(ModelError::EmptyVoice);
+        }
+
+        Ok(Self {
+            metadata,
+            labels,
+            voices,
+            weights,
+        })
+    }
+
+    fn get_first_voice(&self) -> &Voice {
+        // ensured to have at least one element
+        self.voices.first().unwrap()
+    }
+
     pub fn duration(&self) -> Vec<(f64, f64)> {
         let weight = self.weights.get_duration().get_weights();
         self.labels
@@ -57,6 +78,66 @@ impl Models {
             })
             .collect()
     }
+    /// FIXME: label/state -> window -> vector
+    pub fn stream(&self, stream_index: usize) -> impl '_ + Iterator<Item = ModelParameter> {
+        let weight = self.weights.get_parameter(stream_index).get_weights();
+        self.labels
+            .iter()
+            .zip(std::iter::repeat((stream_index, weight)))
+            .flat_map(|(label, (stream_index, weight))| {
+                (2..2 + self.metadata.num_states)
+                    .zip(std::iter::repeat((stream_index, weight)))
+                    .map(|(state_index, (stream_index, weight))| {
+                        let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
+                        let mut params = ModelParameter::new(
+                            metadata.vector_length * metadata.num_windows,
+                            metadata.is_msd,
+                        );
+                        for (voice, weight) in self.voices.iter().zip(weight) {
+                            let curr_params = voice.stream_models[stream_index]
+                                .stream_model
+                                .get_parameter(state_index, label);
+                            params.add_assign(*weight, curr_params);
+                        }
+                        // FIXME: Split here
+                        params
+                    })
+            })
+    }
+    pub fn gv(&self, stream_index: usize) -> Option<Vec<(f64, f64)>> {
+        let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
+        if !metadata.use_gv {
+            return None;
+        }
+
+        let weight = self.weights.get_gv(stream_index).get_weights();
+        let gv_vec = self
+            .labels
+            .iter()
+            .flat_map(|label| {
+                let mut params = ModelParameter::new(metadata.vector_length, false);
+                for (voice, weight) in self.voices.iter().zip(weight) {
+                    let curr_params = voice.stream_models[stream_index]
+                        .gv_model
+                        .as_ref()
+                        .unwrap()
+                        .get_parameter(2, label);
+                    params.add_assign(*weight, curr_params);
+                }
+                params.parameters
+            })
+            .collect();
+        Some(gv_vec)
+    }
+}
+
+#[cfg(feature = "htsvoice")]
+pub fn load_htsvoice_file<P: AsRef<Path>>(
+    path: &P,
+) -> Result<(GlobalModelMetadata, Voice), ModelError> {
+    let f = std::fs::read(path)?;
+
+    Ok(parser::parse_htsvoice(&f)?)
 }
 
 pub struct ModelSet {
