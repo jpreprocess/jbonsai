@@ -64,6 +64,14 @@ impl<'a> Models<'a> {
         self.voices.first().unwrap()
     }
 
+    pub fn nstream(&self) -> usize {
+        self.metadata.num_streams
+    }
+    pub fn vector_length(&self, stream_index: usize) -> usize {
+        let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
+        metadata.vector_length
+    }
+
     pub fn duration(&self) -> Vec<(f64, f64)> {
         let weight = self.weights.get_duration().get_weights();
         self.labels
@@ -79,55 +87,61 @@ impl<'a> Models<'a> {
             .collect()
     }
     /// FIXME: label/state -> window -> vector
-    pub fn stream(&self, stream_index: usize) -> impl '_ + Iterator<Item = ModelParameter> {
+    pub fn stream(&self, stream_index: usize) -> Vec<(Vec<(f64, f64)>, f64)> {
+        let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
         let weight = self.weights.get_parameter(stream_index).get_weights();
         self.labels
             .iter()
-            .zip(std::iter::repeat((stream_index, weight)))
-            .flat_map(|(label, (stream_index, weight))| {
-                (2..2 + self.metadata.num_states)
-                    .zip(std::iter::repeat((stream_index, weight)))
-                    .map(|(state_index, (stream_index, weight))| {
-                        let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
-                        let mut params = ModelParameter::new(
-                            metadata.vector_length * metadata.num_windows,
-                            metadata.is_msd,
-                        );
-                        for (voice, weight) in self.voices.iter().zip(weight) {
-                            let curr_params = voice.stream_models[stream_index]
-                                .stream_model
-                                .get_parameter(state_index, label);
-                            params.add_assign(*weight, curr_params);
-                        }
-                        // FIXME: Split here
-                        params
-                    })
+            .flat_map(|label| {
+                (2..2 + self.metadata.num_states).map(|state_index| {
+                    let mut params = ModelParameter::new(
+                        metadata.vector_length * metadata.num_windows,
+                        metadata.is_msd,
+                    );
+                    for (voice, weight) in self.voices.iter().zip(weight) {
+                        let curr_params = voice.stream_models[stream_index]
+                            .stream_model
+                            .get_parameter(state_index, label);
+                        params.add_assign(*weight, curr_params);
+                    }
+                    let ModelParameter { parameters, msd } = params;
+                    // FIXME: Split parameter
+                    (parameters, msd.unwrap_or(f64::MAX))
+                })
             })
+            .collect()
     }
-    pub fn gv(&self, stream_index: usize) -> Option<Vec<(f64, f64)>> {
+    pub fn gv(&self, stream_index: usize) -> Option<(Vec<(f64, f64)>, Vec<bool>)> {
         let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
         if !metadata.use_gv {
             return None;
         }
 
         let weight = self.weights.get_gv(stream_index).get_weights();
-        let gv_vec = self
+
+        let mut params = ModelParameter::new(metadata.vector_length, false);
+        for (voice, weight) in self.voices.iter().zip(weight) {
+            let curr_params = voice.stream_models[stream_index]
+                .gv_model
+                .as_ref()
+                .unwrap()
+                .get_parameter(2, self.labels.first()?);
+            params.add_assign(*weight, curr_params);
+        }
+
+        let gv_switch = self
             .labels
             .iter()
             .flat_map(|label| {
-                let mut params = ModelParameter::new(metadata.vector_length, false);
-                for (voice, weight) in self.voices.iter().zip(weight) {
-                    let curr_params = voice.stream_models[stream_index]
-                        .gv_model
-                        .as_ref()
-                        .unwrap()
-                        .get_parameter(2, label);
-                    params.add_assign(*weight, curr_params);
-                }
-                params.parameters
+                let switch = self.metadata.gv_off_context.test(label);
+                [switch].repeat(self.metadata.num_states)
             })
             .collect();
-        Some(gv_vec)
+
+        Some((params.parameters, gv_switch))
+    }
+    pub fn windows(&self, stream_index: usize) -> &Windows {
+        &self.get_first_voice().stream_models[stream_index].windows
     }
 }
 
