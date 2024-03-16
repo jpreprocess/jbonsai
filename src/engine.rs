@@ -1,11 +1,11 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::constants::{DB, HALF_TONE, MAX_LF0, MIN_LF0};
+use crate::constants::DB;
 use crate::gstream::GenerateSpeechStreamSet;
 use crate::label::Label;
 use crate::model::interporation_weight::InterporationWeight;
-use crate::model::{ModelError, ModelSet};
+use crate::model::{ModelError, ModelSet, Models};
 use crate::pstream::ParameterStreamSet;
 use crate::sstream::StateStreamSet;
 use crate::vocoder::Vocoder;
@@ -231,9 +231,11 @@ impl Engine {
 
     pub fn synthesize_from_strings(&self, lines: &[String]) -> GenerateSpeechStreamSet {
         let labels = self.load_labels(lines);
-        let state_sequence = self.generate_state_sequence(&labels);
-        let parameter_sequence =
-            self.generate_parameter_sequence(labels.get_jlabels(), &state_sequence);
+        let models = self
+            .ms
+            .temp_models(labels.get_jlabels(), &self.condition.interporation_weight);
+        let state_sequence = self.generate_state_sequence(&models, &labels);
+        let parameter_sequence = self.generate_parameter_sequence(&models, &state_sequence);
         self.generate_sample_sequence(&parameter_sequence)
     }
 
@@ -245,39 +247,28 @@ impl Engine {
         )
     }
 
-    fn generate_state_sequence(&self, label: &Label) -> StateStreamSet {
-        let mut sss = StateStreamSet::create(
-            self.ms.clone(),
-            label,
-            self.condition.phoneme_alignment_flag,
-            self.condition.speed,
-            &self.condition.interporation_weight,
-        );
-        self.apply_additional_half_tone(&mut sss);
-        sss
-    }
-
-    fn apply_additional_half_tone(&self, sss: &mut StateStreamSet) {
-        if self.condition.additional_half_tone == 0.0 {
-            return;
-        }
-        for i in 0..sss.get_total_state() {
-            let mut f = sss.get_mean(1, i, 0);
-            f += self.condition.additional_half_tone * HALF_TONE;
-            f = f.max(MIN_LF0).min(MAX_LF0);
-            sss.set_mean(1, i, 0, f);
+    fn generate_state_sequence(&self, models: &Models<'_>, label: &Label) -> StateStreamSet {
+        if self.condition.phoneme_alignment_flag {
+            StateStreamSet::create_with_alignment(
+                models,
+                (0..label.get_size())
+                    .map(|index| label.get_end_frame(index))
+                    .collect(),
+            )
+        } else {
+            StateStreamSet::create(models, self.condition.speed)
         }
     }
 
     fn generate_parameter_sequence(
         &self,
-        labels: Vec<jlabel::Label>,
+        models: &Models<'_>,
         state_sequence: &StateStreamSet,
     ) -> ParameterStreamSet {
+        // TODO
+        // self.apply_additional_half_tone(&mut sss);
         ParameterStreamSet::create(
-            &self
-                .ms
-                .temp_models(labels, &self.condition.interporation_weight),
+            models,
             state_sequence.get_durations(),
             &self.condition.msd_threshold,
             &self.condition.gv_weight,

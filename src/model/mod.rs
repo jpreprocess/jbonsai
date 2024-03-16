@@ -67,6 +67,9 @@ impl<'a> Models<'a> {
     pub fn nstream(&self) -> usize {
         self.metadata.num_streams
     }
+    pub fn nstate(&self) -> usize {
+        self.metadata.num_states
+    }
     pub fn vector_length(&self, stream_index: usize) -> usize {
         let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
         metadata.vector_length
@@ -145,6 +148,21 @@ impl<'a> Models<'a> {
     }
 }
 
+pub fn apply_additional_half_tone(
+    additional_half_tone: f64,
+    params: &mut [(Vec<(f64, f64)>, f64)],
+) {
+    use crate::constants::{HALF_TONE, MAX_LF0, MIN_LF0};
+    if additional_half_tone == 0.0 {
+        return;
+    }
+    params.iter_mut().for_each(|(p, _)| {
+        let f = &mut p[0].0;
+        *f += additional_half_tone * HALF_TONE;
+        *f = f.max(MIN_LF0).min(MAX_LF0);
+    });
+}
+
 #[cfg(feature = "htsvoice")]
 pub fn load_htsvoice_file<P: AsRef<Path>>(
     path: &P,
@@ -201,7 +219,11 @@ impl ModelSet {
         Ok(parser::parse_htsvoice(&f)?)
     }
 
-    pub fn temp_models<'a>(&'a self, labels: Vec<Label>, iw: &'a InterporationWeight) -> Models<'a> {
+    pub fn temp_models<'a>(
+        &'a self,
+        labels: Vec<Label>,
+        iw: &'a InterporationWeight,
+    ) -> Models<'a> {
         Models::new(labels, &self.metadata, &self.voices, iw).unwrap()
     }
 
