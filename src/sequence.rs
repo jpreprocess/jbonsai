@@ -18,7 +18,9 @@ impl Mask {
         let mut iter = masked.into_iter();
         for mask in &self.0 {
             if *mask {
-                seq.push(iter.next().unwrap());
+                seq.push(iter.next().expect(
+                    "Length of `masked` must be the same as the number of `true`'s in mask.",
+                ));
             } else {
                 seq.push(default.clone());
             }
@@ -63,6 +65,17 @@ impl Mask {
 mod tests {
     use crate::sequence::Mask;
 
+    #[test]
+    fn fill() {
+        assert_eq!(
+            Mask::new(vec![false, false, true, true, false, true]).fill(vec![0, 1, 2], 5),
+            vec![5, 5, 0, 1, 5, 2]
+        );
+        assert_eq!(
+            Mask::new(vec![false, false]).fill(vec![0, 1], 5),
+            vec![5, 5]
+        );
+    }
     #[test]
     fn boundary_distances() {
         assert_eq!(
