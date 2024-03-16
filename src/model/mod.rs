@@ -1,7 +1,7 @@
 use std::{fmt::Display, path::Path};
 
 use self::{
-    interporation_weight::Weights,
+    interporation_weight::{InterporationWeight, Weights},
     stream::{Model, ModelParameter, StreamModels},
     window::Windows,
 };
@@ -26,6 +26,37 @@ pub enum ModelError {
     #[cfg(feature = "htsvoice")]
     #[error("Parser returned error:{0}")]
     ParserError(#[from] parser::ModelParseError),
+}
+
+pub enum StreamKind {
+    MCP,
+    LF0,
+    LPF,
+}
+
+pub struct Models {
+    metadata: GlobalModelMetadata,
+    labels: Vec<Label>,
+    /// ensured to have at least one element
+    voices: Vec<Voice>,
+    weights: InterporationWeight,
+}
+
+impl Models {
+    pub fn duration(&self) -> Vec<(f64, f64)> {
+        let weight = self.weights.get_duration().get_weights();
+        self.labels
+            .iter()
+            .flat_map(|label| {
+                let mut params = ModelParameter::new(self.metadata.num_states, false);
+                for (voice, weight) in self.voices.iter().zip(weight) {
+                    let curr_params = voice.duration_model.get_parameter(2, label);
+                    params.add_assign(*weight, curr_params);
+                }
+                params.parameters
+            })
+            .collect()
+    }
 }
 
 pub struct ModelSet {
