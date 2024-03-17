@@ -1,7 +1,7 @@
 mod constants;
 
 pub mod engine;
-pub mod gstream;
+pub mod speech;
 pub mod label;
 pub mod model;
 pub mod mlpg_adjust;

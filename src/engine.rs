@@ -2,7 +2,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::constants::DB;
-use crate::gstream::SpeechGenerator;
+use crate::speech::SpeechGenerator;
 use crate::label::Label;
 use crate::model::interporation_weight::InterporationWeight;
 use crate::model::{apply_additional_half_tone, ModelError, ModelSet, Models};
