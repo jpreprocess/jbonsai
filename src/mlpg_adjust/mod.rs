@@ -7,13 +7,13 @@ use crate::{
 use self::mlpg::{MlpgGlobalVariance, MlpgMatrix};
 mod mlpg;
 
-pub struct ParameterStream {
+pub struct MlpgAdjust {
     stream_index: usize,
     gv_weight: f64,
     msd_threshold: f64,
 }
 
-impl ParameterStream {
+impl MlpgAdjust {
     pub fn new(stream_index: usize, gv_weight: f64, msd_threshold: f64) -> Self {
         Self {
             stream_index,

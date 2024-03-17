@@ -4,8 +4,8 @@ pub mod engine;
 pub mod gstream;
 pub mod label;
 pub mod model;
-pub mod pstream;
-pub mod sstream;
+pub mod mlpg_adjust;
+pub mod duration;
 pub mod vocoder;
 
 pub mod sequence;

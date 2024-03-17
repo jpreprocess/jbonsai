@@ -6,8 +6,8 @@ use crate::gstream::SpeechGenerator;
 use crate::label::Label;
 use crate::model::interporation_weight::InterporationWeight;
 use crate::model::{apply_additional_half_tone, ModelError, ModelSet, Models};
-use crate::pstream::ParameterStream;
-use crate::sstream::StateStreamSet;
+use crate::mlpg_adjust::MlpgAdjust;
+use crate::duration::DurationEstimator;
 use crate::vocoder::Vocoder;
 
 #[derive(Debug, thiserror::Error)]
@@ -246,23 +246,23 @@ impl Engine {
         )
     }
 
-    fn generate_state_sequence(&self, models: &Models<'_>, label: &Label) -> StateStreamSet {
+    fn generate_state_sequence(&self, models: &Models<'_>, label: &Label) -> DurationEstimator {
         if self.condition.phoneme_alignment_flag {
-            StateStreamSet::create_with_alignment(
+            DurationEstimator::create_with_alignment(
                 models,
-                (0..label.get_size())
+                &(0..label.get_size())
                     .map(|index| label.get_end_frame(index))
-                    .collect(),
+                    .collect::<Vec<_>>(),
             )
         } else {
-            StateStreamSet::create(models, self.condition.speed)
+            DurationEstimator::create(models, self.condition.speed)
         }
     }
 
-    fn generate_speech(&self, models: &Models<'_>, state_sequence: &StateStreamSet) -> Vec<f64> {
+    fn generate_speech(&self, models: &Models<'_>, state_sequence: &DurationEstimator) -> Vec<f64> {
         let durations = state_sequence.get_durations();
         let initialize = |stream_index: usize| {
-            ParameterStream::new(
+            MlpgAdjust::new(
                 stream_index,
                 self.condition.gv_weight[stream_index],
                 self.condition.msd_threshold[stream_index],
