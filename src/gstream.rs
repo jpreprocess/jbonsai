@@ -1,63 +1,67 @@
-use crate::{pstream::ParameterStreamSet, vocoder::Vocoder};
+use crate::vocoder::Vocoder;
 
-pub struct GenerateSpeechStreamSet {
-    speech: Vec<f64>,
+type Parameter = Vec<Vec<f64>>;
+
+pub struct SpeechGenerator {
+    fperiod: usize,
+    alpha: f64,
+    beta: f64,
+    volume: f64,
 }
 
-impl GenerateSpeechStreamSet {
-    /// Generate speech
-    pub fn create(
-        pss: &ParameterStreamSet,
-        mut v: Vocoder,
-        fperiod: usize,
-        alpha: f64,
-        beta: f64,
-        volume: f64,
-    ) -> Self {
-        // check
-        if pss.get_nstream() != 2 && pss.get_nstream() != 3 {
-            panic!("The number of streams must be 2 or 3.");
+impl SpeechGenerator {
+    pub fn new(fperiod: usize, alpha: f64, beta: f64, volume: f64) -> Self {
+        Self {
+            fperiod,
+            alpha,
+            beta,
+            volume,
         }
-        if pss.get_vector_length(1) != 1 {
+    }
+    /// Generate speech
+    pub fn synthesize(
+        &self,
+        mut v: Vocoder,
+        spectrum: Parameter,
+        lf0: Parameter,
+        lpf: Option<Parameter>,
+    ) -> Vec<f64> {
+        // check
+        if lf0.len() != 1 {
             panic!("The size of lf0 static vector must be 1.");
         }
-        if pss.get_nstream() >= 3 && pss.get_vector_length(2) % 2 == 0 {
+        if lpf.as_ref().map(|lpf| lpf.len() % 2 == 0) == Some(true) {
             panic!("The number of low-pass filter coefficient must be odd numbers.");
         }
 
         // create speech buffer
-        let total_frame = pss.get_total_frame();
-        let mut speech = vec![0.0; total_frame * fperiod];
+        let total_frame = lf0[0].len();
+        let mut speech = vec![0.0; total_frame * self.fperiod];
 
         // synthesize speech waveform
         for i in 0..total_frame {
-            let lpf = if pss.get_nstream() >= 3 {
-                (0..pss.get_vector_length(2))
-                    .map(|vector_index| pss.get_parameter(2, i, vector_index))
+            let spectrum_vector: Vec<f64> = (0..spectrum.len())
+                .map(|vector_index| spectrum[vector_index][i])
+                .collect();
+            let lpf_vector = if let Some(ref lpf) = lpf {
+                (0..lpf.len())
+                    .map(|vector_index| lpf[vector_index][i])
                     .collect()
             } else {
                 vec![]
             };
-            let spectrum: Vec<f64> = (0..pss.get_vector_length(0))
-                .map(|vector_index| pss.get_parameter(0, i, vector_index))
-                .collect();
 
             v.synthesize(
-                pss.get_parameter(1, i, 0),
-                &spectrum,
-                &lpf,
-                alpha,
-                beta,
-                volume,
-                &mut speech[i * fperiod..(i + 1) * fperiod],
+                lf0[0][i],
+                &spectrum_vector,
+                &lpf_vector,
+                self.alpha,
+                self.beta,
+                self.volume,
+                &mut speech[i * self.fperiod..(i + 1) * self.fperiod],
             );
         }
 
-        GenerateSpeechStreamSet { speech }
-    }
-
-    /// Get synthesized speech waveform
-    pub fn get_speech(&self) -> &[f64] {
-        &self.speech
+        speech
     }
 }

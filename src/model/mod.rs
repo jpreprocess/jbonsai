@@ -28,6 +28,9 @@ pub enum ModelError {
     ParserError(#[from] parser::ModelParseError),
 }
 
+pub type StreamParameter = Vec<(Vec<(f64, f64)>, f64)>;
+pub type GvParameter = (Vec<(f64, f64)>, Vec<bool>);
+
 pub struct Models<'a> {
     labels: Vec<Label>,
 
@@ -90,7 +93,7 @@ impl<'a> Models<'a> {
             .collect()
     }
     /// FIXME: label/state -> window -> vector
-    pub fn stream(&self, stream_index: usize) -> Vec<(Vec<(f64, f64)>, f64)> {
+    pub fn stream(&self, stream_index: usize) -> StreamParameter {
         let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
         let weight = self.weights.get_parameter(stream_index).get_weights();
         self.labels
@@ -114,7 +117,7 @@ impl<'a> Models<'a> {
             })
             .collect()
     }
-    pub fn gv(&self, stream_index: usize) -> Option<(Vec<(f64, f64)>, Vec<bool>)> {
+    pub fn gv(&self, stream_index: usize) -> Option<GvParameter> {
         let metadata = &self.get_first_voice().stream_models[stream_index].metadata;
         if !metadata.use_gv {
             return None;
@@ -148,10 +151,7 @@ impl<'a> Models<'a> {
     }
 }
 
-pub fn apply_additional_half_tone(
-    additional_half_tone: f64,
-    params: &mut [(Vec<(f64, f64)>, f64)],
-) {
+pub fn apply_additional_half_tone(params: &mut StreamParameter, additional_half_tone: f64) {
     use crate::constants::{HALF_TONE, MAX_LF0, MIN_LF0};
     if additional_half_tone == 0.0 {
         return;

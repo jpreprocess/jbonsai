@@ -2,11 +2,11 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::constants::DB;
-use crate::gstream::GenerateSpeechStreamSet;
+use crate::gstream::SpeechGenerator;
 use crate::label::Label;
 use crate::model::interporation_weight::InterporationWeight;
-use crate::model::{ModelError, ModelSet, Models};
-use crate::pstream::ParameterStreamSet;
+use crate::model::{apply_additional_half_tone, ModelError, ModelSet, Models};
+use crate::pstream::ParameterStream;
 use crate::sstream::StateStreamSet;
 use crate::vocoder::Vocoder;
 
@@ -229,14 +229,13 @@ impl Engine {
         Engine { condition, ms }
     }
 
-    pub fn synthesize_from_strings(&self, lines: &[String]) -> GenerateSpeechStreamSet {
+    pub fn synthesize_from_strings(&self, lines: &[String]) -> Vec<f64> {
         let labels = self.load_labels(lines);
         let models = self
             .ms
             .temp_models(labels.get_jlabels(), &self.condition.interporation_weight);
         let state_sequence = self.generate_state_sequence(&models, &labels);
-        let parameter_sequence = self.generate_parameter_sequence(&models, &state_sequence);
-        self.generate_sample_sequence(&parameter_sequence)
+        self.generate_speech(&models, &state_sequence)
     }
 
     fn load_labels(&self, lines: &[String]) -> Label {
@@ -260,25 +259,24 @@ impl Engine {
         }
     }
 
-    fn generate_parameter_sequence(
-        &self,
-        models: &Models<'_>,
-        state_sequence: &StateStreamSet,
-    ) -> ParameterStreamSet {
-        // TODO
-        // self.apply_additional_half_tone(&mut sss);
-        ParameterStreamSet::create(
-            models,
-            state_sequence.get_durations(),
-            &self.condition.msd_threshold,
-            &self.condition.gv_weight,
-        )
-    }
+    fn generate_speech(&self, models: &Models<'_>, state_sequence: &StateStreamSet) -> Vec<f64> {
+        let durations = state_sequence.get_durations();
+        let initialize = |stream_index: usize| {
+            ParameterStream::new(
+                stream_index,
+                self.condition.gv_weight[stream_index],
+                self.condition.msd_threshold[stream_index],
+            )
+        };
 
-    fn generate_sample_sequence(
-        &self,
-        parameter_sequence: &ParameterStreamSet,
-    ) -> GenerateSpeechStreamSet {
+        let spectrum = initialize(0).create(models.stream(0), models, durations);
+        let lf0 = {
+            let mut lf0_params = models.stream(1);
+            apply_additional_half_tone(&mut lf0_params, self.condition.additional_half_tone);
+            initialize(1).create(lf0_params, models, durations)
+        };
+        let lpf = initialize(2).create(models.stream(2), models, durations);
+
         let vocoder = Vocoder::new(
             self.ms.get_vector_length(0) - 1,
             self.condition.stage,
@@ -286,13 +284,12 @@ impl Engine {
             self.condition.sampling_frequency,
             self.condition.fperiod,
         );
-        GenerateSpeechStreamSet::create(
-            parameter_sequence,
-            vocoder,
+        let generator = SpeechGenerator::new(
             self.condition.fperiod,
             self.condition.alpha,
             self.condition.beta,
             self.condition.volume,
-        )
+        );
+        generator.synthesize(vocoder, spectrum, lf0, Some(lpf))
     }
 }
