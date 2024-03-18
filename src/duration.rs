@@ -5,7 +5,7 @@ pub struct DurationEstimator {
 }
 
 impl DurationEstimator {
-    pub fn create(models: &Models<'_>, speed: f64) -> Self {
+    pub fn create(models: &Models, speed: f64) -> Self {
         let duration_params = models.duration();
 
         // determine frame length
@@ -19,7 +19,7 @@ impl DurationEstimator {
         Self { duration }
     }
 
-    pub fn create_with_alignment(models: &Models<'_>, end_frames: &[f64]) -> Self {
+    pub fn create_with_alignment(models: &Models, end_frames: &[f64]) -> Self {
         let duration_params = models.duration();
 
         // determine state duration

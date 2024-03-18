@@ -1,11 +1,11 @@
 mod constants;
 
-pub mod engine;
-pub mod speech;
-pub mod label;
-pub mod model;
-pub mod mlpg_adjust;
 pub mod duration;
+pub mod engine;
+pub mod label;
+pub mod mlpg_adjust;
+pub mod model;
+pub mod speech;
 pub mod vocoder;
 
 pub mod sequence;

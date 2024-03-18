@@ -25,7 +25,7 @@ impl MlpgAdjust {
     pub fn create(
         &self,
         stream: StreamParameter,
-        models: &Models<'_>,
+        models: &Models,
         durations: &[usize],
     ) -> Vec<Vec<f64>> {
         let vector_length = models.vector_length(self.stream_index);

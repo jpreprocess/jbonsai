@@ -2,12 +2,12 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::constants::DB;
-use crate::speech::SpeechGenerator;
-use crate::label::Label;
-use crate::model::interporation_weight::InterporationWeight;
-use crate::model::{apply_additional_half_tone, ModelError, ModelSet, Models};
-use crate::mlpg_adjust::MlpgAdjust;
 use crate::duration::DurationEstimator;
+use crate::label::Label;
+use crate::mlpg_adjust::MlpgAdjust;
+use crate::model::interporation_weight::InterporationWeight;
+use crate::model::{apply_additional_half_tone, ModelError, Models, Voice, VoiceSet};
+use crate::speech::SpeechGenerator;
 use crate::vocoder::Vocoder;
 
 #[derive(Debug, thiserror::Error)]
@@ -70,18 +70,20 @@ impl Default for Condition {
 }
 
 impl Condition {
-    pub fn load_model(&mut self, ms: &ModelSet) -> Result<(), EngineError> {
-        let nvoices = ms.get_nvoices();
-        let nstream = ms.get_nstream();
+    pub fn load_model(&mut self, voices: &VoiceSet) -> Result<(), EngineError> {
+        let first = voices.first();
+        let metadata = &first.metadata;
+
+        let nstream = metadata.num_streams;
 
         /* global */
-        self.sampling_frequency = ms.get_sampling_frequency();
-        self.fperiod = ms.get_fperiod();
+        self.sampling_frequency = metadata.sampling_frequency;
+        self.fperiod = metadata.frame_period;
         self.msd_threshold = [0.5].repeat(nstream);
         self.gv_weight = [1.0].repeat(nstream);
 
         /* spectrum */
-        for option in ms.get_option(0).unwrap_or(&[]) {
+        for option in &first.stream_models[0].metadata.option {
             let Some((key, value)) = option.split_once('=') else {
                 eprintln!("Skipped unrecognized option {}.", option);
                 continue;
@@ -103,7 +105,7 @@ impl Condition {
         }
 
         /* interpolation weights */
-        self.interporation_weight = InterporationWeight::new(nvoices, nstream);
+        self.interporation_weight = InterporationWeight::new(voices.len(), nstream);
 
         Ok(())
     }
@@ -215,25 +217,34 @@ impl Condition {
 
 pub struct Engine {
     pub condition: Condition,
-    pub ms: Arc<ModelSet>,
+    pub voices: VoiceSet,
 }
 
 impl Engine {
-    pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Engine, EngineError> {
-        let ms = ModelSet::load_htsvoice_files(voices).unwrap();
+    #[cfg(feature = "htsvoice")]
+    pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
+        let voices = voices
+            .iter()
+            .map(|path| Ok(Arc::new(Voice::load_htsvoice_file(path)?)))
+            .collect::<Result<Vec<_>, ModelError>>()?;
+        let voiceset = VoiceSet::new(voices)?;
+
         let mut condition = Condition::default();
-        condition.load_model(&ms)?;
-        Ok(Self::new(Arc::new(ms), condition))
+        condition.load_model(&voiceset)?;
+
+        Ok(Self::new(voiceset, condition))
     }
-    pub fn new(ms: Arc<ModelSet>, condition: Condition) -> Engine {
-        Engine { condition, ms }
+    pub fn new(voices: VoiceSet, condition: Condition) -> Self {
+        Engine { voices, condition }
     }
 
     pub fn synthesize_from_strings(&self, lines: &[String]) -> Vec<f64> {
         let labels = self.load_labels(lines);
-        let models = self
-            .ms
-            .temp_models(labels.get_jlabels(), &self.condition.interporation_weight);
+        let models = Models::new(
+            labels.get_jlabels(),
+            &self.voices,
+            &self.condition.interporation_weight,
+        );
         let state_sequence = self.generate_state_sequence(&models, &labels);
         self.generate_speech(&models, &state_sequence)
     }
@@ -278,7 +289,7 @@ impl Engine {
         let lpf = initialize(2).create(models.stream(2), models, durations);
 
         let vocoder = Vocoder::new(
-            self.ms.get_vector_length(0) - 1,
+            models.vector_length(0) - 1,
             self.condition.stage,
             self.condition.use_log_gain,
             self.condition.sampling_frequency,
