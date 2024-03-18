@@ -1,11 +1,9 @@
 use crate::model::Models;
 
-pub struct DurationEstimator {
-    duration: Vec<usize>,
-}
+pub struct DurationEstimator;
 
 impl DurationEstimator {
-    pub fn create(models: &Models, speed: f64) -> Self {
+    pub fn create(&self, models: &Models, speed: f64) -> Vec<usize> {
         let duration_params = models.duration();
 
         // determine frame length
@@ -16,10 +14,10 @@ impl DurationEstimator {
                 Self::estimate_duration_with_frame_length(&duration_params, length as f64 / speed);
         }
 
-        Self { duration }
+        duration
     }
 
-    pub fn create_with_alignment(models: &Models, end_frames: &[f64]) -> Self {
+    pub fn create_with_alignment(&self, models: &Models, end_frames: &[f64]) -> Vec<usize> {
         let duration_params = models.duration();
 
         // determine state duration
@@ -44,7 +42,7 @@ impl DurationEstimator {
             state += models.nstate();
         }
 
-        Self { duration }
+        duration
     }
 
     /// Estimate state duration
@@ -110,9 +108,5 @@ impl DurationEstimator {
         }
 
         duration
-    }
-
-    pub fn get_durations(&self) -> &[usize] {
-        &self.duration
     }
 }

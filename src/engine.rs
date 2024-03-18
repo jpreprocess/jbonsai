@@ -245,8 +245,7 @@ impl Engine {
             &self.voices,
             &self.condition.interporation_weight,
         );
-        let state_sequence = self.generate_state_sequence(&models, &labels);
-        self.generate_speech(&models, &state_sequence)
+        self.generate_speech(&models, &labels)
     }
 
     fn load_labels(&self, lines: &[String]) -> Label {
@@ -257,21 +256,18 @@ impl Engine {
         )
     }
 
-    fn generate_state_sequence(&self, models: &Models<'_>, label: &Label) -> DurationEstimator {
-        if self.condition.phoneme_alignment_flag {
-            DurationEstimator::create_with_alignment(
+    fn generate_speech(&self, models: &Models<'_>, label: &Label) -> Vec<f64> {
+        let durations = if self.condition.phoneme_alignment_flag {
+            DurationEstimator.create_with_alignment(
                 models,
                 &(0..label.get_size())
                     .map(|index| label.get_end_frame(index))
                     .collect::<Vec<_>>(),
             )
         } else {
-            DurationEstimator::create(models, self.condition.speed)
-        }
-    }
+            DurationEstimator.create(models, self.condition.speed)
+        };
 
-    fn generate_speech(&self, models: &Models<'_>, state_sequence: &DurationEstimator) -> Vec<f64> {
-        let durations = state_sequence.get_durations();
         let initialize = |stream_index: usize| {
             MlpgAdjust::new(
                 stream_index,
@@ -280,13 +276,13 @@ impl Engine {
             )
         };
 
-        let spectrum = initialize(0).create(models.stream(0), models, durations);
+        let spectrum = initialize(0).create(models.stream(0), models, &durations);
         let lf0 = {
             let mut lf0_params = models.stream(1);
             apply_additional_half_tone(&mut lf0_params, self.condition.additional_half_tone);
-            initialize(1).create(lf0_params, models, durations)
+            initialize(1).create(lf0_params, models, &durations)
         };
-        let lpf = initialize(2).create(models.stream(2), models, durations);
+        let lpf = initialize(2).create(models.stream(2), models, &durations);
 
         let vocoder = Vocoder::new(
             models.vector_length(0) - 1,
