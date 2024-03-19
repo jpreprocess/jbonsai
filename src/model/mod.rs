@@ -220,6 +220,7 @@ impl Display for GlobalModelMetadata {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Voice {
     pub metadata: GlobalModelMetadata,
     pub duration_model: Model,

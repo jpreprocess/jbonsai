@@ -6,6 +6,7 @@ use super::question;
 
 use super::window::Windows;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct StreamModels {
     pub metadata: StreamModelMetadata,
 
@@ -60,6 +61,7 @@ pub struct StreamModelMetadata {
     pub option: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Model {
     trees: Vec<Tree>,
     pdf: Vec<Vec<ModelParameter>>,
@@ -172,7 +174,7 @@ impl ModelParameter {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tree {
     pub state: usize,
     pub nodes: Vec<TreeNode>,
@@ -196,7 +198,7 @@ impl Tree {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TreeNode {
     Node {
         question: question::Question,
