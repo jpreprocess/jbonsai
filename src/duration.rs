@@ -17,7 +17,7 @@ impl DurationEstimator {
         duration
     }
 
-    pub fn create_with_alignment(&self, models: &Models, end_frames: &[f64]) -> Vec<usize> {
+    pub fn create_with_alignment(&self, models: &Models, times: &[(f64, f64)]) -> Vec<usize> {
         let duration_params = models.duration();
 
         // determine state duration
@@ -26,7 +26,7 @@ impl DurationEstimator {
         let mut next_time = 0;
         let mut next_state = 0;
         let mut state = 0;
-        for (i, end_frame) in end_frames.iter().enumerate() {
+        for (i, (_start_frame, end_frame)) in times.iter().enumerate() {
             if *end_frame >= 0.0 {
                 let curr_duration = Self::estimate_duration_with_frame_length(
                     &duration_params[next_state..state + models.nstate()],
@@ -35,7 +35,7 @@ impl DurationEstimator {
                 next_time += curr_duration.len();
                 next_state = state + models.nstate();
                 duration.extend_from_slice(&curr_duration);
-            } else if i + 1 == end_frames.len() {
+            } else if i + 1 == times.len() {
                 eprintln!("HTS_SStreamSet_create: The time of final label is not specified.");
                 Self::estimate_duration(&duration_params[next_state..state + models.nstate()], 0.0);
             }

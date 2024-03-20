@@ -23,6 +23,7 @@ pub enum ModelError {
     MetadataError,
     #[error("Io failed: {0}")]
     Io(#[from] std::io::Error),
+
     #[cfg(feature = "htsvoice")]
     #[error("Parser returned error:{0}")]
     ParserError(#[from] parser::ModelParseError),

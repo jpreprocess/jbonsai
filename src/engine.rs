@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::constants::DB;
 use crate::duration::DurationEstimator;
-use crate::label::Label;
+use crate::label::{LabelError, Labels};
 use crate::mlpg_adjust::MlpgAdjust;
 use crate::model::interporation_weight::InterporationWeight;
 use crate::model::{apply_additional_half_tone, ModelError, Models, Voice, VoiceSet};
@@ -12,10 +12,13 @@ use crate::vocoder::Vocoder;
 
 #[derive(Debug, thiserror::Error)]
 pub enum EngineError {
-    #[error("Model error")]
+    #[error("Model error: {0}")]
     ModelError(#[from] ModelError),
     #[error("Failed to parse option {0}")]
     ParseOptionError(String),
+
+    #[error("Label error: {0}")]
+    LabelError(#[from] LabelError),
 }
 
 #[derive(Debug, Clone)]
@@ -238,34 +241,29 @@ impl Engine {
         Engine { voices, condition }
     }
 
-    pub fn synthesize_from_strings(&self, lines: &[String]) -> Vec<f64> {
-        let labels = self.load_labels(lines);
-        let models = Models::new(
-            labels.get_jlabels(),
-            &self.voices,
-            &self.condition.interporation_weight,
-        );
-        self.generate_speech(&models, &labels)
-    }
-
-    fn load_labels(&self, lines: &[String]) -> Label {
-        Label::load_from_strings(
+    pub fn synthesize_from_strings<S: AsRef<str>>(
+        &self,
+        lines: &[S],
+    ) -> Result<Vec<f64>, EngineError> {
+        let labels = Labels::load_from_strings(
             self.condition.sampling_frequency,
             self.condition.fperiod,
             lines,
-        )
+        )?;
+        Ok(self.generate_speech(&labels))
     }
 
-    fn generate_speech(&self, models: &Models<'_>, label: &Label) -> Vec<f64> {
+    pub fn generate_speech(&self, labels: &Labels) -> Vec<f64> {
+        let models = Models::new(
+            labels.labels().to_vec(),
+            &self.voices,
+            &self.condition.interporation_weight,
+        );
+
         let durations = if self.condition.phoneme_alignment_flag {
-            DurationEstimator.create_with_alignment(
-                models,
-                &(0..label.get_size())
-                    .map(|index| label.get_end_frame(index))
-                    .collect::<Vec<_>>(),
-            )
+            DurationEstimator.create_with_alignment(&models, labels.times())
         } else {
-            DurationEstimator.create(models, self.condition.speed)
+            DurationEstimator.create(&models, self.condition.speed)
         };
 
         let initialize = |stream_index: usize| {
@@ -276,13 +274,13 @@ impl Engine {
             )
         };
 
-        let spectrum = initialize(0).create(models.stream(0), models, &durations);
+        let spectrum = initialize(0).create(models.stream(0), &models, &durations);
         let lf0 = {
             let mut lf0_params = models.stream(1);
             apply_additional_half_tone(&mut lf0_params, self.condition.additional_half_tone);
-            initialize(1).create(lf0_params, models, &durations)
+            initialize(1).create(lf0_params, &models, &durations)
         };
-        let lpf = initialize(2).create(models.stream(2), models, &durations);
+        let lpf = initialize(2).create(models.stream(2), &models, &durations);
 
         let vocoder = Vocoder::new(
             models.vector_length(0) - 1,

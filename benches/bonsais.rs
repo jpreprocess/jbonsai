@@ -25,7 +25,7 @@ fn bonsai(bencher: &mut Bencher) {
     let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
 
     bencher.iter(|| {
-        engine.synthesize_from_strings(&lines);
+        engine.synthesize_from_strings(&lines).unwrap();
     });
 }
 
@@ -63,7 +63,7 @@ fn is_bonsai(bencher: &mut Bencher) {
     let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
 
     bencher.iter(|| {
-        engine.synthesize_from_strings(&lines);
+        engine.synthesize_from_strings(&lines).unwrap();
     });
 }
 
@@ -135,6 +135,6 @@ fn bonsai_letter(bencher: &mut Bencher) {
     let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
 
     bencher.iter(|| {
-        engine.synthesize_from_strings(&lines);
+        engine.synthesize_from_strings(&lines).unwrap();
     });
 }

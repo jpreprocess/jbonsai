@@ -1,89 +1,106 @@
-use std::str::FromStr;
+#[derive(Debug, thiserror::Error)]
+pub enum LabelError {
+    #[error("jlabel failed to parse fullcontext-label: {0}")]
+    JLabelParse(#[from] jlabel::ParseError),
+    #[error("Expected a fullcontext-label in {0}")]
+    MissingLabel(String),
+    #[error("Failed to parse as floating-point number")]
+    FloatParse(#[from] std::num::ParseFloatError),
 
-struct LabelString {
-    content: jlabel::Label,
-    start: f64,
-    end: f64,
+    #[error("The length of `times` and `labels` must be the same")]
+    LengthMismatch,
 }
 
-impl LabelString {
-    fn parse(s: &str, rate: f64) -> Self {
-        Self::parse_digit_string(s, rate).unwrap_or(Self {
-            // TODO: remove this unwrap
-            content: jlabel::Label::from_str(s).unwrap(),
-            start: -1.0,
-            end: -1.0,
-        })
-    }
-    fn parse_digit_string(s: &str, rate: f64) -> Option<Self> {
-        let mut iter = s.splitn(3, ' ');
-        let start: f64 = iter.next().and_then(|s| s.parse().ok())?;
-        let end: f64 = iter.next().and_then(|s| s.parse().ok())?;
-        let content = iter.next()?.parse().ok()?;
-        Some(Self {
-            content,
-            start: rate * start,
-            end: rate * end,
-        })
-    }
+pub struct Labels {
+    labels: Vec<jlabel::Label>,
+    times: Vec<(f64, f64)>,
 }
 
-pub struct Label {
-    strings: Vec<LabelString>,
-}
+impl Labels {
+    pub fn load_from_strings<S: AsRef<str>>(
+        sampling_rate: usize,
+        fperiod: usize,
+        lines: &[S],
+    ) -> Result<Self, LabelError> {
+        let mut labels = Vec::with_capacity(lines.len());
+        let mut times = Vec::with_capacity(lines.len());
 
-impl Label {
-    pub fn load_from_strings(sampling_rate: usize, fperiod: usize, lines: &[String]) -> Self {
         let rate = sampling_rate as f64 / (fperiod as f64 * 1e+7);
-        let mut strings = Vec::with_capacity(lines.len());
 
         for line in lines {
-            let Some(first_char) = line.chars().next() else {
-                break;
-            };
-            if !first_char.is_ascii_graphic() {
-                break;
-            }
+            let line = line.as_ref();
 
-            strings.push(LabelString::parse(line, rate));
+            let mut split = line.splitn(3, ' ');
+            let first = split
+                .next()
+                .expect("`splitn` is expected to always have at least one element.");
+
+            if let Some(second) = split.next() {
+                let third = split
+                    .next()
+                    .ok_or_else(|| LabelError::MissingLabel(line.to_string()))?;
+
+                let mut start: f64 = first.parse()?;
+                let mut end: f64 = second.parse()?;
+
+                start *= rate;
+                end *= rate;
+
+                let label = third.parse()?;
+
+                times.push((start, end));
+                labels.push(label);
+            } else if first.is_empty() {
+                continue;
+            } else {
+                let label = first.parse()?;
+                times.push((-1.0, -1.0));
+                labels.push(label);
+            }
         }
 
-        for i in 0..strings.len() {
-            if i + 1 < strings.len() {
-                if strings[i].end < 0.0 && strings[i + 1].start >= 0.0 {
-                    strings[i].end = strings[i + 1].start;
-                } else if strings[i].end >= 0.0 && strings[i + 1].start < 0.0 {
-                    strings[i + 1].start = strings[i].end;
+        Self::new(labels, Some(times))
+    }
+
+    pub fn new(
+        labels: Vec<jlabel::Label>,
+        times: Option<Vec<(f64, f64)>>,
+    ) -> Result<Self, LabelError> {
+        if let Some(mut times) = times {
+            if labels.len() != times.len() {
+                return Err(LabelError::LengthMismatch);
+            }
+
+            for i in 0..times.len() {
+                if i + 1 < times.len() {
+                    if times[i].1 < 0.0 && times[i + 1].0 >= 0.0 {
+                        times[i].1 = times[i + 1].0;
+                    } else if times[i].1 >= 0.0 && times[i + 1].0 < 0.0 {
+                        times[i + 1].0 = times[i].1;
+                    }
+                }
+
+                if times[i].0 < 0.0 {
+                    times[i].0 = -1.0;
+                }
+                if times[i].1 < 0.0 {
+                    times[i].1 = -1.0;
                 }
             }
-            if strings[i].start < 0.0 {
-                strings[i].start = -1.0;
-            }
-            if strings[i].end < 0.0 {
-                strings[i].end = -1.0;
-            }
+
+            Ok(Self { times, labels })
+        } else {
+            Ok(Self {
+                times: vec![(-1.0, -1.0); labels.len()],
+                labels,
+            })
         }
-
-        Self { strings }
     }
 
-    pub fn get_size(&self) -> usize {
-        self.strings.len()
+    pub fn labels(&self) -> &[jlabel::Label] {
+        &self.labels
     }
-    pub fn get_label(&self, index: usize) -> &jlabel::Label {
-        &self.strings[index].content
-    }
-    pub fn get_start_frame(&self, index: usize) -> f64 {
-        self.strings[index].start
-    }
-    pub fn get_end_frame(&self, index: usize) -> f64 {
-        self.strings[index].end
-    }
-
-    pub fn get_jlabels(&self) -> Vec<jlabel::Label> {
-        self.strings
-            .iter()
-            .map(|LabelString { content, .. }| content.clone())
-            .collect()
+    pub fn times(&self) -> &[(f64, f64)] {
+        &self.times
     }
 }
