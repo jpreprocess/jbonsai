@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use self::voice::parameter::ModelParameter;
+use self::voice::model::ModelParameter;
 
 pub use self::{
     interporation_weight::InterporationWeight,

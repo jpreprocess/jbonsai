@@ -11,7 +11,7 @@ use self::{
     window::WindowParser,
 };
 
-use super::voice::{parameter::Model, question, window::Windows, StreamModels, Voice};
+use super::voice::{model::Model, question, window::Windows, StreamModels, Voice};
 
 mod base;
 mod header;

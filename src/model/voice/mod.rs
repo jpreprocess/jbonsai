@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
-use self::{parameter::Model, window::Windows};
+use self::{model::Model, window::Windows};
 
-pub mod parameter;
+pub mod model;
 pub mod question;
 pub mod tree;
 pub mod window;

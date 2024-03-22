@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::model::voice::{parameter::Model, question::Question};
+use crate::model::voice::{model::Model, question::Question};
 
 use super::{base::ParseTarget, parse_all, ModelParseError};
 
@@ -45,7 +45,7 @@ pub fn parse_model(
                     n,
                     map(
                         many_m_n(pdf_len, pdf_len, map(le_f32, |v| v as f64)),
-                        crate::model::voice::parameter::ModelParameter::from_linear,
+                        crate::model::voice::model::ModelParameter::from_linear,
                     ),
                 )(i)?;
                 pdf.push(r);
