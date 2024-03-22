@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use self::{
+use self::voice::parameter::ModelParameter;
+
+pub use self::{
     interporation_weight::InterporationWeight,
-    voice::{
-        parameter::ModelParameter, window::Windows, GlobalModelMetadata, StreamModelMetadata, Voice,
-    },
+    voice::{window::Windows, GlobalModelMetadata, StreamModelMetadata, Voice},
 };
+
 use jlabel::Label;
 
 pub mod interporation_weight;
