@@ -5,23 +5,16 @@ use nom::{
     IResult, Parser,
 };
 
-use crate::model::{
-    parser::{base::ParseTarget, header::parse_header},
-    question,
-};
-
 use self::{
+    base::ParseTarget,
     convert::convert_tree,
+    header::parse_header,
     header::{error::DeserializeError, Global, Position, Stream, StreamData},
     tree::{Question, TreeParser},
     window::WindowParser,
 };
 
-use super::{
-    stream::{Model, StreamModels},
-    window::Windows,
-    Voice,
-};
+use super::voice::{parameter::Model, question, window::Windows, StreamModels, Voice};
 
 mod base;
 mod header;
@@ -247,7 +240,7 @@ pub fn parse_model(
                     n,
                     map(
                         many_m_n(pdf_len, pdf_len, map(le_f32, |v| v as f64)),
-                        crate::model::stream::ModelParameter::from_linear,
+                        crate::model::voice::parameter::ModelParameter::from_linear,
                     ),
                 )(i)?;
                 pdf.push(r);

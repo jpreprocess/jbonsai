@@ -1,16 +1,15 @@
-use std::{fmt::Display, path::Path, sync::Arc};
+use std::sync::Arc;
 
 use self::{
     interporation_weight::InterporationWeight,
-    stream::{Model, ModelParameter, StreamModelMetadata, StreamModels},
-    window::Windows,
+    voice::{
+        parameter::ModelParameter, window::Windows, GlobalModelMetadata, StreamModelMetadata, Voice,
+    },
 };
 use jlabel::Label;
 
 pub mod interporation_weight;
-pub mod question;
-pub mod stream;
-pub mod window;
+pub mod voice;
 
 #[cfg(feature = "htsvoice")]
 mod parser;
@@ -201,60 +200,10 @@ impl VoiceSet {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct GlobalModelMetadata {
-    pub hts_voice_version: String,
-    pub sampling_frequency: usize,
-    pub frame_period: usize,
-    pub num_states: usize,
-    pub num_streams: usize,
-    pub stream_type: Vec<String>,
-    pub fullcontext_format: String,
-    pub fullcontext_version: String,
-    pub gv_off_context: question::Question,
-}
-
-impl Display for GlobalModelMetadata {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "HTS Voice Version: {}", self.hts_voice_version)?;
-        writeln!(f, "Sampling Frequency: {}", self.sampling_frequency)?;
-        writeln!(f, "Frame Period: {}", self.frame_period)?;
-        writeln!(f, "Number of States: {}", self.num_states)?;
-        writeln!(f, "Number of Streams: {}", self.num_streams)?;
-        writeln!(f, "Streams: {}", self.stream_type.join(", "))?;
-        writeln!(
-            f,
-            "Fullcontext: {}@{}",
-            self.fullcontext_format, self.fullcontext_version
-        )?;
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Voice {
-    pub metadata: GlobalModelMetadata,
-    pub duration_model: Model,
-    pub stream_models: Vec<StreamModels>,
-}
-
-impl Voice {
-    #[cfg(feature = "htsvoice")]
-    pub fn load_htsvoice_file<P: AsRef<Path>>(path: &P) -> Result<Self, ModelError> {
-        let f = std::fs::read(path)?;
-        Ok(parser::parse_htsvoice(&f)?)
-    }
-}
-
-impl Display for Voice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Duration Model: {}", self.duration_model)?;
-        writeln!(f, "Stream Models:")?;
-        for (i, model) in self.stream_models.iter().enumerate() {
-            write!(f, "#{}:\n{}", i, model)?;
-        }
-        Ok(())
-    }
+#[cfg(feature = "htsvoice")]
+pub fn load_htsvoice_file<P: AsRef<std::path::Path>>(path: &P) -> Result<Voice, ModelError> {
+    let f = std::fs::read(path)?;
+    Ok(parser::parse_htsvoice(&f)?)
 }
 
 #[cfg(all(test, feature = "htsvoice"))]
@@ -264,17 +213,17 @@ mod tests {
     use crate::{
         model::{
             interporation_weight::{InterporationWeight, Weights},
-            window::Window,
+            voice::window::Window,
         },
         tests::{
             MODEL_NITECH_ATR503, MODEL_TOHOKU_F01_HAPPY, MODEL_TOHOKU_F01_NORMAL, SAMPLE_SENTENCE_1,
         },
     };
 
-    use super::{Models, Voice, VoiceSet};
+    use super::{load_htsvoice_file, Models, Voice, VoiceSet};
 
     fn load_voice() -> Voice {
-        Voice::load_htsvoice_file(&MODEL_NITECH_ATR503).unwrap()
+        load_htsvoice_file(&MODEL_NITECH_ATR503).unwrap()
     }
 
     #[test]
@@ -365,8 +314,8 @@ mod tests {
 
     #[test]
     fn multiple_models() {
-        let normal = Voice::load_htsvoice_file(&MODEL_TOHOKU_F01_NORMAL).unwrap();
-        let happy = Voice::load_htsvoice_file(&MODEL_TOHOKU_F01_HAPPY).unwrap();
+        let normal = load_htsvoice_file(&MODEL_TOHOKU_F01_NORMAL).unwrap();
+        let happy = load_htsvoice_file(&MODEL_TOHOKU_F01_HAPPY).unwrap();
         let voiceset = VoiceSet::new(vec![Arc::new(normal), Arc::new(happy)]).unwrap();
 
         let mut iw = InterporationWeight::new(2, 3);

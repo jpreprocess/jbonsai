@@ -8,15 +8,15 @@ use super::{
 pub fn convert_tree(
     orig_tree: Tree,
     question_lut: &BTreeMap<&String, &question::Question>,
-) -> crate::model::stream::Tree {
+) -> crate::model::voice::tree::Tree {
     let node_lut = BTreeMap::from_iter(orig_tree.nodes.iter().enumerate().map(|(i, n)| (n.id, i)));
 
     if orig_tree.nodes.len() == 1 && orig_tree.nodes[0].yes == orig_tree.nodes[0].no {
         let TreeIndex::Pdf(i) = orig_tree.nodes[0].yes else {
             todo!("Malformed model file. Should not reach here.");
         };
-        return crate::model::stream::Tree {
-            nodes: vec![crate::model::stream::TreeNode::Leaf {
+        return crate::model::voice::tree::Tree {
+            nodes: vec![crate::model::voice::tree::TreeNode::Leaf {
                 pdf_index: i as usize,
             }],
             state: orig_tree.state,
@@ -53,7 +53,7 @@ pub fn convert_tree(
         }
         .unwrap();
 
-        nodes.push(crate::model::stream::TreeNode::Node {
+        nodes.push(crate::model::voice::tree::TreeNode::Node {
             question: (*question_lut.get(&node.question_name).unwrap()).clone(),
             yes: yes_id,
             no: no_id,
@@ -61,12 +61,12 @@ pub fn convert_tree(
     }
     nodes.extend(
         pdfs.into_iter()
-            .map(|i| crate::model::stream::TreeNode::Leaf {
+            .map(|i| crate::model::voice::tree::TreeNode::Leaf {
                 pdf_index: i as usize,
             }),
     );
 
-    crate::model::stream::Tree {
+    crate::model::voice::tree::Tree {
         nodes,
         state: orig_tree.state,
     }

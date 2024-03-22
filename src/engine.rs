@@ -6,7 +6,7 @@ use crate::duration::DurationEstimator;
 use crate::label::{LabelError, Labels};
 use crate::mlpg_adjust::MlpgAdjust;
 use crate::model::interporation_weight::InterporationWeight;
-use crate::model::{apply_additional_half_tone, ModelError, Models, Voice, VoiceSet};
+use crate::model::{apply_additional_half_tone, ModelError, Models, VoiceSet};
 use crate::speech::SpeechGenerator;
 use crate::vocoder::Vocoder;
 
@@ -226,9 +226,11 @@ pub struct Engine {
 impl Engine {
     #[cfg(feature = "htsvoice")]
     pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
+        use crate::model::load_htsvoice_file;
+
         let voices = voices
             .iter()
-            .map(|path| Ok(Arc::new(Voice::load_htsvoice_file(path)?)))
+            .map(|path| Ok(Arc::new(load_htsvoice_file(path)?)))
             .collect::<Result<Vec<_>, ModelError>>()?;
         let voiceset = VoiceSet::new(voices)?;
 

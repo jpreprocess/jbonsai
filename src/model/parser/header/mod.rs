@@ -38,10 +38,10 @@ pub struct Global {
     pub comment: String,
 }
 
-impl TryFrom<Global> for crate::model::GlobalModelMetadata {
+impl TryFrom<Global> for crate::model::voice::GlobalModelMetadata {
     type Error = ModelParseError;
     fn try_from(value: Global) -> Result<Self, Self::Error> {
-        use crate::model::question::Question;
+        use crate::model::voice::question::Question;
         Ok(Self {
             hts_voice_version: value.hts_voice_version,
             sampling_frequency: value.sampling_frequency,
@@ -79,7 +79,7 @@ pub struct StreamData {
     pub option: Vec<String>,
 }
 
-impl From<StreamData> for crate::model::stream::StreamModelMetadata {
+impl From<StreamData> for crate::model::voice::StreamModelMetadata {
     fn from(value: StreamData) -> Self {
         Self {
             vector_length: value.vector_length,

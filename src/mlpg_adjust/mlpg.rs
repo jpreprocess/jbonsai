@@ -1,4 +1,4 @@
-use crate::model::window::Windows;
+use crate::model::voice::window::Windows;
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
