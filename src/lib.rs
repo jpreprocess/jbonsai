@@ -8,8 +8,6 @@ pub mod model;
 pub mod speech;
 pub mod vocoder;
 
-pub mod sequence;
-
 #[cfg(test)]
 mod tests {
     use crate::{engine::Engine, model::interporation_weight::Weights};

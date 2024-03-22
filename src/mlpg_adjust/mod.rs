@@ -1,11 +1,15 @@
 use crate::{
     constants::NODATA,
     model::{Models, StreamParameter},
-    sequence::Mask,
 };
 
-use self::mlpg::{MlpgGlobalVariance, MlpgMatrix};
+mod mask;
 mod mlpg;
+
+use self::{
+    mask::Mask,
+    mlpg::{MlpgGlobalVariance, MlpgMatrix},
+};
 
 pub struct MlpgAdjust {
     stream_index: usize,
