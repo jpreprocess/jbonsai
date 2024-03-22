@@ -2,7 +2,7 @@ use std::{fmt::Display, path::Path, sync::Arc};
 
 use self::{
     interporation_weight::InterporationWeight,
-    stream::{Model, ModelParameter, StreamModels},
+    stream::{Model, ModelParameter, StreamModelMetadata, StreamModels},
     window::Windows,
 };
 use jlabel::Label;
@@ -35,10 +35,6 @@ pub type GvParameter = (Vec<(f64, f64)>, Vec<bool>);
 pub struct Models<'a> {
     labels: Vec<Label>,
 
-    /// Assumptions:
-    /// - Has at least one element
-    /// - Consistent with metadata
-    /// - Has identical stream metadata
     voices: &'a VoiceSet,
     weights: &'a InterporationWeight,
 }
@@ -52,9 +48,6 @@ impl<'a> Models<'a> {
         }
     }
 
-    pub fn nstream(&self) -> usize {
-        self.voices.first().metadata.num_streams
-    }
     pub fn nstate(&self) -> usize {
         self.voices.first().metadata.num_states
     }
@@ -64,7 +57,7 @@ impl<'a> Models<'a> {
     }
 
     pub fn duration(&self) -> Vec<(f64, f64)> {
-        let metadata = &self.voices.first().metadata;
+        let metadata = &self.voices.global_metadata();
         let weight = self.weights.get_duration().get_weights();
         self.labels
             .iter()
@@ -80,8 +73,8 @@ impl<'a> Models<'a> {
     }
     /// FIXME: label/state -> window -> vector
     pub fn stream(&self, stream_index: usize) -> StreamParameter {
-        let global_metadata = &self.voices.first().metadata;
-        let stream_metadata = &self.voices.first().stream_models[stream_index].metadata;
+        let global_metadata = &self.voices.global_metadata();
+        let stream_metadata = &self.voices.stream_metadata(stream_index);
         let weight = self.weights.get_parameter(stream_index).get_weights();
         self.labels
             .iter()
@@ -105,8 +98,8 @@ impl<'a> Models<'a> {
             .collect()
     }
     pub fn gv(&self, stream_index: usize) -> Option<GvParameter> {
-        let global_metadata = &self.voices.first().metadata;
-        let stream_metadata = &self.voices.first().stream_models[stream_index].metadata;
+        let global_metadata = &self.voices.global_metadata();
+        let stream_metadata = &self.voices.stream_metadata(stream_index);
         if !stream_metadata.use_gv {
             return None;
         }
@@ -151,6 +144,10 @@ pub fn apply_additional_half_tone(params: &mut StreamParameter, additional_half_
     });
 }
 
+/// Assumptions:
+/// - Has at least one element
+/// - Consistent with metadata
+/// - Has identical stream metadata
 pub struct VoiceSet(Vec<Arc<Voice>>);
 impl VoiceSet {
     pub fn new(voices: Vec<Arc<Voice>>) -> Result<Self, ModelError> {
@@ -175,17 +172,30 @@ impl VoiceSet {
         Ok(Self(voices))
     }
 
+    #[inline]
     pub fn first(&self) -> &Voice {
         // ensured to have at least one element
         self.0.first().unwrap()
     }
+    #[inline]
     pub fn len(&self) -> usize {
         self.0.len()
     }
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
+    #[inline]
+    pub fn global_metadata(&self) -> &GlobalModelMetadata {
+        &self.first().metadata
+    }
+    #[inline]
+    pub fn stream_metadata(&self, stream_index: usize) -> &StreamModelMetadata {
+        &self.first().stream_models[stream_index].metadata
+    }
+
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &Arc<Voice>> {
         self.0.iter()
     }
