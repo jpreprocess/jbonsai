@@ -1,13 +1,73 @@
 use std::collections::BTreeMap;
 
-use super::{
-    question,
-    tree::{Tree, TreeIndex},
+use crate::model::voice::{parameter::Model, question::Question};
+
+use super::{base::ParseTarget, parse_all, ModelParseError};
+
+use self::{
+    question::QuestionParser,
+    tree::{TreeIndex, TreeParser},
 };
 
-pub fn convert_tree(
-    orig_tree: Tree,
-    question_lut: &BTreeMap<&String, &question::Question>,
+mod question;
+mod tree;
+
+pub fn parse_model(
+    input: &[u8],
+    tree_range: (usize, usize),
+    pdf_range: (usize, usize),
+    pdf_len: usize,
+) -> Result<Model, ModelParseError> {
+    use nom::{
+        combinator::map,
+        multi::many_m_n,
+        number::complete::{le_f32, le_u32},
+        sequence::{pair, terminated},
+    };
+
+    let (_, (questions, trees)) = parse_all(
+        terminated(
+            pair(QuestionParser::parse_questions, TreeParser::parse_trees),
+            ParseTarget::sp,
+        ),
+        tree_range,
+    )(input)?;
+
+    let (_, pdf) = parse_all(
+        |i| {
+            let ntree = trees.len();
+            let (mut i, npdf) = many_m_n(ntree, ntree, le_u32)(i)?;
+            let mut pdf = Vec::with_capacity(ntree);
+            for n in npdf {
+                let n = n as usize;
+                let (ni, r) = many_m_n(
+                    n,
+                    n,
+                    map(
+                        many_m_n(pdf_len, pdf_len, map(le_f32, |v| v as f64)),
+                        crate::model::voice::parameter::ModelParameter::from_linear,
+                    ),
+                )(i)?;
+                pdf.push(r);
+                i = ni;
+            }
+            Ok((i, pdf))
+        },
+        pdf_range,
+    )(input)?;
+
+    let question_lut = BTreeMap::from_iter(questions);
+    let new_trees: Vec<_> = trees
+        .into_iter()
+        .map(|t| convert_tree(t, &question_lut))
+        .collect();
+
+    Ok(Model::new(new_trees, pdf))
+}
+
+fn convert_tree(
+    orig_tree: self::tree::Tree,
+    question_lut: &BTreeMap<String, Question>,
 ) -> crate::model::voice::tree::Tree {
     let node_lut = BTreeMap::from_iter(orig_tree.nodes.iter().enumerate().map(|(i, n)| (n.id, i)));
 

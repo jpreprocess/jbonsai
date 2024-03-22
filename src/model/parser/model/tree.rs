@@ -7,11 +7,11 @@ use nom::{
     combinator::{cut, map, opt, peek, recognize},
     error::{context, ContextError, ErrorKind, FromExternalError, ParseError},
     multi::{many_m_n, separated_list0},
-    sequence::{delimited, pair, preceded, separated_pair, terminated, tuple},
+    sequence::{delimited, pair, preceded, tuple},
     AsChar, IResult,
 };
 
-use super::{base::ParseTarget, question};
+use crate::model::parser::base::ParseTarget;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tree {
@@ -31,12 +31,6 @@ pub struct Node {
 pub enum TreeIndex {
     Node(isize),
     Pdf(isize),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Question {
-    pub name: String,
-    pub question: question::Question,
 }
 
 pub struct TreeParser<T>(PhantomData<T>);
@@ -61,67 +55,6 @@ where
     }
     fn parse_question_ident<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
         i.parse_template1(|c| c.is_ascii() && !" \n".contains(c))
-    }
-    fn parse_pattern_list_section<
-        E: ParseError<S>
-            + ContextError<S>
-            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
-    >(
-        i: S,
-    ) -> IResult<S, question::Question, E> {
-        use nom::character::complete::char;
-        context(
-            "pattern",
-            cut(delimited(
-                pair(char('{'), S::sp),
-                S::parse_question,
-                pair(S::sp, char('}')),
-            )),
-        )(i)
-    }
-    fn parse_question<
-        E: ParseError<S>
-            + ContextError<S>
-            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
-    >(
-        i: S,
-    ) -> IResult<S, Question, E> {
-        context(
-            "question",
-            preceded(
-                terminated(tag("QS"), S::sp1),
-                separated_pair(
-                    Self::parse_question_ident,
-                    S::sp1,
-                    Self::parse_pattern_list_section,
-                ),
-            ),
-        )(i)
-        .and_then(|(rest, (name, question))| {
-            Ok((
-                rest,
-                Question {
-                    name: name.parse_ascii_to_string()?.1,
-                    question,
-                },
-            ))
-        })
-    }
-    pub fn parse_questions<
-        E: ParseError<S>
-            + ContextError<S>
-            + FromExternalError<S, nom::Err<jlabel_question::ParseError>>,
-    >(
-        i: S,
-    ) -> IResult<S, Vec<Question>, E> {
-        use nom::character::complete::{char, space0};
-        context(
-            "questions",
-            cut(separated_list0(
-                delimited(space0, char('\n'), S::sp),
-                TreeParser::parse_question,
-            )),
-        )(i)
     }
     fn parse_tree_index<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, TreeIndex, E> {
         let pdf_index = move |i| {
@@ -242,33 +175,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use jlabel_question::{position::SignedRangePosition, AllQuestion};
     use nom::error::VerboseError;
 
-    use crate::model::parser::question;
-
-    use super::{Node, Question, Tree, TreeIndex, TreeParser};
-
-    #[test]
-    fn parse_question() {
-        assert_eq!(
-            TreeParser::parse_question::<VerboseError<&str>>(
-                r#"QS C-Mora_diff_Acc-Type<=0 { "*/A:-??+*","*/A:-?+*","*/A:0+*" }"#
-            ),
-            Ok((
-                "",
-                Question {
-                    name: "C-Mora_diff_Acc-Type<=0".to_string(),
-                    question: question::Question::AllQustion(AllQuestion::SignedRange(
-                        jlabel_question::Question {
-                            position: SignedRangePosition::A1,
-                            range: Some(-99..1),
-                        }
-                    ))
-                }
-            ))
-        );
-    }
+    use super::{Node, Tree, TreeIndex, TreeParser};
 
     #[test]
     fn parse_node() {
