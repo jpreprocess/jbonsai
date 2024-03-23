@@ -23,16 +23,16 @@ impl DurationEstimator {
         // determine state duration
         let mut duration = vec![];
         // use duration set by user
-        let mut next_time = 0;
+        let mut frame_count = 0;
         let mut next_state = 0;
         let mut state = 0;
         for (i, (_start_frame, end_frame)) in times.iter().enumerate() {
             if *end_frame >= 0.0 {
                 let curr_duration = Self::estimate_duration_with_frame_length(
                     &duration_params[next_state..state + models.nstate()],
-                    end_frame - next_time as f64,
+                    end_frame - frame_count as f64,
                 );
-                next_time += curr_duration.len();
+                frame_count += curr_duration.iter().sum::<usize>();
                 next_state = state + models.nstate();
                 duration.extend_from_slice(&curr_duration);
             } else if i + 1 == times.len() {
@@ -108,5 +108,55 @@ impl DurationEstimator {
         }
 
         duration
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::model::tests::load_models;
+
+    use super::DurationEstimator;
+
+    #[test]
+    fn without_alignment() {
+        let models = load_models();
+        assert_eq!(
+            DurationEstimator.create(&models, 1.0),
+            [
+                8, 17, 14, 25, 15, 3, 4, 2, 2, 2, 2, 3, 3, 3, 3, 4, 3, 2, 2, 2, 3, 3, 6, 3, 2, 3,
+                3, 3, 3, 2, 2, 1, 3, 2, 14, 22, 14, 26, 38, 5
+            ]
+        );
+        assert_eq!(
+            DurationEstimator.create(&models, 1.2),
+            [
+                6, 12, 11, 19, 14, 3, 4, 2, 2, 2, 2, 3, 3, 3, 3, 4, 3, 2, 2, 2, 3, 3, 6, 3, 2, 3,
+                3, 3, 3, 2, 2, 1, 3, 2, 14, 18, 11, 16, 27, 4
+            ]
+        );
+    }
+
+    #[test]
+    fn with_alignment() {
+        let models = load_models();
+        assert_eq!(
+            DurationEstimator.create_with_alignment(
+                &models,
+                &[
+                    (0.0, 298.5),
+                    (298.5, 334.5),
+                    (334.5, 350.5),
+                    (350.5, 362.5),
+                    (362.5, 394.5),
+                    (394.5, 416.5),
+                    (416.5, 454.5),
+                    (454.5, 606.5)
+                ]
+            ),
+            [
+                36, 86, 48, 102, 27, 7, 11, 6, 6, 6, 2, 4, 3, 4, 3, 3, 3, 2, 2, 2, 3, 6, 14, 6, 3,
+                4, 5, 6, 4, 3, 3, 1, 4, 4, 26, 28, 19, 42, 55, 8
+            ]
+        );
     }
 }
