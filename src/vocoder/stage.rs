@@ -4,7 +4,9 @@ use super::{
     mlsa::MelLogSpectrumApproximation,
 };
 
+/// Stage's variant is mostly Zero, therefore I decided to ignore large_enum_variant.
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Stage {
     NonZero {
         stage: usize,
