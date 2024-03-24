@@ -2,7 +2,7 @@ pub struct Mask(Vec<bool>);
 
 impl FromIterator<bool> for Mask {
     fn from_iter<I: IntoIterator<Item = bool>>(iter: I) -> Self {
-        Self(iter.into_iter().collect())
+        Self::new(iter.into_iter().collect())
     }
 }
 
@@ -63,7 +63,7 @@ impl Mask {
 
 #[cfg(test)]
 mod tests {
-    use crate::sequence::Mask;
+    use super::Mask;
 
     #[test]
     fn fill() {

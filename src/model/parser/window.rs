@@ -10,7 +10,7 @@ use nom::{
     IResult,
 };
 
-use crate::model::window::Window;
+use crate::model::voice::window::Window;
 
 use super::base::ParseTarget;
 
@@ -35,7 +35,7 @@ where
 mod tests {
     use nom::error::VerboseError;
 
-    use crate::model::window::Window;
+    use crate::model::voice::window::Window;
 
     use super::WindowParser;
 

@@ -2,64 +2,9 @@ use std::fmt::Display;
 
 use jlabel::Label;
 
-use super::question;
+use super::tree::Tree;
 
-use super::window::Windows;
-
-pub struct StreamModels {
-    pub metadata: StreamModelMetadata,
-
-    pub stream_model: Model,
-    pub gv_model: Option<Model>,
-    pub windows: Windows,
-}
-
-impl Display for StreamModels {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "  Model: {}", self.stream_model)?;
-        if let Some(ref gv_model) = self.gv_model {
-            write!(f, "  GV Model: {}", gv_model)?;
-        }
-        writeln!(
-            f,
-            "  Window Width: {}",
-            self.windows.iter().fold(String::new(), |acc, curr| {
-                if acc.is_empty() {
-                    format!("{}", curr.width())
-                } else {
-                    format!("{}, {}", acc, curr.width())
-                }
-            })
-        )?;
-        Ok(())
-    }
-}
-
-impl StreamModels {
-    pub fn new(
-        metadata: StreamModelMetadata,
-        stream_model: Model,
-        gv_model: Option<Model>,
-        windows: Windows,
-    ) -> Self {
-        StreamModels {
-            metadata,
-            stream_model,
-            gv_model,
-            windows,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StreamModelMetadata {
-    pub vector_length: usize,
-    pub num_windows: usize,
-    pub is_msd: bool,
-    pub use_gv: bool,
-    pub option: Vec<String>,
-}
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct Model {
     trees: Vec<Tree>,
     pdf: Vec<Vec<ModelParameter>>,
@@ -170,40 +115,4 @@ impl ModelParameter {
             *msd += weight * rhs;
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct Tree {
-    pub state: usize,
-    pub nodes: Vec<TreeNode>,
-}
-
-impl Tree {
-    /// Tree search
-    pub fn search_node(&self, label: &Label) -> Option<usize> {
-        let mut node_index = 0;
-
-        while let Some(node) = self.nodes.get(node_index) {
-            match node {
-                TreeNode::Leaf { pdf_index } => return Some(*pdf_index),
-                TreeNode::Node { question, yes, no } => {
-                    node_index = if question.test(label) { *yes } else { *no }
-                }
-            }
-        }
-
-        None
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum TreeNode {
-    Node {
-        question: question::Question,
-        yes: usize,
-        no: usize,
-    },
-    Leaf {
-        pdf_index: usize,
-    },
 }

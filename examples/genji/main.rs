@@ -14,8 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     iw.set_parameter(1, Weights::new(&[0.5, 0.5])?)?;
     iw.set_parameter(2, Weights::new(&[1.0, 0.0])?)?;
 
-    let gstream = engine.synthesize_from_strings(&lines);
-    let speech = gstream.get_speech();
+    let speech = engine.synthesize_from_strings(&lines)?;
 
     println!(
         "The synthesized voice has {} samples in total.",
@@ -31,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     //         sample_format: hound::SampleFormat::Int,
     //     },
     // )?;
-    // for &value in speech {
+    // for value in speech {
     //     let clamped = value.min(i16::MAX as f64).max(i16::MIN as f64);
     //     writer.write_sample(clamped as i16)?;
     // }
