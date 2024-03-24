@@ -24,25 +24,25 @@ const PADE: [f64; 21] = [
     0.00003041721f64,
 ];
 
+/// N == pd + 1
 #[derive(Debug, Clone)]
-pub struct MelLogSpectrumApproximation {
-    pd: usize,
-    ppade: &'static [f64],
-    d11: Vec<f64>,
-    d12: Vec<f64>,
-    d21: Vec<Vec<f64>>,
-    d22: Vec<f64>,
+pub struct MelLogSpectrumApproximation<const N: usize> {
+    ppade: [f64; N],
+    d11: [f64; N],
+    d12: [f64; N],
+    d21: [Vec<f64>; N],
+    d22: [f64; N],
 }
 
-impl MelLogSpectrumApproximation {
-    pub fn new(pd: usize, c_len: usize) -> Self {
+impl<const N: usize> MelLogSpectrumApproximation<N> {
+    pub fn new(c_len: usize) -> Self {
+        let pade_start = (N - 1) * N / 2;
         Self {
-            pd,
-            ppade: &PADE[(pd * (pd + 1) / 2)..],
-            d11: vec![0.0; pd + 1],
-            d12: vec![0.0; pd + 1],
-            d21: vec![vec![0.0; c_len + 1]; pd],
-            d22: vec![0.0; pd + 1],
+            ppade: std::array::from_fn(|i| PADE[pade_start + i]),
+            d11: [0.0; N],
+            d12: [0.0; N],
+            d21: std::array::from_fn(|_| vec![0.0; c_len + 1]),
+            d22: [0.0; N],
         }
     }
 
@@ -56,7 +56,7 @@ impl MelLogSpectrumApproximation {
     fn df1(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let aa = 1.0 - alpha * alpha;
         let mut out = 0.0;
-        for i in (1..=self.pd).rev() {
+        for i in (1..N).rev() {
             self.d11[i] = aa * self.d12[i - 1] + alpha * self.d11[i];
             self.d12[i] = self.d11[i] * coefficients[1];
             let v = self.d12[i] * self.ppade[i];
@@ -70,7 +70,7 @@ impl MelLogSpectrumApproximation {
     #[inline(always)]
     fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let mut out = 0.0;
-        for i in (1..=self.pd).rev() {
+        for i in (1..N).rev() {
             self.d22[i] = Self::fir(&mut self.d21[i - 1], self.d22[i - 1], alpha, coefficients);
             let v = self.d22[i] * self.ppade[i];
             *x += if i & 1 != 0 { v } else { -v };

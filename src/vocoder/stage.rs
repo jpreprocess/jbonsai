@@ -14,7 +14,7 @@ pub enum Stage {
     },
     Zero {
         coefficients: Coefficients,
-        filter: MelLogSpectrumApproximation,
+        filter: MelLogSpectrumApproximation<6>,
     },
 }
 
@@ -23,7 +23,7 @@ impl Stage {
         if stage == 0 {
             Self::Zero {
                 coefficients: Coefficients { buffer: Vec::new() },
-                filter: MelLogSpectrumApproximation::new(5, c_len),
+                filter: MelLogSpectrumApproximation::new(c_len),
             }
         } else {
             let gamma = -1.0 / stage as f64;
