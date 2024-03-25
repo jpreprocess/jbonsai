@@ -54,22 +54,24 @@ dependencies = [
 
 [[package]]
 name = "jlabel"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b115e1e59ab37ee8afeb27e2ba44ace00e5f765c8feb26cd4efb723006717ead"
+checksum = "145ee6f495871a0cde6d49ddfa0d103d07430c449d95b6d92fbfb032d622f0b7"
 dependencies = [
+ "serde",
  "thiserror",
 ]
 
 [[package]]
 name = "jlabel-question"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c47a90f3c65c2d5c5bb32e4926e10afbdf4290049743bd6f21b93651ccd32e5"
+checksum = "a24f44e56b4cfdea5c4bfce1e9d96882f581416eac113dae82758d3fc2555117"
 dependencies = [
  "jlabel",
  "regex-automata",
  "regex-syntax",
+ "serde",
  "thiserror",
 ]
 
