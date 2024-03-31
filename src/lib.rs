@@ -43,6 +43,22 @@ mod tests {
     }
 
     #[test]
+    fn bonsai_from_labels() {
+        let labels = SAMPLE_SENTENCE_1
+            .iter()
+            .map(|l| l.parse().unwrap())
+            .collect();
+
+        let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
+
+        let speech = engine.synthesize_from_labels(labels).unwrap();
+
+        assert_eq!(speech.len(), 66480);
+        approx::assert_abs_diff_eq!(speech[2000], 19.35141137623778, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], -980.6757547598129, epsilon = 1.0e-10);
+    }
+
+    #[test]
     fn bonsai_multi() {
         let lines: Vec<String> = SAMPLE_SENTENCE_1.iter().map(|l| l.to_string()).collect();
 

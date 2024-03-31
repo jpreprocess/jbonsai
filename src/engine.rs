@@ -255,6 +255,14 @@ impl Engine {
         Ok(self.generate_speech(&labels))
     }
 
+    pub fn synthesize_from_labels(
+        &self,
+        labels: Vec<jlabel::Label>,
+    ) -> Result<Vec<f64>, EngineError> {
+        let labels = Labels::new(labels, None)?;
+        Ok(self.generate_speech(&labels))
+    }
+
     pub fn generate_speech(&self, labels: &Labels) -> Vec<f64> {
         let models = Models::new(
             labels.labels().to_vec(),
