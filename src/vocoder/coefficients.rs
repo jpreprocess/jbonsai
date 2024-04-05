@@ -6,10 +6,16 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct Coefficients {
-    pub(super) buffer: Vec<f64>,
+    buffer: Vec<f64>,
 }
 
 buffer_index!(Coefficients);
+
+impl Coefficients {
+    pub fn new(c: &[f64]) -> Self {
+        Self { buffer: c.to_vec() }
+    }
+}
 
 impl CoefficientsT for Coefficients {
     type Cep = MelCepstrum;
@@ -24,11 +30,20 @@ impl CoefficientsT for Coefficients {
 
 #[derive(Debug, Clone)]
 pub struct GeneralizedCoefficients {
-    pub(super) buffer: Vec<f64>,
-    pub(super) gamma: f64,
+    buffer: Vec<f64>,
+    gamma: f64,
 }
 
 buffer_index!(GeneralizedCoefficients);
+
+impl GeneralizedCoefficients {
+    pub fn new(c: &[f64], gamma: f64) -> Self {
+        Self {
+            buffer: c.to_vec(),
+            gamma,
+        }
+    }
+}
 
 impl CoefficientsT for GeneralizedCoefficients {
     type Cep = MelGeneralizedCepstrum;

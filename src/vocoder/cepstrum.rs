@@ -45,9 +45,7 @@ impl CepstrumT for MelCepstrum {
     }
 
     fn to_coef(&self) -> Self::Coef {
-        Self::Coef {
-            buffer: self.buffer.clone(),
-        }
+        Self::Coef::new(self)
     }
 
     fn clone_with_size(&self, size: usize) -> Self {
@@ -113,10 +111,7 @@ impl CepstrumT for MelGeneralizedCepstrum {
     }
 
     fn to_coef(&self) -> Self::Coef {
-        Self::Coef {
-            buffer: self.buffer.clone(),
-            gamma: self.gamma,
-        }
+        Self::Coef::new(self, self.gamma)
     }
 
     fn clone_with_size(&self, size: usize) -> Self {
