@@ -2,7 +2,7 @@ pub use std::ops::{Deref, DerefMut};
 
 pub trait Buffer: Deref<Target = Vec<f64>> + DerefMut {}
 
-macro_rules! buffer_index {
+macro_rules! deref_buffer {
     ($t:ty) => {
         impl Deref for $t {
             type Target = Vec<f64>;

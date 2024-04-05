@@ -9,7 +9,7 @@ pub struct Coefficients {
     buffer: Vec<f64>,
 }
 
-buffer_index!(Coefficients);
+deref_buffer!(Coefficients);
 
 impl Coefficients {
     pub fn new(c: &[f64]) -> Self {
@@ -34,7 +34,7 @@ pub struct GeneralizedCoefficients {
     gamma: f64,
 }
 
-buffer_index!(GeneralizedCoefficients);
+deref_buffer!(GeneralizedCoefficients);
 
 impl GeneralizedCoefficients {
     pub fn new(c: &[f64], gamma: f64) -> Self {

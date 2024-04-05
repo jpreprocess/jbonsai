@@ -11,7 +11,7 @@ pub struct LineSpectralPairs {
     gamma: f64,
 }
 
-buffer_index!(LineSpectralPairs);
+deref_buffer!(LineSpectralPairs);
 
 impl LineSpectralPairs {
     pub fn new(lsp: &[f64], alpha: f64, use_log_gain: bool, stage: usize, gamma: f64) -> Self {

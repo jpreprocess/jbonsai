@@ -10,7 +10,7 @@ pub struct MelCepstrum {
     pub(super) alpha: f64,
 }
 
-buffer_index!(MelCepstrum);
+deref_buffer!(MelCepstrum);
 
 impl MelCepstrum {
     pub fn new(c: &[f64], alpha: f64) -> Self {
@@ -63,7 +63,7 @@ pub struct MelGeneralizedCepstrum {
     pub(super) gamma: f64,
 }
 
-buffer_index!(MelGeneralizedCepstrum);
+deref_buffer!(MelGeneralizedCepstrum);
 
 impl MelGeneralizedCepstrum {
     fn gc2gc(&self, m2: usize, gamma: f64) -> Self {
