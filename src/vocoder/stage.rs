@@ -24,7 +24,7 @@ impl Stage {
     pub fn new(stage: usize, c_len: usize) -> Self {
         if stage == 0 {
             Self::Zero {
-                coefficients: Coefficients { buffer: Vec::new() },
+                coefficients: Coefficients::new(&[]),
                 filter: MelLogSpectrumApproximation::new(c_len),
             }
         } else {
@@ -32,10 +32,7 @@ impl Stage {
             Self::NonZero {
                 stage,
                 gamma,
-                coefficients: GeneralizedCoefficients {
-                    buffer: Vec::new(),
-                    gamma,
-                },
+                coefficients: GeneralizedCoefficients::new(&[], gamma),
                 filter: MelGeneralizedLogSpectrumApproximation::new(stage, c_len),
             }
         }
