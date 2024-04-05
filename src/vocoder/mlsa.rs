@@ -1,4 +1,4 @@
-use super::{buffer::Buffer, coefficients::Coefficients};
+use super::coefficients::Coefficients;
 
 const PADE: [f64; 21] = [
     1.00000000000f64,

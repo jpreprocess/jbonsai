@@ -12,7 +12,6 @@ mod mlsa;
 mod stage;
 
 use self::{
-    buffer::Buffer,
     cepstrum::{CepstrumT, MelCepstrum},
     excitation::Excitation,
     generalized::Generalized,
@@ -100,7 +99,7 @@ impl Vocoder {
                 let cc = cepstrum.mc2b();
                 let cinc: Vec<_> = cc
                     .iter()
-                    .zip(&*coefficients)
+                    .zip(coefficients.iter())
                     .map(|(cc, c)| (cc - c) / self.fperiod as f64)
                     .collect();
 
@@ -140,7 +139,7 @@ impl Vocoder {
                 }
                 let cinc: Vec<_> = cc
                     .iter()
-                    .zip(&*coefficients)
+                    .zip(coefficients.iter())
                     .map(|(cc, c)| (cc - c) / self.fperiod as f64)
                     .collect();
 
