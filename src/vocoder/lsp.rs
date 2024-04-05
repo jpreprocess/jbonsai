@@ -123,7 +123,7 @@ impl LineSpectralPairs {
                     buf[i] = self[i];
                 }
             }
-            self[..].copy_from_slice(&buf);
+            self.copy_from_slice(&buf);
 
             let en2 = self.lsp2en();
             if en1 != en2 {
