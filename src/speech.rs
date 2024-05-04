@@ -27,7 +27,7 @@ impl SpeechGenerator {
         lpf: Option<Parameter>,
     ) -> Vec<f64> {
         // check
-        if lf0.len() > 0 {
+        if !lf0.is_empty() {
             if lf0[0].len() != 1 {
                 panic!("The size of lf0 static vector must be 1.");
             }
