@@ -13,19 +13,20 @@ impl Mask {
     pub fn mask(&self) -> &[bool] {
         &self.0
     }
-    pub fn fill<T: Clone>(&self, masked: Vec<T>, default: T) -> Vec<T> {
-        let mut seq = Vec::with_capacity(self.0.len());
-        let mut iter = masked.into_iter();
-        for mask in &self.0 {
-            if *mask {
-                seq.push(iter.next().expect(
+    pub fn fill<'a, T: 'a + Clone>(
+        &'a self,
+        mut masked: impl 'a + Iterator<Item = T>,
+        default: T,
+    ) -> impl 'a + Iterator<Item = T> {
+        self.0.iter().map(move |&mask| {
+            if mask {
+                masked.next().expect(
                     "Length of `masked` must be the same as the number of `true`'s in mask.",
-                ));
+                )
             } else {
-                seq.push(default.clone());
+                default.clone()
             }
-        }
-        seq
+        })
     }
     pub fn boundary_distances(&self) -> Vec<(usize, usize)> {
         if self.0.is_empty() {
@@ -68,11 +69,15 @@ mod tests {
     #[test]
     fn fill() {
         assert_eq!(
-            Mask::new(vec![false, false, true, true, false, true]).fill(vec![0, 1, 2], 5),
+            Mask::new(vec![false, false, true, true, false, true])
+                .fill([0, 1, 2].into_iter(), 5)
+                .collect::<Vec<_>>(),
             vec![5, 5, 0, 1, 5, 2]
         );
         assert_eq!(
-            Mask::new(vec![false, false]).fill(vec![0, 1], 5),
+            Mask::new(vec![false, false])
+                .fill([0, 1].into_iter(), 5)
+                .collect::<Vec<_>>(),
             vec![5, 5]
         );
     }
