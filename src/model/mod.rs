@@ -140,7 +140,7 @@ pub fn apply_additional_half_tone(params: &mut StreamParameter, additional_half_
     params.iter_mut().for_each(|(p, _)| {
         let f = &mut p[0].0;
         *f += additional_half_tone * HALF_TONE;
-        *f = f.max(MIN_LF0).min(MAX_LF0);
+        *f = f.clamp(MIN_LF0, MAX_LF0);
     });
 }
 
