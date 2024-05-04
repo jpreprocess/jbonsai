@@ -144,7 +144,7 @@ impl Condition {
     /// Set threshold for MSD
     /// Note: Default value is 0.5.
     pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
-        self.msd_threshold[stream_index] = f.min(1.0).max(0.0);
+        self.msd_threshold[stream_index] = f.clamp(0.0, 1.0);
     }
     /// Get threshold for MSD
     pub fn get_msd_threshold(&self, stream_index: usize) -> f64 {
@@ -183,7 +183,7 @@ impl Condition {
 
     /// Set frequency warping parameter alpha
     pub fn set_alpha(&mut self, f: f64) {
-        self.alpha = f.max(0.0).min(1.0);
+        self.alpha = f.clamp(0.0, 1.0);
     }
     /// Get frequency warping parameter alpha
     pub fn get_alpha(&self) -> f64 {
@@ -192,7 +192,7 @@ impl Condition {
 
     /// Set postfiltering coefficient parameter beta
     pub fn set_beta(&mut self, f: f64) {
-        self.beta = f.max(0.0).min(1.0);
+        self.beta = f.clamp(0.0, 1.0);
     }
     /// Get postfiltering coefficient parameter beta
     pub fn get_beta(&self) -> f64 {
