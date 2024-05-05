@@ -15,12 +15,13 @@ impl Mask {
     }
     pub fn fill<'a, T: 'a + Clone>(
         &'a self,
-        mut masked: impl 'a + Iterator<Item = T>,
+        masked: impl 'a + IntoIterator<Item = T>,
         default: T,
     ) -> impl 'a + Iterator<Item = T> {
+        let mut iter = masked.into_iter();
         self.0.iter().map(move |&mask| {
             if mask {
-                masked.next().expect(
+                iter.next().expect(
                     "Length of `masked` must be the same as the number of `true`'s in mask.",
                 )
             } else {
@@ -70,13 +71,13 @@ mod tests {
     fn fill() {
         assert_eq!(
             Mask::new(vec![false, false, true, true, false, true])
-                .fill([0, 1, 2].into_iter(), 5)
+                .fill([0, 1, 2], 5)
                 .collect::<Vec<_>>(),
             vec![5, 5, 0, 1, 5, 2]
         );
         assert_eq!(
             Mask::new(vec![false, false])
-                .fill([0, 1].into_iter(), 5)
+                .fill([0, 1], 5)
                 .collect::<Vec<_>>(),
             vec![5, 5]
         );

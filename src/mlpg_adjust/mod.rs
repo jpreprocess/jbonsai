@@ -114,7 +114,7 @@ impl MlpgAdjust {
             };
 
             pars.iter_mut()
-                .zip(msd_flag.fill(par.into_iter(), NODATA))
+                .zip(msd_flag.fill(par, NODATA))
                 .for_each(|(par, value)| {
                     par[vector_index] = value;
                 });
