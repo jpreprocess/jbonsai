@@ -45,7 +45,7 @@ impl MlpgAdjust {
 
         let msd_boundaries = msd_flag.boundary_distances();
 
-        let mut pars = Vec::with_capacity(vector_length);
+        let mut pars = vec![vec![0.0; vector_length]; msd_flag.mask().len()];
         for vector_index in 0..vector_length {
             let parameters: Vec<Vec<(f64, f64)>> = models
                 .windows(self.stream_index)
@@ -113,7 +113,11 @@ impl MlpgAdjust {
                 mtx.solve()
             };
 
-            pars.push(msd_flag.fill(par, NODATA));
+            pars.iter_mut()
+                .zip(msd_flag.fill(par, NODATA))
+                .for_each(|(par, value)| {
+                    par[vector_index] = value;
+                });
         }
 
         pars

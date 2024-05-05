@@ -27,34 +27,25 @@ impl SpeechGenerator {
         lpf: Option<Parameter>,
     ) -> Vec<f64> {
         // check
-        if lf0.len() != 1 {
-            panic!("The size of lf0 static vector must be 1.");
-        }
-        if lpf.as_ref().map(|lpf| lpf.len() % 2 == 0) == Some(true) {
-            panic!("The number of low-pass filter coefficient must be odd numbers.");
+        if !lf0.is_empty() {
+            if lf0[0].len() != 1 {
+                panic!("The size of lf0 static vector must be 1.");
+            }
+            if lpf.as_ref().map(|lpf| lpf[0].len() % 2 == 0) == Some(true) {
+                panic!("The number of low-pass filter coefficient must be odd numbers.");
+            }
         }
 
         // create speech buffer
-        let total_frame = lf0[0].len();
+        let total_frame = lf0.len();
         let mut speech = vec![0.0; total_frame * self.fperiod];
 
         // synthesize speech waveform
         for i in 0..total_frame {
-            let spectrum_vector: Vec<f64> = (0..spectrum.len())
-                .map(|vector_index| spectrum[vector_index][i])
-                .collect();
-            let lpf_vector = if let Some(ref lpf) = lpf {
-                (0..lpf.len())
-                    .map(|vector_index| lpf[vector_index][i])
-                    .collect()
-            } else {
-                vec![]
-            };
-
             v.synthesize(
-                lf0[0][i],
-                &spectrum_vector,
-                &lpf_vector,
+                lf0[i][0],
+                &spectrum[i],
+                lpf.as_ref().map(|lpf| &lpf[i] as &[f64]).unwrap_or(&[]),
                 self.alpha,
                 self.beta,
                 self.volume,
