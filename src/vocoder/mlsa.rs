@@ -1,4 +1,4 @@
-use super::{buffer::Buffer, coefficients::Coefficients};
+use super::coefficients::Coefficients;
 
 const PADE: [f64; 21] = [
     1.00000000000f64,
@@ -96,7 +96,7 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
         for i in 2..coefficients.len() {
             unsafe {
                 let di = d.get_unchecked(i) + alpha * (d.get_unchecked(i + 1) - prev);
-                y += di * coefficients.buffer.get_unchecked(i);
+                y += di * coefficients.get_unchecked(i);
                 *d.get_unchecked_mut(i) = std::mem::replace(&mut prev, di);
             }
         }

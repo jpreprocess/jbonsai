@@ -11,7 +11,7 @@ pub struct LineSpectralPairs {
     gamma: f64,
 }
 
-buffer_index!(LineSpectralPairs);
+deref_buffer!(LineSpectralPairs);
 
 impl LineSpectralPairs {
     pub fn new(lsp: &[f64], alpha: f64, use_log_gain: bool, stage: usize, gamma: f64) -> Self {
@@ -123,7 +123,7 @@ impl LineSpectralPairs {
                     buf[i] = self[i];
                 }
             }
-            self[..].copy_from_slice(&buf);
+            self.copy_from_slice(&buf);
 
             let en2 = self.lsp2en();
             if en1 != en2 {

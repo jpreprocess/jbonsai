@@ -1,52 +1,23 @@
-pub use std::ops::{Index, IndexMut};
-use std::ops::{RangeFrom, RangeFull};
-pub use std::slice::SliceIndex;
+pub use std::ops::{Deref, DerefMut};
 
-pub trait Buffer:
-    Index<usize, Output = f64>
-    + IndexMut<usize, Output = f64>
-    + Index<RangeFull, Output = [f64]>
-    + Index<RangeFrom<usize>, Output = [f64]>
-    + IndexMut<RangeFrom<usize>, Output = [f64]>
-{
-    fn len(&self) -> usize;
-    fn iter(&self) -> <&Vec<f64> as IntoIterator>::IntoIter;
-}
+pub trait Buffer: Deref<Target = Vec<f64>> + DerefMut {}
 
-macro_rules! buffer_index {
+macro_rules! deref_buffer {
     ($t:ty) => {
-        impl<I: SliceIndex<[f64]>> Index<I> for $t {
-            type Output = I::Output;
+        impl Deref for $t {
+            type Target = Vec<f64>;
 
-            fn index(&self, index: I) -> &Self::Output {
-                &self.buffer[index]
+            fn deref(&self) -> &Self::Target {
+                &self.buffer
             }
         }
 
-        impl<I: SliceIndex<[f64]>> IndexMut<I> for $t {
-            fn index_mut(&mut self, index: I) -> &mut Self::Output {
-                &mut self.buffer[index]
+        impl DerefMut for $t {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.buffer
             }
         }
 
-        impl<'a> IntoIterator for &'a $t {
-            type Item = &'a f64;
-            type IntoIter = <&'a Vec<f64> as IntoIterator>::IntoIter;
-
-            fn into_iter(self) -> Self::IntoIter {
-                self.buffer.iter()
-            }
-        }
-
-        impl Buffer for $t {
-            fn len(&self) -> usize {
-                self.buffer.len()
-            }
-
-            #[allow(dead_code)]
-            fn iter(&self) -> <&Vec<f64> as IntoIterator>::IntoIter {
-                self.buffer.iter()
-            }
-        }
+        impl Buffer for $t {}
     };
 }
