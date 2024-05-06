@@ -21,11 +21,11 @@ pub enum Stage {
 }
 
 impl Stage {
-    pub fn new(stage: usize, c_len: usize) -> Self {
+    pub fn new(stage: usize, nmcp: usize) -> Self {
         if stage == 0 {
             Self::Zero {
                 coefficients: Coefficients::new(&[]),
-                filter: MelLogSpectrumApproximation::new(c_len),
+                filter: MelLogSpectrumApproximation::new(nmcp),
             }
         } else {
             let gamma = -1.0 / stage as f64;
@@ -33,7 +33,7 @@ impl Stage {
                 stage,
                 gamma,
                 coefficients: GeneralizedCoefficients::new(&[], gamma),
-                filter: MelGeneralizedLogSpectrumApproximation::new(stage, c_len),
+                filter: MelGeneralizedLogSpectrumApproximation::new(stage, nmcp),
             }
         }
     }

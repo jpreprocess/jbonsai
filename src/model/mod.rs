@@ -52,8 +52,7 @@ impl<'a> Models<'a> {
         self.voices.first().metadata.num_states
     }
     pub fn vector_length(&self, stream_index: usize) -> usize {
-        let metadata = &self.voices.first().stream_models[stream_index].metadata;
-        metadata.vector_length
+        self.voices.stream_metadata(stream_index).vector_length
     }
 
     pub fn duration(&self) -> Vec<(f64, f64)> {

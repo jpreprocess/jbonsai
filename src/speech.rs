@@ -4,19 +4,11 @@ type Parameter = Vec<Vec<f64>>;
 
 pub struct SpeechGenerator {
     fperiod: usize,
-    alpha: f64,
-    beta: f64,
-    volume: f64,
 }
 
 impl SpeechGenerator {
-    pub fn new(fperiod: usize, alpha: f64, beta: f64, volume: f64) -> Self {
-        Self {
-            fperiod,
-            alpha,
-            beta,
-            volume,
-        }
+    pub fn new(fperiod: usize) -> Self {
+        Self { fperiod }
     }
     /// Generate speech
     pub fn synthesize(
@@ -24,14 +16,14 @@ impl SpeechGenerator {
         mut v: Vocoder,
         spectrum: Parameter,
         lf0: Parameter,
-        lpf: Option<Parameter>,
+        lpf: Parameter,
     ) -> Vec<f64> {
         // check
         if !lf0.is_empty() {
             if lf0[0].len() != 1 {
                 panic!("The size of lf0 static vector must be 1.");
             }
-            if lpf.as_ref().map(|lpf| lpf[0].len() % 2 == 0) == Some(true) {
+            if lpf[0].len() % 2 == 0 {
                 panic!("The number of low-pass filter coefficient must be odd numbers.");
             }
         }
@@ -45,10 +37,7 @@ impl SpeechGenerator {
             v.synthesize(
                 lf0[i][0],
                 &spectrum[i],
-                lpf.as_ref().map(|lpf| &lpf[i] as &[f64]).unwrap_or(&[]),
-                self.alpha,
-                self.beta,
-                self.volume,
+                &lpf[i],
                 &mut speech[i * self.fperiod..(i + 1) * self.fperiod],
             );
         }

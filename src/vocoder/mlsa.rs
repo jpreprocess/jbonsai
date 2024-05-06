@@ -35,13 +35,13 @@ pub struct MelLogSpectrumApproximation<const N: usize> {
 }
 
 impl<const N: usize> MelLogSpectrumApproximation<N> {
-    pub fn new(c_len: usize) -> Self {
+    pub fn new(nmcp: usize) -> Self {
         let pade_start = (N - 1) * N / 2;
         Self {
             ppade: std::array::from_fn(|i| PADE[pade_start + i]),
             d11: [0.0; N],
             d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; c_len + 1]),
+            d21: std::array::from_fn(|_| vec![0.0; nmcp + 1]),
             d22: [0.0; N],
         }
     }

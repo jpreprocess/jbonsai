@@ -264,6 +264,18 @@ impl Engine {
     }
 
     pub fn generate_speech(&self, labels: &Labels) -> Vec<f64> {
+        let vocoder = Vocoder::new(
+            self.voices.stream_metadata(0).vector_length,
+            self.voices.stream_metadata(2).vector_length,
+            self.condition.stage,
+            self.condition.use_log_gain,
+            self.condition.sampling_frequency,
+            self.condition.alpha,
+            self.condition.beta,
+            self.condition.volume,
+            self.condition.fperiod,
+        );
+
         let models = Models::new(
             labels.labels().to_vec(),
             &self.voices,
@@ -292,19 +304,7 @@ impl Engine {
         };
         let lpf = initialize(2).create(models.stream(2), &models, &durations);
 
-        let vocoder = Vocoder::new(
-            models.vector_length(0) - 1,
-            self.condition.stage,
-            self.condition.use_log_gain,
-            self.condition.sampling_frequency,
-            self.condition.fperiod,
-        );
-        let generator = SpeechGenerator::new(
-            self.condition.fperiod,
-            self.condition.alpha,
-            self.condition.beta,
-            self.condition.volume,
-        );
-        generator.synthesize(vocoder, spectrum, lf0, Some(lpf))
+        let generator = SpeechGenerator::new(self.condition.fperiod);
+        generator.synthesize(vocoder, spectrum, lf0, lpf)
     }
 }
