@@ -1,6 +1,6 @@
 use crate::{
     constants::NODATA,
-    model::{Models, StreamParameter},
+    model::{GvParameter, StreamParameter, Windows},
 };
 
 mod mask;
@@ -12,15 +12,13 @@ use self::{
 };
 
 pub struct MlpgAdjust {
-    stream_index: usize,
     gv_weight: f64,
     msd_threshold: f64,
 }
 
 impl MlpgAdjust {
-    pub fn new(stream_index: usize, gv_weight: f64, msd_threshold: f64) -> Self {
+    pub fn new(gv_weight: f64, msd_threshold: f64) -> Self {
         Self {
-            stream_index,
             gv_weight,
             msd_threshold,
         }
@@ -29,11 +27,11 @@ impl MlpgAdjust {
     pub fn create(
         &self,
         stream: StreamParameter,
-        models: &Models,
+        vector_length: usize,
+        windows: &Windows,
+        gv: Option<GvParameter>,
         durations: &[usize],
     ) -> Vec<Vec<f64>> {
-        let vector_length = models.vector_length(self.stream_index);
-
         let msd_flag: Mask = stream
             .iter()
             .zip(durations)
@@ -47,8 +45,7 @@ impl MlpgAdjust {
 
         let mut pars = vec![vec![0.0; vector_length]; msd_flag.mask().len()];
         for vector_index in 0..vector_length {
-            let parameters: Vec<Vec<(f64, f64)>> = models
-                .windows(self.stream_index)
+            let parameters: Vec<Vec<(f64, f64)>> = windows
                 .iter()
                 .enumerate()
                 .map(|(window_index, window)| {
@@ -91,9 +88,9 @@ impl MlpgAdjust {
                 .collect();
 
             let mut mtx = MlpgMatrix::new();
-            mtx.calc_wuw_and_wum(models.windows(self.stream_index), parameters);
+            mtx.calc_wuw_and_wum(windows, parameters);
 
-            let par = if let Some((gv_param, gv_switch)) = models.gv(self.stream_index) {
+            let par = if let Some((gv_param, gv_switch)) = &gv {
                 let mtx_before = mtx.clone();
                 let par = mtx.solve();
 
