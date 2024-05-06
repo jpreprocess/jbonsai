@@ -1,6 +1,3 @@
-pub const MAX_F0: f64 = 20000.0;
-pub const MIN_F0: f64 = 20.0;
-
 /// log(MAX_F0) = log(20000.0)
 pub const MAX_LF0: f64 = 9.903_487_552_536_127;
 /// log(MIN_F0) = log(20.0)
