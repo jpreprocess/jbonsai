@@ -106,13 +106,23 @@ impl ModelParameter {
         }
     }
 
-    pub fn add_assign(&mut self, weight: f64, rhs: &Self) {
-        for (i, p) in rhs.parameters.iter().enumerate() {
-            self.parameters[i].0 += weight * p.0;
-            self.parameters[i].1 += weight * p.1;
+    pub fn mul_add_assign(&mut self, weight: f64, rhs: &Self) {
+        for (lhs, rhs) in self.parameters.iter_mut().zip(rhs.parameters.iter()) {
+            lhs.0 += weight * rhs.0;
+            lhs.1 += weight * rhs.1;
         }
-        if let (Some(msd), Some(rhs)) = (self.msd.as_mut(), rhs.msd) {
+        if let (Some(msd), Some(rhs)) = (&mut self.msd, rhs.msd) {
             *msd += weight * rhs;
         }
+    }
+
+    pub fn mul(&self, weight: f64) -> Self {
+        let parameters = self
+            .parameters
+            .iter()
+            .map(|(mean, vari)| (weight * mean, weight * vari))
+            .collect();
+        let msd = self.msd.map(|msd| weight * msd);
+        Self { parameters, msd }
     }
 }

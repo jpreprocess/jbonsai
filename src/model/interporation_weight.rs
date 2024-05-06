@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum WeightError {
     #[error("Weights do not sum to 1.0")]
@@ -23,19 +25,20 @@ impl Default for InterporationWeight {
 
 impl InterporationWeight {
     pub fn new(nvoices: usize, nstream: usize) -> Self {
-        let default_weight = Weights::average(nvoices);
+        let average = Weights::average(nvoices);
         Self {
             nvoices,
-            duration: default_weight.clone(),
-            parameter: vec![default_weight.clone(); nstream],
-            gv: vec![default_weight.clone(); nstream],
+            parameter: vec![average.clone(); nstream],
+            gv: vec![average.clone(); nstream],
+            duration: average,
         }
     }
 
     /// Set duration weight
     /// weights.len() == nvoices
     /// weights.iter().sum() == 1.0
-    pub fn set_duration(&mut self, weights: Weights) -> Result<(), WeightError> {
+    pub fn set_duration(&mut self, weight: &[f64]) -> Result<(), WeightError> {
+        let weights = Weights::new(weight)?;
         weights.check_length(self.nvoices)?;
         self.duration = weights;
         Ok(())
@@ -46,8 +49,9 @@ impl InterporationWeight {
     pub fn set_parameter(
         &mut self,
         stream_index: usize,
-        weights: Weights,
+        weight: &[f64],
     ) -> Result<(), WeightError> {
+        let weights = Weights::new(weight)?;
         weights.check_length(self.nvoices)?;
         self.parameter[stream_index] = weights;
         Ok(())
@@ -55,7 +59,8 @@ impl InterporationWeight {
     /// Set GV weight
     /// weights.len() == nvoices
     /// weights.iter().sum() == 1.0
-    pub fn set_gv(&mut self, stream_index: usize, weights: Weights) -> Result<(), WeightError> {
+    pub fn set_gv(&mut self, stream_index: usize, weight: &[f64]) -> Result<(), WeightError> {
+        let weights = Weights::new(weight)?;
         weights.check_length(self.nvoices)?;
         self.gv[stream_index] = weights;
         Ok(())
@@ -91,10 +96,6 @@ impl Weights {
         })
     }
 
-    pub fn get_weights(&self) -> &[f64] {
-        &self.weights
-    }
-
     fn average(nvoices: usize) -> Self {
         let average_weight = 1.0f64 / nvoices as f64;
         Self {
@@ -107,5 +108,13 @@ impl Weights {
             return Err(WeightError::InvalidLength(length, self.weights.len()));
         }
         Ok(())
+    }
+}
+
+impl Deref for Weights {
+    type Target = [f64];
+
+    fn deref(&self) -> &Self::Target {
+        &self.weights
     }
 }

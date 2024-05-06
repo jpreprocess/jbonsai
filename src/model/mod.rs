@@ -1,6 +1,6 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, ops::Deref, sync::Arc};
 
-use self::voice::model::ModelParameter;
+use self::{interporation_weight::Weights, voice::model::ModelParameter};
 
 pub use self::{
     interporation_weight::InterporationWeight,
@@ -33,16 +33,20 @@ pub type StreamParameter = Vec<(Vec<(f64, f64)>, f64)>;
 pub type GvParameter = (Vec<(f64, f64)>, Vec<bool>);
 
 pub struct Models<'a> {
-    labels: Vec<Label>,
+    labels: Cow<'a, [Label]>,
 
     voices: Cow<'a, VoiceSet>,
     weights: Cow<'a, InterporationWeight>,
 }
 
 impl<'a> Models<'a> {
-    pub fn new(labels: Vec<Label>, voices: &'a VoiceSet, weights: &'a InterporationWeight) -> Self {
+    pub fn new(
+        labels: &'a [Label],
+        voices: &'a VoiceSet,
+        weights: &'a InterporationWeight,
+    ) -> Self {
         Self {
-            labels,
+            labels: Cow::Borrowed(labels),
             voices: Cow::Borrowed(voices),
             weights: Cow::Borrowed(weights),
         }
@@ -56,40 +60,32 @@ impl<'a> Models<'a> {
     }
 
     pub fn duration(&self) -> Vec<(f64, f64)> {
-        let metadata = &self.voices.global_metadata();
-        let weight = self.weights.get_duration().get_weights();
+        let weights = self.weights.get_duration();
         self.labels
             .iter()
             .flat_map(|label| {
-                let mut params = ModelParameter::new(metadata.num_states, false);
-                for (voice, weight) in self.voices.iter().zip(weight) {
-                    let curr_params = voice.duration_model.get_parameter(2, label);
-                    params.add_assign(*weight, curr_params);
-                }
-                params.parameters
+                self.voices
+                    .weighted(weights, |voice| {
+                        voice.duration_model.get_parameter(2, label)
+                    })
+                    .parameters
             })
             .collect()
     }
     /// FIXME: label/state -> window -> vector
     pub fn stream(&self, stream_index: usize) -> StreamParameter {
         let global_metadata = &self.voices.global_metadata();
-        let stream_metadata = &self.voices.stream_metadata(stream_index);
-        let weight = self.weights.get_parameter(stream_index).get_weights();
+        let weights = self.weights.get_parameter(stream_index);
         self.labels
             .iter()
             .flat_map(|label| {
                 (2..2 + global_metadata.num_states).map(|state_index| {
-                    let mut params = ModelParameter::new(
-                        stream_metadata.vector_length * stream_metadata.num_windows,
-                        stream_metadata.is_msd,
-                    );
-                    for (voice, weight) in self.voices.iter().zip(weight) {
-                        let curr_params = voice.stream_models[stream_index]
-                            .stream_model
-                            .get_parameter(state_index, label);
-                        params.add_assign(*weight, curr_params);
-                    }
-                    let ModelParameter { parameters, msd } = params;
+                    let ModelParameter { parameters, msd } =
+                        self.voices.weighted(weights, |voice| {
+                            voice.stream_models[stream_index]
+                                .stream_model
+                                .get_parameter(state_index, label)
+                        });
                     // FIXME: Split parameter
                     (parameters, msd.unwrap_or(f64::MAX))
                 })
@@ -103,17 +99,15 @@ impl<'a> Models<'a> {
             return None;
         }
 
-        let weight = self.weights.get_gv(stream_index).get_weights();
-
-        let mut params = ModelParameter::new(stream_metadata.vector_length, false);
-        for (voice, weight) in self.voices.iter().zip(weight) {
-            let curr_params = voice.stream_models[stream_index]
+        let weights = self.weights.get_gv(stream_index);
+        let label = self.labels.first()?;
+        let params = self.voices.weighted(weights, |voice| {
+            voice.stream_models[stream_index]
                 .gv_model
                 .as_ref()
                 .unwrap()
-                .get_parameter(2, self.labels.first()?);
-            params.add_assign(*weight, curr_params);
-        }
+                .get_parameter(2, label)
+        });
 
         let gv_switch = self
             .labels
@@ -173,7 +167,7 @@ impl VoiceSet {
     }
 
     #[inline]
-    pub fn first(&self) -> &Voice {
+    fn first(&self) -> &Voice {
         // ensured to have at least one element
         self.0.first().unwrap()
     }
@@ -195,9 +189,28 @@ impl VoiceSet {
         &self.first().stream_models[stream_index].metadata
     }
 
-    #[inline]
-    pub fn iter(&self) -> impl Iterator<Item = &Arc<Voice>> {
-        self.0.iter()
+    pub fn weighted<F: Fn(&Arc<Voice>) -> &ModelParameter>(
+        &self,
+        weights: &Weights,
+        param: F,
+    ) -> ModelParameter {
+        let mut voices_iter = self.iter();
+        let mut weights_iter = weights.iter();
+        let first_voice = voices_iter.next().unwrap();
+        let first_weight = weights_iter.next().unwrap();
+
+        let mut result = param(first_voice).mul(*first_weight);
+        for (voice, weight) in voices_iter.zip(weights_iter) {
+            result.mul_add_assign(*weight, param(voice));
+        }
+        result
+    }
+}
+
+impl Deref for VoiceSet {
+    type Target = [Arc<Voice>];
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -212,10 +225,7 @@ pub mod tests {
     use std::{borrow::Cow, sync::Arc};
 
     use crate::{
-        model::{
-            interporation_weight::{InterporationWeight, Weights},
-            voice::window::Window,
-        },
+        model::{interporation_weight::InterporationWeight, voice::window::Window},
         tests::{
             MODEL_NITECH_ATR503, MODEL_TOHOKU_F01_HAPPY, MODEL_TOHOKU_F01_NORMAL, SAMPLE_SENTENCE_1,
         },
@@ -461,13 +471,13 @@ pub mod tests {
         let normal = load_htsvoice_file(&MODEL_TOHOKU_F01_NORMAL).unwrap();
         let happy = load_htsvoice_file(&MODEL_TOHOKU_F01_HAPPY).unwrap();
         let voiceset = VoiceSet::new(vec![Arc::new(normal), Arc::new(happy)]).unwrap();
+        let labels = vec![SAMPLE_SENTENCE_1[2].parse().unwrap()];
 
         let mut iw = InterporationWeight::new(2, 3);
-        iw.set_duration(Weights::new(&[0.7, 0.3]).unwrap()).unwrap();
-        iw.set_parameter(1, Weights::new(&[0.7, 0.3]).unwrap())
-            .unwrap();
+        iw.set_duration(&[0.7, 0.3]).unwrap();
+        iw.set_parameter(1, &[0.7, 0.3]).unwrap();
 
-        let models = Models::new(vec![SAMPLE_SENTENCE_1[2].parse().unwrap()], &voiceset, &iw);
+        let models = Models::new(&labels, &voiceset, &iw);
 
         assert_eq!(
             models.duration(),

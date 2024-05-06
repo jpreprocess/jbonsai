@@ -74,8 +74,7 @@ impl Default for Condition {
 
 impl Condition {
     pub fn load_model(&mut self, voices: &VoiceSet) -> Result<(), EngineError> {
-        let first = voices.first();
-        let metadata = &first.metadata;
+        let metadata = voices.global_metadata();
 
         let nstream = metadata.num_streams;
 
@@ -86,7 +85,7 @@ impl Condition {
         self.gv_weight = [1.0].repeat(nstream);
 
         /* spectrum */
-        for option in &first.stream_models[0].metadata.option {
+        for option in &voices.stream_metadata(0).option {
             let Some((key, value)) = option.split_once('=') else {
                 eprintln!("Skipped unrecognized option {}.", option);
                 continue;
@@ -97,7 +96,11 @@ impl Condition {
                         .parse()
                         .map_err(|_| EngineError::ParseOptionError(key.to_string()))?
                 }
-                "LN_GAIN" => self.use_log_gain = value == "1",
+                "LN_GAIN" => match value {
+                    "1" => self.use_log_gain = true,
+                    "0" => self.use_log_gain = false,
+                    _ => return Err(EngineError::ParseOptionError(key.to_string())),
+                },
                 "ALPHA" => {
                     self.alpha = value
                         .parse()
@@ -277,7 +280,7 @@ impl Engine {
         );
 
         let models = Models::new(
-            labels.labels().to_vec(),
+            labels.labels(),
             &self.voices,
             &self.condition.interporation_weight,
         );
