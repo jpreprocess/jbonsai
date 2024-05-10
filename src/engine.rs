@@ -221,6 +221,7 @@ impl Condition {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Engine {
     pub condition: Condition,
     pub voices: VoiceSet,
