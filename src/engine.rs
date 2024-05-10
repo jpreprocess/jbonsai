@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::constants::DB;
 use crate::duration::DurationEstimator;
-use crate::label::{LabelError, Labels};
+use crate::label::{LabelError, ToLabels};
 use crate::mlpg_adjust::MlpgAdjust;
 use crate::model::interporation_weight::InterporationWeight;
 use crate::model::{ModelError, Models, VoiceSet};
@@ -247,18 +247,12 @@ impl Engine {
         Engine { voices, condition }
     }
 
-    pub fn synthesize(
-        &self,
-        labels: impl TryInto<Labels, Error = LabelError>,
-    ) -> Result<Vec<f64>, EngineError> {
+    pub fn synthesize(&self, labels: impl ToLabels) -> Result<Vec<f64>, EngineError> {
         Ok(self.generator(labels)?.synthesize_all())
     }
 
-    pub fn generator(
-        &self,
-        labels: impl TryInto<Labels, Error = LabelError>,
-    ) -> Result<SpeechGenerator, EngineError> {
-        let labels = labels.try_into()?;
+    pub fn generator(&self, labels: impl ToLabels) -> Result<SpeechGenerator, EngineError> {
+        let labels = labels.to_labels(&self.condition)?;
         let vocoder = Vocoder::new(
             self.voices.stream_metadata(0).vector_length,
             self.voices.stream_metadata(2).vector_length,

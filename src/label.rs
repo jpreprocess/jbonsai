@@ -1,3 +1,5 @@
+use crate::engine::Condition;
+
 #[derive(Debug, thiserror::Error)]
 pub enum LabelError {
     #[error("jlabel failed to parse fullcontext-label: {0}")]
@@ -106,19 +108,23 @@ impl Labels {
     }
 }
 
-impl TryFrom<Vec<jlabel::Label>> for Labels {
-    type Error = LabelError;
+pub trait ToLabels {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError>;
+}
 
-    fn try_from(value: Vec<jlabel::Label>) -> Result<Self, Self::Error> {
-        Self::new(value, None)
+impl ToLabels for Vec<jlabel::Label> {
+    fn to_labels(self, _condition: &Condition) -> Result<Labels, LabelError> {
+        Labels::new(self, None)
     }
 }
 
-impl<S: AsRef<str>> TryFrom<&[S]> for Labels {
-    type Error = LabelError;
-
-    fn try_from(value: &[S]) -> Result<Self, Self::Error> {
-        Self::load_from_strings(48000, 240, value)
+impl<S: AsRef<str>> ToLabels for &[S] {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError> {
+        Labels::load_from_strings(
+            condition.get_sampling_frequency(),
+            condition.get_fperiod(),
+            self,
+        )
     }
 }
 
