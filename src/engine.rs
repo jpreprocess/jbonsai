@@ -292,6 +292,11 @@ impl Engine {
             estimator.create(self.condition.speed)
         };
 
+        fn mutated<T, F: FnOnce(&mut T)>(mut value: T, f: F) -> T {
+            f(&mut value);
+            value
+        }
+
         let spectrum = MlpgAdjust::new(
             self.condition.gv_weight[0],
             self.condition.msd_threshold[0],
@@ -321,9 +326,4 @@ impl Engine {
         let generator = SpeechGenerator::new(self.condition.fperiod);
         generator.synthesize(vocoder, spectrum, lf0, lpf)
     }
-}
-
-fn mutated<T, F: FnOnce(&mut T)>(mut value: T, f: F) -> T {
-    f(&mut value);
-    value
 }

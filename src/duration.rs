@@ -1,22 +1,25 @@
 use crate::model::MeanVari;
 
 pub struct DurationEstimator {
-    duration: Vec<MeanVari>,
+    parameters: Vec<MeanVari>,
     nstate: usize,
 }
 
 impl DurationEstimator {
     pub fn new(duration: Vec<MeanVari>, nstate: usize) -> Self {
-        Self { duration, nstate }
+        Self {
+            parameters: duration,
+            nstate,
+        }
     }
 
     pub fn create(&self, speed: f64) -> Vec<usize> {
         // determine frame length
-        let mut duration = Self::estimate_duration(&self.duration, 0.0);
+        let mut duration = Self::estimate_duration(&self.parameters, 0.0);
         if speed != 1.0 {
             let length: usize = duration.iter().sum();
             duration =
-                Self::estimate_duration_with_frame_length(&self.duration, length as f64 / speed);
+                Self::estimate_duration_with_frame_length(&self.parameters, length as f64 / speed);
         }
 
         duration
@@ -32,7 +35,7 @@ impl DurationEstimator {
         for (i, (_start_frame, end_frame)) in times.iter().enumerate() {
             if *end_frame >= 0.0 {
                 let curr_duration = Self::estimate_duration_with_frame_length(
-                    &self.duration[next_state..state + self.nstate],
+                    &self.parameters[next_state..state + self.nstate],
                     end_frame - frame_count as f64,
                 );
                 frame_count += curr_duration.iter().sum::<usize>();
@@ -40,7 +43,7 @@ impl DurationEstimator {
                 duration.extend_from_slice(&curr_duration);
             } else if i + 1 == times.len() {
                 eprintln!("HTS_SStreamSet_create: The time of final label is not specified.");
-                Self::estimate_duration(&self.duration[next_state..state + self.nstate], 0.0);
+                Self::estimate_duration(&self.parameters[next_state..state + self.nstate], 0.0);
             }
             state += self.nstate;
         }
