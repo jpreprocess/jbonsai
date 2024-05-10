@@ -1,10 +1,12 @@
+use crate::model::MeanVari;
+
 pub struct DurationEstimator {
-    duration: Vec<(f64, f64)>,
+    duration: Vec<MeanVari>,
     nstate: usize,
 }
 
 impl DurationEstimator {
-    pub fn new(duration: Vec<(f64, f64)>, nstate: usize) -> Self {
+    pub fn new(duration: Vec<MeanVari>, nstate: usize) -> Self {
         Self { duration, nstate }
     }
 
@@ -47,15 +49,15 @@ impl DurationEstimator {
     }
 
     /// Estimate state duration
-    fn estimate_duration(duration_params: &[(f64, f64)], rho: f64) -> Vec<usize> {
+    fn estimate_duration(duration_params: &[MeanVari], rho: f64) -> Vec<usize> {
         duration_params
             .iter()
-            .map(|(mean, vari)| (mean + rho * vari).round().max(1.0) as usize)
+            .map(|MeanVari(mean, vari)| (mean + rho * vari).round().max(1.0) as usize)
             .collect()
     }
     /// Estimate duration from state duration probability distribution and specified frame length
     fn estimate_duration_with_frame_length(
-        duration_params: &[(f64, f64)],
+        duration_params: &[MeanVari],
         frame_length: f64,
     ) -> Vec<usize> {
         let size = duration_params.len();
@@ -69,11 +71,7 @@ impl DurationEstimator {
         }
 
         // RHO calculation
-        let (mean, vari) = duration_params
-            .iter()
-            .fold((0.0, 0.0), |(mean, vari), curr| {
-                (mean + curr.0, vari + curr.1)
-            });
+        let MeanVari(mean, vari) = duration_params.iter().sum();
         let rho = (target_length as f64 - mean) / vari;
 
         let mut duration = Self::estimate_duration(duration_params, rho);
@@ -81,7 +79,7 @@ impl DurationEstimator {
         // loop estimation
         let mut sum: usize = duration.iter().sum();
         let calculate_cost =
-            |d: usize, (mean, vari): (f64, f64)| (rho - (d as f64 - mean) / vari).abs();
+            |d: usize, MeanVari(mean, vari): MeanVari| (rho - (d as f64 - mean) / vari).abs();
         while target_length != sum {
             // search flexible state and modify its duration
             if target_length > sum {

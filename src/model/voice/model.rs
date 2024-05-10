@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use jlabel::Label;
 
+use crate::model::MeanVari;
+
 use super::tree::Tree;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -81,15 +83,14 @@ impl Model {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelParameter {
-    // (mean, vari)
-    pub parameters: Vec<(f64, f64)>,
+    pub parameters: Vec<MeanVari>,
     pub msd: Option<f64>,
 }
 
 impl ModelParameter {
     pub fn new(size: usize, is_msd: bool) -> Self {
         Self {
-            parameters: vec![(0.0, 0.0); size],
+            parameters: vec![MeanVari(0.0, 0.0); size],
             msd: if is_msd { Some(0.0) } else { None },
         }
     }
@@ -98,7 +99,7 @@ impl ModelParameter {
         let len = lin.len() / 2;
         let mut parameters = Vec::with_capacity(len);
         for i in 0..len {
-            parameters.push((lin[i], lin[i + len]))
+            parameters.push(MeanVari(lin[i], lin[i + len]))
         }
         Self {
             parameters,
@@ -120,7 +121,7 @@ impl ModelParameter {
         let parameters = self
             .parameters
             .iter()
-            .map(|(mean, vari)| (weight * mean, weight * vari))
+            .map(|mean_vari| mean_vari.weighted(weight))
             .collect();
         let msd = self.msd.map(|msd| weight * msd);
         Self { parameters, msd }

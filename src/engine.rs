@@ -6,7 +6,7 @@ use crate::duration::DurationEstimator;
 use crate::label::{LabelError, Labels};
 use crate::mlpg_adjust::MlpgAdjust;
 use crate::model::interporation_weight::InterporationWeight;
-use crate::model::{apply_additional_half_tone, ModelError, Models, VoiceSet};
+use crate::model::{ModelError, Models, VoiceSet};
 use crate::speech::SpeechGenerator;
 use crate::vocoder::Vocoder;
 
@@ -292,32 +292,31 @@ impl Engine {
             estimator.create(self.condition.speed)
         };
 
-        let spectrum =
-            MlpgAdjust::new(self.condition.gv_weight[0], self.condition.msd_threshold[0]).create(
-                models.stream(0),
-                models.vector_length(0),
-                models.windows(0),
-                models.gv(0),
-                &durations,
-            );
-        let lf0 = MlpgAdjust::new(self.condition.gv_weight[1], self.condition.msd_threshold[1])
-            .create(
-                mutated(models.stream(1), |params| {
-                    apply_additional_half_tone(params, self.condition.additional_half_tone);
-                }),
-                models.vector_length(1),
-                models.windows(1),
-                models.gv(1),
-                &durations,
-            );
-        let lpf = MlpgAdjust::new(self.condition.gv_weight[2], self.condition.msd_threshold[2])
-            .create(
-                models.stream(2),
-                models.vector_length(2),
-                models.windows(2),
-                models.gv(2),
-                &durations,
-            );
+        let spectrum = MlpgAdjust::new(
+            self.condition.gv_weight[0],
+            self.condition.msd_threshold[0],
+            models.model_stream(0),
+        )
+        .create(&durations);
+        let lf0 = MlpgAdjust::new(
+            self.condition.gv_weight[1],
+            self.condition.msd_threshold[1],
+            mutated(models.model_stream(1), |m| {
+                m.stream
+                    .apply_additional_half_tone(self.condition.additional_half_tone);
+            }),
+        )
+        .create(&durations);
+        let lpf = if self.voices.global_metadata().num_streams > 2 {
+            MlpgAdjust::new(
+                self.condition.gv_weight[2],
+                self.condition.msd_threshold[2],
+                models.model_stream(2),
+            )
+            .create(&durations)
+        } else {
+            vec![vec![0.0; 0]; lf0.len()]
+        };
 
         let generator = SpeechGenerator::new(self.condition.fperiod);
         generator.synthesize(vocoder, spectrum, lf0, lpf)

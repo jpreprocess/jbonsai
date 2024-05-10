@@ -1,4 +1,6 @@
-use crate::model::Windows;
+use crate::model::{GvParameter, MeanVari, Windows};
+
+use super::{mask::Mask, IterExt};
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
@@ -13,29 +15,17 @@ pub struct MlpgMatrix {
 }
 
 impl MlpgMatrix {
-    pub fn new() -> Self {
-        Self {
-            win_size: 0,
-            length: 0,
-            width: 0,
-            wuw: Vec::new(),
-            wum: Vec::new(),
-        }
-    }
-
     /// Calculate W^T U^{-1} W and W^T U^{-1} \mu
     /// (preparation for calculation of dynamic feature)
-    pub fn calc_wuw_and_wum(&mut self, windows: &Windows, parameters: Vec<Vec<(f64, f64)>>) {
-        self.win_size = windows.size();
-        self.length = parameters[0].len();
-        self.width = windows.max_width() * 2 + 1;
+    pub fn calc_wuw_and_wum(windows: &Windows, parameters: Vec<Vec<MeanVari>>) -> Self {
+        let length = parameters[0].len();
+        let width = windows.max_width() * 2 + 1;
+        let mut wum = Vec::with_capacity(length);
+        let mut wuw = Vec::with_capacity(length);
 
-        self.wuw = Vec::new();
-        self.wum = Vec::new();
-
-        for t in 0..self.length {
-            self.wuw.push(vec![0.0; self.width]);
-            self.wum.push(0.0);
+        for t in 0..length {
+            wuw.push(vec![0.0; width]);
+            wum.push(0.0);
 
             for (i, window) in windows.iter().enumerate() {
                 for (index, coef) in window.iter_rev(0) {
@@ -44,25 +34,33 @@ impl MlpgMatrix {
                     }
 
                     let idx = (t as isize) - index.position();
-                    if idx < 0 || idx >= self.length as isize {
+                    if idx < 0 || idx >= length as isize {
                         continue;
                     }
                     let wu = coef * parameters[i][idx as usize].1;
-                    self.wum[t] += wu * parameters[i][idx as usize].0;
+                    wum[t] += wu * parameters[i][idx as usize].0;
 
                     for (inner_index, coef) in window.iter_rev(index.index()) {
                         if coef == 0.0 {
                             continue;
                         }
                         let j = inner_index.index() - index.index();
-                        if t + j >= self.length {
+                        if t + j >= length {
                             break;
                         }
 
-                        self.wuw[t][j] += wu * coef;
+                        wuw[t][j] += wu * coef;
                     }
                 }
             }
+        }
+
+        Self {
+            win_size: windows.size(),
+            length,
+            width,
+            wuw,
+            wum,
         }
     }
 
@@ -109,6 +107,32 @@ impl MlpgMatrix {
         }
 
         par
+    }
+
+    pub fn par(
+        &mut self,
+        gv: &Option<GvParameter>,
+        vector_index: usize,
+        gv_weight: f64,
+        durations: &[usize],
+        msd_flag: &Mask,
+    ) -> Vec<f64> {
+        if let Some((gv_param, gv_switch)) = gv {
+            let mtx_before = self.clone();
+            let par = self.solve();
+            let gv_switch: Vec<_> = gv_switch
+                .iter()
+                .copied()
+                .duration(durations)
+                .filter_by(msd_flag.mask())
+                .collect();
+            let mgv = MlpgGlobalVariance::new(mtx_before, par, &gv_switch);
+
+            let MeanVari(gv_mean, gv_vari) = gv_param[vector_index];
+            mgv.apply_gv(gv_mean * gv_weight, gv_vari)
+        } else {
+            self.solve()
+        }
     }
 }
 
