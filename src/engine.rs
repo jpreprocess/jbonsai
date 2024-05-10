@@ -247,27 +247,18 @@ impl Engine {
         Engine { voices, condition }
     }
 
-    pub fn synthesize_from_strings<S: AsRef<str>>(
+    pub fn synthesize(
         &self,
-        lines: &[S],
+        labels: impl TryInto<Labels, Error = LabelError>,
     ) -> Result<Vec<f64>, EngineError> {
-        let labels = Labels::load_from_strings(
-            self.condition.sampling_frequency,
-            self.condition.fperiod,
-            lines,
-        )?;
-        Ok(self.generate_speech(&labels))
+        Ok(self.generator(labels)?.synthesize_all())
     }
 
-    pub fn synthesize_from_labels(
+    pub fn generator(
         &self,
-        labels: Vec<jlabel::Label>,
-    ) -> Result<Vec<f64>, EngineError> {
-        let labels = Labels::new(labels, None)?;
-        Ok(self.generate_speech(&labels))
-    }
-
-    pub fn generate_speech(&self, labels: &Labels) -> Vec<f64> {
+        labels: impl TryInto<Labels, Error = LabelError>,
+    ) -> Result<SpeechGenerator, EngineError> {
+        let labels = labels.try_into()?;
         let vocoder = Vocoder::new(
             self.voices.stream_metadata(0).vector_length,
             self.voices.stream_metadata(2).vector_length,
@@ -324,7 +315,12 @@ impl Engine {
             vec![vec![0.0; 0]; lf0.len()]
         };
 
-        let generator = SpeechGenerator::new(self.condition.fperiod);
-        generator.synthesize(vocoder, spectrum, lf0, lpf)
+        Ok(SpeechGenerator::new(
+            self.condition.fperiod,
+            vocoder,
+            spectrum,
+            lf0,
+            lpf,
+        ))
     }
 }

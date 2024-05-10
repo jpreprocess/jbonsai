@@ -106,6 +106,22 @@ impl Labels {
     }
 }
 
+impl TryFrom<Vec<jlabel::Label>> for Labels {
+    type Error = LabelError;
+
+    fn try_from(value: Vec<jlabel::Label>) -> Result<Self, Self::Error> {
+        Self::new(value, None)
+    }
+}
+
+impl<S: AsRef<str>> TryFrom<&[S]> for Labels {
+    type Error = LabelError;
+
+    fn try_from(value: &[S]) -> Result<Self, Self::Error> {
+        Self::load_from_strings(48000, 240, value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Labels;
