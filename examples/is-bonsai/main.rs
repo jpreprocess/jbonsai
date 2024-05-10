@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let engine = Engine::load(&[
         "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice",
     ])?;
-    let speech = engine.synthesize_from_strings(&lines)?;
+    let speech = engine.synthesize(&lines)?;
 
     println!(
         "The synthesized voice has {} samples in total.",

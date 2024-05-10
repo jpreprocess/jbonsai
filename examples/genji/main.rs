@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     iw.set_parameter(1, &[0.5, 0.5])?;
     iw.set_parameter(2, &[1.0, 0.0])?;
 
-    let speech = engine.synthesize_from_strings(&lines)?;
+    let speech = engine.synthesize(&*lines)?;
 
     println!(
         "The synthesized voice has {} samples in total.",
