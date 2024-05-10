@@ -128,6 +128,18 @@ impl<S: AsRef<str>> ToLabels for &[S] {
     }
 }
 
+impl<const N: usize, S: AsRef<str>> ToLabels for &[S; N] {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError> {
+        self.as_slice().to_labels(condition)
+    }
+}
+
+impl ToLabels for Vec<String> {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError> {
+        self.as_slice().to_labels(condition)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Labels;

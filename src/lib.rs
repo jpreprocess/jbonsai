@@ -33,7 +33,7 @@ mod tests {
     fn bonsai() {
         let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 
-        let speech = engine.synthesize(&SAMPLE_SENTENCE_1[..]).unwrap();
+        let speech = engine.synthesize(&SAMPLE_SENTENCE_1).unwrap();
 
         assert_eq!(speech.len(), 66480);
         approx::assert_abs_diff_eq!(speech[2000], 19.35141137623778, epsilon = 1.0e-10);
@@ -65,7 +65,7 @@ mod tests {
         iw.set_parameter(1, &[0.7, 0.3]).unwrap();
         iw.set_parameter(2, &[1.0, 0.0]).unwrap();
 
-        let speech = engine.synthesize(&SAMPLE_SENTENCE_1[..]).unwrap();
+        let speech = engine.synthesize(&SAMPLE_SENTENCE_1).unwrap();
 
         assert_eq!(speech.len(), 74880);
         approx::assert_abs_diff_eq!(speech[2000], 2.3158134981607754e-5, epsilon = 1.0e-10);
@@ -105,7 +105,7 @@ mod tests {
     fn is_this_bonsai() {
         let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 
-        let speech = engine.synthesize(&SAMPLE_SENTENCE_2[..]).unwrap();
+        let speech = engine.synthesize(&SAMPLE_SENTENCE_2).unwrap();
 
         assert_eq!(speech.len(), 100800);
         approx::assert_abs_diff_eq!(speech[2000], 17.15977345625943, epsilon = 1.0e-10);
@@ -119,7 +119,7 @@ mod tests {
         let mut engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
         engine.condition.set_speed(1.4);
 
-        let speech = engine.synthesize(&SAMPLE_SENTENCE_2[..]).unwrap();
+        let speech = engine.synthesize(&SAMPLE_SENTENCE_2).unwrap();
 
         assert_eq!(speech.len(), 72000);
         approx::assert_abs_diff_eq!(speech[2000], 15.0481014871396, epsilon = 1.0e-10);
