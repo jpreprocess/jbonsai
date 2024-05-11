@@ -248,7 +248,7 @@ impl Engine {
     }
 
     pub fn synthesize(&self, labels: impl ToLabels) -> Result<Vec<f64>, EngineError> {
-        Ok(self.generator(labels)?.synthesize_all())
+        Ok(self.generator(labels)?.generate_all())
     }
 
     pub fn generator(&self, labels: impl ToLabels) -> Result<SpeechGenerator, EngineError> {

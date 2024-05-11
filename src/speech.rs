@@ -42,7 +42,7 @@ impl SpeechGenerator {
     }
 
     /// Generate speech
-    pub fn synthesize(&mut self, speech: &mut [f64]) -> usize {
+    pub fn generate_step(&mut self, speech: &mut [f64]) -> usize {
         if self.lf0.len() <= self.next {
             return 0;
         }
@@ -61,13 +61,13 @@ impl SpeechGenerator {
         self.fperiod
     }
 
-    pub fn synthesize_all(mut self) -> Vec<f64> {
+    pub fn generate_all(mut self) -> Vec<f64> {
         if self.next != 0 {
             eprintln!("The speech generator has already synthesized some frames.");
         }
 
         let mut buf = vec![0.0; (self.lf0.len() - self.next) * self.fperiod];
-        while self.synthesize(&mut buf[self.next * self.fperiod..]) > 0 {}
+        while self.generate_step(&mut buf[self.next * self.fperiod..]) > 0 {}
 
         buf
     }
