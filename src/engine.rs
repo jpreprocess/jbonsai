@@ -6,7 +6,7 @@ use crate::duration::DurationEstimator;
 use crate::label::{LabelError, Labels};
 use crate::mlpg_adjust::MlpgAdjust;
 use crate::model::interporation_weight::InterporationWeight;
-use crate::model::{apply_additional_half_tone, ModelError, Models, VoiceSet};
+use crate::model::{ModelError, Models, VoiceSet};
 use crate::speech::SpeechGenerator;
 use crate::vocoder::Vocoder;
 
@@ -74,8 +74,7 @@ impl Default for Condition {
 
 impl Condition {
     pub fn load_model(&mut self, voices: &VoiceSet) -> Result<(), EngineError> {
-        let first = voices.first();
-        let metadata = &first.metadata;
+        let metadata = voices.global_metadata();
 
         let nstream = metadata.num_streams;
 
@@ -86,7 +85,7 @@ impl Condition {
         self.gv_weight = [1.0].repeat(nstream);
 
         /* spectrum */
-        for option in &first.stream_models[0].metadata.option {
+        for option in &voices.stream_metadata(0).option {
             let Some((key, value)) = option.split_once('=') else {
                 eprintln!("Skipped unrecognized option {}.", option);
                 continue;
@@ -97,7 +96,11 @@ impl Condition {
                         .parse()
                         .map_err(|_| EngineError::ParseOptionError(key.to_string()))?
                 }
-                "LN_GAIN" => self.use_log_gain = value == "1",
+                "LN_GAIN" => match value {
+                    "1" => self.use_log_gain = true,
+                    "0" => self.use_log_gain = false,
+                    _ => return Err(EngineError::ParseOptionError(key.to_string())),
+                },
                 "ALPHA" => {
                     self.alpha = value
                         .parse()
@@ -218,6 +221,7 @@ impl Condition {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Engine {
     pub condition: Condition,
     pub voices: VoiceSet,
@@ -264,47 +268,63 @@ impl Engine {
     }
 
     pub fn generate_speech(&self, labels: &Labels) -> Vec<f64> {
+        let vocoder = Vocoder::new(
+            self.voices.stream_metadata(0).vector_length,
+            self.voices.stream_metadata(2).vector_length,
+            self.condition.stage,
+            self.condition.use_log_gain,
+            self.condition.sampling_frequency,
+            self.condition.alpha,
+            self.condition.beta,
+            self.condition.volume,
+            self.condition.fperiod,
+        );
+
         let models = Models::new(
-            labels.labels().to_vec(),
+            labels.labels(),
             &self.voices,
             &self.condition.interporation_weight,
         );
 
+        let estimator = DurationEstimator::new(models.duration(), models.nstate());
         let durations = if self.condition.phoneme_alignment_flag {
-            DurationEstimator.create_with_alignment(&models, labels.times())
+            estimator.create_with_alignment(labels.times())
         } else {
-            DurationEstimator.create(&models, self.condition.speed)
+            estimator.create(self.condition.speed)
         };
 
-        let initialize = |stream_index: usize| {
+        fn mutated<T, F: FnOnce(&mut T)>(mut value: T, f: F) -> T {
+            f(&mut value);
+            value
+        }
+
+        let spectrum = MlpgAdjust::new(
+            self.condition.gv_weight[0],
+            self.condition.msd_threshold[0],
+            models.model_stream(0),
+        )
+        .create(&durations);
+        let lf0 = MlpgAdjust::new(
+            self.condition.gv_weight[1],
+            self.condition.msd_threshold[1],
+            mutated(models.model_stream(1), |m| {
+                m.stream
+                    .apply_additional_half_tone(self.condition.additional_half_tone);
+            }),
+        )
+        .create(&durations);
+        let lpf = if self.voices.global_metadata().num_streams > 2 {
             MlpgAdjust::new(
-                stream_index,
-                self.condition.gv_weight[stream_index],
-                self.condition.msd_threshold[stream_index],
+                self.condition.gv_weight[2],
+                self.condition.msd_threshold[2],
+                models.model_stream(2),
             )
+            .create(&durations)
+        } else {
+            vec![vec![0.0; 0]; lf0.len()]
         };
 
-        let spectrum = initialize(0).create(models.stream(0), &models, &durations);
-        let lf0 = {
-            let mut lf0_params = models.stream(1);
-            apply_additional_half_tone(&mut lf0_params, self.condition.additional_half_tone);
-            initialize(1).create(lf0_params, &models, &durations)
-        };
-        let lpf = initialize(2).create(models.stream(2), &models, &durations);
-
-        let vocoder = Vocoder::new(
-            models.vector_length(0) - 1,
-            self.condition.stage,
-            self.condition.use_log_gain,
-            self.condition.sampling_frequency,
-            self.condition.fperiod,
-        );
-        let generator = SpeechGenerator::new(
-            self.condition.fperiod,
-            self.condition.alpha,
-            self.condition.beta,
-            self.condition.volume,
-        );
-        generator.synthesize(vocoder, spectrum, lf0, Some(lpf))
+        let generator = SpeechGenerator::new(self.condition.fperiod);
+        generator.synthesize(vocoder, spectrum, lf0, lpf)
     }
 }

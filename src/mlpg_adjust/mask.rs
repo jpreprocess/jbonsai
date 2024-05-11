@@ -1,14 +1,24 @@
+use crate::model::StreamParameter;
+
+use super::IterExt;
+
 pub struct Mask(Vec<bool>);
 
 impl FromIterator<bool> for Mask {
     fn from_iter<I: IntoIterator<Item = bool>>(iter: I) -> Self {
-        Self::new(iter.into_iter().collect())
+        Self(iter.into_iter().collect())
     }
 }
 
 impl Mask {
-    pub fn new(mask: Vec<bool>) -> Self {
-        Self(mask)
+    pub fn create(stream: &StreamParameter, threshold: f64, durations: &[usize]) -> Self {
+        Self(
+            stream
+                .iter()
+                .map(|(_, msd)| *msd > threshold)
+                .duration(durations)
+                .collect(),
+        )
     }
     pub fn mask(&self) -> &[bool] {
         &self.0
@@ -70,22 +80,20 @@ mod tests {
     #[test]
     fn fill() {
         assert_eq!(
-            Mask::new(vec![false, false, true, true, false, true])
+            Mask(vec![false, false, true, true, false, true])
                 .fill([0, 1, 2], 5)
                 .collect::<Vec<_>>(),
             vec![5, 5, 0, 1, 5, 2]
         );
         assert_eq!(
-            Mask::new(vec![false, false])
-                .fill([0, 1], 5)
-                .collect::<Vec<_>>(),
+            Mask(vec![false, false]).fill([0, 1], 5).collect::<Vec<_>>(),
             vec![5, 5]
         );
     }
     #[test]
     fn boundary_distances() {
         assert_eq!(
-            Mask::new(vec![
+            Mask(vec![
                 true, true, true, true, true, true, true, true, true, true
             ])
             .boundary_distances(),
@@ -103,7 +111,7 @@ mod tests {
             ],
         );
         assert_eq!(
-            Mask::new(vec![
+            Mask(vec![
                 true, true, true, false, false, true, true, true, true, true
             ])
             .boundary_distances(),
@@ -121,7 +129,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            Mask::new(vec![
+            Mask(vec![
                 true, true, true, false, true, false, false, false, false, false
             ])
             .boundary_distances(),
@@ -138,6 +146,6 @@ mod tests {
                 (0, 0)
             ]
         );
-        assert_eq!(Mask::new(vec![]).boundary_distances(), vec![]);
+        assert_eq!(Mask(vec![]).boundary_distances(), vec![]);
     }
 }

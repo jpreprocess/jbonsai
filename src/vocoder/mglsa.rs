@@ -1,4 +1,4 @@
-use super::{buffer::Buffer, coefficients::GeneralizedCoefficients};
+use super::coefficients::GeneralizedCoefficients;
 
 #[derive(Debug, Clone)]
 pub struct MelGeneralizedLogSpectrumApproximation {

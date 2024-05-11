@@ -11,7 +11,7 @@ const MODEL_NITECH_ATR503: &str =
 #[bench]
 fn bonsai(bencher: &mut Bencher) {
     // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
-    let lines: Vec<String> = [
+    let lines = [
         "xx^xx-sil+b=o/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:4_4%0_xx_xx/H:xx_xx/I:xx-xx@xx+xx&xx-xx|xx+xx/J:1_4/K:1+1-4",
         "xx^sil-b+o=N/A:-3+1+4/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
         "sil^b-o+N=s/A:-3+1+4/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
@@ -20,9 +20,9 @@ fn bonsai(bencher: &mut Bencher) {
         "N^s-a+i=sil/A:-1+3+2/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
         "s^a-i+sil=xx/A:0+4+1/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
         "a^i-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:4_4!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:1_4/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+1-4",
-        ].iter().map(|l| l.to_string()).collect();
+        ];
 
-    let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
+    let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 
     bencher.iter(|| {
         engine.synthesize_from_strings(&lines).unwrap();
@@ -37,7 +37,7 @@ fn is_bonsai(bencher: &mut Bencher) {
     // です,助動詞,*,*,*,特殊・デス,基本形,です,デス,デス’,1/2,動詞%F1/形容詞%F2/名詞%F2@1,1
     // か,助詞,副助詞／並立助詞／終助詞,*,*,*,*,か,カ,カ,0/1,動詞%F2/形容詞%F2/名詞%F1,1
     // ？,記号,一般,*,*,*,*,？,？,？,0/0,*,0
-    let lines: Vec<String> = [
+    let lines = [
         "xx^xx-sil+k=o/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:3_3%0_xx_xx/H:xx_xx/I:xx-xx@xx+xx&xx-xx|xx+xx/J:2_10/K:1+2-10",
         "xx^sil-k+o=r/A:-2+1+3/B:xx-xx_xx/C:04_xx+xx/D:24+xx_xx/E:xx_xx!xx_xx-xx/F:3_3#0_xx@1_2|1_10/G:7_5%1_xx_1/H:xx_xx/I:2-10@1+1&1-2|1+10/J:xx_xx/K:1+2-10",
         "sil^k-o+r=e/A:-2+1+3/B:xx-xx_xx/C:04_xx+xx/D:24+xx_xx/E:xx_xx!xx_xx-xx/F:3_3#0_xx@1_2|1_10/G:7_5%1_xx_1/H:xx_xx/I:2-10@1+1&1-2|1+10/J:xx_xx/K:1+2-10",
@@ -58,9 +58,9 @@ fn is_bonsai(bencher: &mut Bencher) {
         "s^U-k+a=sil/A:2+7+1/B:10-7_2/C:23_xx+xx/D:xx+xx_xx/E:3_3!0_xx-1/F:7_5#1_xx@2_1|4_7/G:xx_xx%xx_xx_xx/H:xx_xx/I:2-10@1+1&1-2|1+10/J:xx_xx/K:1+2-10",
         "U^k-a+sil=xx/A:2+7+1/B:10-7_2/C:23_xx+xx/D:xx+xx_xx/E:3_3!0_xx-1/F:7_5#1_xx@2_1|4_7/G:xx_xx%xx_xx_xx/H:xx_xx/I:2-10@1+1&1-2|1+10/J:xx_xx/K:1+2-10",
         "k^a-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:7_5!1_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:2_10/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+2-10",
-        ].iter().map(|l| l.to_string()).collect();
+        ];
 
-    let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
+    let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 
     bencher.iter(|| {
         engine.synthesize_from_strings(&lines).unwrap();
@@ -86,7 +86,7 @@ fn bonsai_letter(bencher: &mut Bencher) {
     // あっ,動詞,非自立,*,*,五段・ラ行,連用タ接続,あっ,アッ,アッ,1/2,*,0
     // た,助動詞,*,*,*,特殊・タ,基本形,た,タ,タ,0/1,動詞%F2@1/形容詞%F4@-2,1
     // 。,記号,句点,*,*,*,*,。,、,、,0/0,*,0
-    let lines: Vec<String> = [
+    let lines = [
         "xx^xx-sil+t=e/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:4_4%0_xx_xx/H:xx_xx/I:xx-xx@xx+xx&xx-xx|xx+xx/J:6_24/K:1+6-24",
         "xx^sil-t+e=g/A:-3+1+4/B:xx-xx_xx/C:02_xx+xx/D:23+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_6|1_24/G:6_2%0_xx_1/H:xx_xx/I:6-24@1+1&1-6|1+24/J:xx_xx/K:1+6-24",
         "sil^t-e+g=a/A:-3+1+4/B:xx-xx_xx/C:02_xx+xx/D:23+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_6|1_24/G:6_2%0_xx_1/H:xx_xx/I:6-24@1+1&1-6|1+24/J:xx_xx/K:1+6-24",
@@ -130,9 +130,9 @@ fn bonsai_letter(bencher: &mut Bencher) {
         "a^cl-t+a=sil/A:2+3+1/B:17-1_1/C:10_7+2/D:xx+xx_xx/E:3_1!0_xx-1/F:3_1#0_xx@6_1|22_3/G:xx_xx%xx_xx_xx/H:xx_xx/I:6-24@1+1&1-6|1+24/J:xx_xx/K:1+6-24",
         "cl^t-a+sil=xx/A:2+3+1/B:17-1_1/C:10_7+2/D:xx+xx_xx/E:3_1!0_xx-1/F:3_1#0_xx@6_1|22_3/G:xx_xx%xx_xx_xx/H:xx_xx/I:6-24@1+1&1-6|1+24/J:xx_xx/K:1+6-24",
         "t^a-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:3_1!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:6_24/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+6-24",
-        ].iter().map(|l| l.to_string()).collect();
+        ];
 
-    let engine = Engine::load(&[MODEL_NITECH_ATR503.to_string()]).unwrap();
+    let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 
     bencher.iter(|| {
         engine.synthesize_from_strings(&lines).unwrap();

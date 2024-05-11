@@ -10,10 +10,10 @@ pub struct Excitation {
 }
 
 impl Excitation {
-    pub fn new(pitch: f64, nlpf: usize) -> Self {
+    pub fn new(nlpf: usize) -> Self {
         Self {
-            pitch_of_curr_point: pitch,
-            pitch_counter: pitch,
+            pitch_of_curr_point: 0.0,
+            pitch_counter: 0.0,
             pitch_inc_per_point: 0.0,
             ring_buffer: RingBuffer::new(nlpf),
             gauss: true,

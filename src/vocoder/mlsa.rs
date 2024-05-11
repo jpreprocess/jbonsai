@@ -1,4 +1,4 @@
-use super::{buffer::Buffer, coefficients::Coefficients};
+use super::coefficients::Coefficients;
 
 const PADE: [f64; 21] = [
     1.00000000000f64,
@@ -35,13 +35,13 @@ pub struct MelLogSpectrumApproximation<const N: usize> {
 }
 
 impl<const N: usize> MelLogSpectrumApproximation<N> {
-    pub fn new(c_len: usize) -> Self {
+    pub fn new(nmcp: usize) -> Self {
         let pade_start = (N - 1) * N / 2;
         Self {
             ppade: std::array::from_fn(|i| PADE[pade_start + i]),
             d11: [0.0; N],
             d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; c_len + 1]),
+            d21: std::array::from_fn(|_| vec![0.0; nmcp + 1]),
             d22: [0.0; N],
         }
     }
@@ -96,7 +96,7 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
         for i in 2..coefficients.len() {
             unsafe {
                 let di = d.get_unchecked(i) + alpha * (d.get_unchecked(i + 1) - prev);
-                y += di * coefficients.buffer.get_unchecked(i);
+                y += di * coefficients.get_unchecked(i);
                 *d.get_unchecked_mut(i) = std::mem::replace(&mut prev, di);
             }
         }

@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use jlabel::Label;
 
+use crate::model::MeanVari;
+
 use super::tree::Tree;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -81,15 +83,14 @@ impl Model {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelParameter {
-    // (mean, vari)
-    pub parameters: Vec<(f64, f64)>,
+    pub parameters: Vec<MeanVari>,
     pub msd: Option<f64>,
 }
 
 impl ModelParameter {
     pub fn new(size: usize, is_msd: bool) -> Self {
         Self {
-            parameters: vec![(0.0, 0.0); size],
+            parameters: vec![MeanVari(0.0, 0.0); size],
             msd: if is_msd { Some(0.0) } else { None },
         }
     }
@@ -98,7 +99,7 @@ impl ModelParameter {
         let len = lin.len() / 2;
         let mut parameters = Vec::with_capacity(len);
         for i in 0..len {
-            parameters.push((lin[i], lin[i + len]))
+            parameters.push(MeanVari(lin[i], lin[i + len]))
         }
         Self {
             parameters,
@@ -106,13 +107,23 @@ impl ModelParameter {
         }
     }
 
-    pub fn add_assign(&mut self, weight: f64, rhs: &Self) {
-        for (i, p) in rhs.parameters.iter().enumerate() {
-            self.parameters[i].0 += weight * p.0;
-            self.parameters[i].1 += weight * p.1;
+    pub fn mul_add_assign(&mut self, weight: f64, rhs: &Self) {
+        for (lhs, rhs) in self.parameters.iter_mut().zip(rhs.parameters.iter()) {
+            lhs.0 += weight * rhs.0;
+            lhs.1 += weight * rhs.1;
         }
-        if let (Some(msd), Some(rhs)) = (self.msd.as_mut(), rhs.msd) {
+        if let (Some(msd), Some(rhs)) = (&mut self.msd, rhs.msd) {
             *msd += weight * rhs;
         }
+    }
+
+    pub fn mul(&self, weight: f64) -> Self {
+        let parameters = self
+            .parameters
+            .iter()
+            .map(|mean_vari| mean_vari.weighted(weight))
+            .collect();
+        let msd = self.msd.map(|msd| weight * msd);
+        Self { parameters, msd }
     }
 }
