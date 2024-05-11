@@ -13,7 +13,37 @@ pub enum WeightError {
     InvalidLength(usize, usize),
 }
 
-/// Interpolation weight for voice morphing
+/// Interpolation weight for voice morphing.
+///
+/// ## Example
+///
+/// ```rust
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// // Load multiple voices
+/// let mut engine = jbonsai::Engine::load(&[
+///     "models/tohoku-f01/tohoku-f01-sad.htsvoice",
+///     "models/tohoku-f01/tohoku-f01-happy.htsvoice",
+/// ])?;
+///
+/// // Get interpolation weight as mutable reference
+/// let iw = engine.condition.get_interporation_weight_mut();
+///
+/// // Set the same weights for duration.
+/// // The resulting duration will be in the middle of `sad` and `happy` style.
+/// iw.set_duration(&[0.5, 0.5])?;
+///
+/// // Stream index 0: MCP (spectrum)
+/// iw.set_parameter(0, &[0.5, 0.5])?;
+///
+/// // Stream index 1: LF0 (log F0)
+/// iw.set_parameter(1, &[0.5, 0.5])?;
+///
+/// // Stream index 2: LPF parameters (LPF)
+/// // For LPF, use `sad` style and ignore `happy` style.
+/// iw.set_parameter(2, &[1.0, 0.0])?;
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Debug, Clone)]
 pub struct InterporationWeight {
     nvoices: usize,
