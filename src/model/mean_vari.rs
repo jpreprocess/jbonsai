@@ -3,7 +3,9 @@ use std::{
     ops::{Add, Mul},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct MeanVari(pub f64, pub f64);
 
 impl MeanVari {
