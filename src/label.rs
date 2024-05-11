@@ -1,4 +1,4 @@
-//! Sequence of [`jlabel::Label`]s, with time alignments.
+//! Sequence of [`jlabel::Label`]s with time alignments.
 //!
 //! Each [`jlabel::Label`] corresponds to one phoneme.
 

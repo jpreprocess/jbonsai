@@ -16,7 +16,7 @@ impl FromIterator<bool> for Mask {
 }
 
 impl Mask {
-    /// Create mask from `msd` field in stream, with lengths of `durations`.
+    /// Create mask from `msd` field in stream with lengths of `durations`.
     pub fn create(stream: &StreamParameter, threshold: f64, durations: &[usize]) -> Self {
         Self(
             stream

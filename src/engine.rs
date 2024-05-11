@@ -27,7 +27,7 @@ pub enum EngineError {
     LabelError(#[from] LabelError),
 }
 
-/// Settings used to generating voice.
+/// Settings used in voice synthesis.
 #[derive(Debug, Clone)]
 pub struct Condition {
     /// Sampling frequency
@@ -244,7 +244,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    /// Load a `.htsvoice` files and create a new [`Engine`].
+    /// Load `.htsvoice` files and create a new [`Engine`].
     #[cfg(feature = "htsvoice")]
     pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
         use crate::model::load_htsvoice_file;
@@ -265,7 +265,7 @@ impl Engine {
         Engine { voices, condition }
     }
 
-    /// Synthesize voice from given labels, with current voiceset and condition.
+    /// Synthesize voice from given labels with current voiceset and condition.
     pub fn synthesize(&self, labels: impl ToLabels) -> Result<Vec<f64>, EngineError> {
         Ok(self.generator(labels)?.generate_all())
     }

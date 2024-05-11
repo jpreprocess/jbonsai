@@ -1,7 +1,7 @@
 //! (Relatively) lightweight voice synthesizer written in Rust.
 //!
 //! This project is currently a [HTS Engine](https://hts-engine.sourceforge.net) rewrite in Rust.
-//! However, this may change any time, and there is no guarantee that jbonsai produces the same result as HTS Engine.
+//! However, this may change at any time, and there is no guarantee that jbonsai produces the same result as HTS Engine.
 //!
 //! ## Example
 //!

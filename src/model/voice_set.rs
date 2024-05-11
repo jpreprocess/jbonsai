@@ -76,7 +76,7 @@ impl VoiceSet {
         &self.first().stream_models[stream_index].windows
     }
 
-    /// Call the given function with each [`Voice`], apply weights to its result, and return the weighted parameter.
+    /// Select parameter in [`Voice`] by the given function, apply weights to the parameter and return it.
     pub fn weighted<F: Fn(&Arc<Voice>) -> &ModelParameter>(
         &self,
         weights: &Weights,

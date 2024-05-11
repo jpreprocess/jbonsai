@@ -20,7 +20,7 @@ impl SpeechGenerator {
     ///
     /// This function will panic unless all the following conditions are met:
     /// - The inner length of LF0 must be 1.
-    /// - The inner length of LPF must be odd number.
+    /// - The inner length of LPF must be an odd number.
     pub fn new(
         fperiod: usize,
         vocoder: Vocoder,

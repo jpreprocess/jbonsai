@@ -44,8 +44,8 @@ impl InterporationWeight {
     /// Set duration weight.
     ///
     /// Conditions:
-    /// - weights.len() == nvoices
-    /// - weights.iter().sum() == 1.0
+    /// - weight.len() == nvoices
+    /// - weight.iter().sum() == 1.0
     pub fn set_duration(&mut self, weight: &[f64]) -> Result<(), WeightError> {
         let weights = Weights::new(weight)?;
         weights.check_length(self.nvoices)?;
@@ -55,8 +55,8 @@ impl InterporationWeight {
     /// Set parameter weight.
     ///
     /// Conditions:
-    /// - weights.len() == nvoices
-    /// - weights.iter().sum() == 1.0
+    /// - weight.len() == nvoices
+    /// - weight.iter().sum() == 1.0
     pub fn set_parameter(
         &mut self,
         stream_index: usize,

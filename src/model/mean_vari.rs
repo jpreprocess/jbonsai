@@ -30,13 +30,13 @@ impl MeanVari {
         Self(*mean, ivar)
     }
 
-    /// Set the variance to 0.
+    /// Returns new instance with its variance set to 0.
     pub fn with_0(&self) -> Self {
         let Self(mean, _) = self;
         Self(*mean, 0.0)
     }
 
-    /// Apply the provided weight.
+    /// Returns a new instance with provided weight applied.
     pub fn weighted(&self, weight: f64) -> Self {
         let Self(mean, vari) = self;
         Self(mean * weight, vari * weight)

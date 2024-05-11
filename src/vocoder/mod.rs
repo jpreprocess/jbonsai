@@ -1,4 +1,4 @@
-//! Generates the audio signal from log F0 (LF0), spectrum (MCP), and LPF parameters (LPF; optional).
+//! Generates the audio signal from log F0 (LF0), spectrum (MCP) and LPF parameters (LPF; optional).
 
 #![allow(missing_docs)]
 
