@@ -1,5 +1,5 @@
 //! Estimates the duration of states.
-//! 
+//!
 //! Note: "State" is a unit into which a phoneme is divided.
 
 use crate::model::MeanVari;

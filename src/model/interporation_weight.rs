@@ -85,6 +85,7 @@ impl InterporationWeight {
     /// Set parameter weight.
     ///
     /// Conditions:
+    /// - stream_index < nstream
     /// - weight.len() == nvoices
     /// - weight.iter().sum() == 1.0
     pub fn set_parameter(
@@ -100,6 +101,7 @@ impl InterporationWeight {
     /// Set GV weight.
     ///
     /// Conditions:
+    /// - stream_index < nstream
     /// - weights.len() == nvoices
     /// - weights.iter().sum() == 1.0
     pub fn set_gv(&mut self, stream_index: usize, weight: &[f64]) -> Result<(), WeightError> {

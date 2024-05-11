@@ -142,13 +142,13 @@ impl Condition {
         self.fperiod
     }
 
-    /// Set volume in db.
+    /// Set volume in dB.
     ///
     /// Note: Default value is 0.0.
     pub fn set_volume(&mut self, f: f64) {
         self.volume = (f * DB).exp();
     }
-    /// Get volume in db
+    /// Get volume in dB.
     pub fn get_volume(&self) -> f64 {
         self.volume.ln() / DB
     }
@@ -159,7 +159,7 @@ impl Condition {
     pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
         self.msd_threshold[stream_index] = f.clamp(0.0, 1.0);
     }
-    /// Get threshold for MSD
+    /// Get threshold for MSD.
     pub fn get_msd_threshold(&self, stream_index: usize) -> f64 {
         self.msd_threshold[stream_index]
     }
@@ -170,7 +170,7 @@ impl Condition {
     pub fn set_gv_weight(&mut self, stream_index: usize, f: f64) {
         self.gv_weight[stream_index] = f.max(0.0);
     }
-    /// Get GV weight
+    /// Get GV weight.
     pub fn get_gv_weight(&self, stream_index: usize) -> f64 {
         self.gv_weight[stream_index]
     }
@@ -181,18 +181,18 @@ impl Condition {
     pub fn set_speed(&mut self, f: f64) {
         self.speed = f.max(1.0E-06);
     }
-    /// Get speed
+    /// Get speed.
     pub fn get_speed(&self) -> f64 {
         self.speed
     }
 
-    /// Set flag to use phoneme alignment in label.
+    /// Set whether to use phoneme alignment in label.
     ///
-    /// Note: Default value is 1.0.
+    /// Note: Default value is `false`.
     pub fn set_phoneme_alignment_flag(&mut self, b: bool) {
         self.phoneme_alignment_flag = b;
     }
-    /// Get flag to use phoneme alignment in label.
+    /// Get whether to use phoneme alignment in label.
     pub fn get_phoneme_alignment_flag(&self) -> bool {
         self.phoneme_alignment_flag
     }
@@ -229,6 +229,8 @@ impl Condition {
         &self.interporation_weight
     }
     /// Get interporation weight as mutable reference.
+    ///
+    /// For details on interpolation weight, please refer to [`InterporationWeight`].
     pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
         &mut self.interporation_weight
     }
