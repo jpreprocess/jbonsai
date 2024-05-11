@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::constants::DB;
 use crate::duration::DurationEstimator;
-use crate::label::{LabelError, Labels};
+use crate::label::{LabelError, ToLabels};
 use crate::mlpg_adjust::MlpgAdjust;
 use crate::model::interporation_weight::InterporationWeight;
 use crate::model::{ModelError, Models, VoiceSet};
@@ -247,27 +247,12 @@ impl Engine {
         Engine { voices, condition }
     }
 
-    pub fn synthesize_from_strings<S: AsRef<str>>(
-        &self,
-        lines: &[S],
-    ) -> Result<Vec<f64>, EngineError> {
-        let labels = Labels::load_from_strings(
-            self.condition.sampling_frequency,
-            self.condition.fperiod,
-            lines,
-        )?;
-        Ok(self.generate_speech(&labels))
+    pub fn synthesize(&self, labels: impl ToLabels) -> Result<Vec<f64>, EngineError> {
+        Ok(self.generator(labels)?.synthesize_all())
     }
 
-    pub fn synthesize_from_labels(
-        &self,
-        labels: Vec<jlabel::Label>,
-    ) -> Result<Vec<f64>, EngineError> {
-        let labels = Labels::new(labels, None)?;
-        Ok(self.generate_speech(&labels))
-    }
-
-    pub fn generate_speech(&self, labels: &Labels) -> Vec<f64> {
+    pub fn generator(&self, labels: impl ToLabels) -> Result<SpeechGenerator, EngineError> {
+        let labels = labels.to_labels(&self.condition)?;
         let vocoder = Vocoder::new(
             self.voices.stream_metadata(0).vector_length,
             self.voices.stream_metadata(2).vector_length,
@@ -324,7 +309,12 @@ impl Engine {
             vec![vec![0.0; 0]; lf0.len()]
         };
 
-        let generator = SpeechGenerator::new(self.condition.fperiod);
-        generator.synthesize(vocoder, spectrum, lf0, lpf)
+        Ok(SpeechGenerator::new(
+            self.condition.fperiod,
+            vocoder,
+            spectrum,
+            lf0,
+            lpf,
+        ))
     }
 }

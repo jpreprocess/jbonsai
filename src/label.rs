@@ -1,3 +1,5 @@
+use crate::engine::Condition;
+
 #[derive(Debug, thiserror::Error)]
 pub enum LabelError {
     #[error("jlabel failed to parse fullcontext-label: {0}")]
@@ -103,6 +105,38 @@ impl Labels {
     }
     pub fn times(&self) -> &[(f64, f64)] {
         &self.times
+    }
+}
+
+pub trait ToLabels {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError>;
+}
+
+impl ToLabels for Vec<jlabel::Label> {
+    fn to_labels(self, _condition: &Condition) -> Result<Labels, LabelError> {
+        Labels::new(self, None)
+    }
+}
+
+impl<S: AsRef<str>> ToLabels for &[S] {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError> {
+        Labels::load_from_strings(
+            condition.get_sampling_frequency(),
+            condition.get_fperiod(),
+            self,
+        )
+    }
+}
+
+impl<const N: usize, S: AsRef<str>> ToLabels for &[S; N] {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError> {
+        self.as_slice().to_labels(condition)
+    }
+}
+
+impl ToLabels for Vec<String> {
+    fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError> {
+        self.as_slice().to_labels(condition)
     }
 }
 
