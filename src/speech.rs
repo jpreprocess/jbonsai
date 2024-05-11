@@ -42,7 +42,7 @@ impl SpeechGenerator {
     }
 
     /// Generate speech
-    pub fn generate(&mut self, speech: &mut [f64]) -> usize {
+    pub fn generate_step(&mut self, speech: &mut [f64]) -> usize {
         if self.lf0.len() <= self.next {
             return 0;
         }
@@ -67,7 +67,7 @@ impl SpeechGenerator {
         }
 
         let mut buf = vec![0.0; (self.lf0.len() - self.next) * self.fperiod];
-        while self.generate(&mut buf[self.next * self.fperiod..]) > 0 {}
+        while self.generate_step(&mut buf[self.next * self.fperiod..]) > 0 {}
 
         buf
     }
