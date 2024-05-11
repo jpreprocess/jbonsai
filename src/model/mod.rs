@@ -1,3 +1,5 @@
+//! Defines structures of voice model.
+
 use std::borrow::Cow;
 
 use self::voice::model::ModelParameter;
@@ -24,22 +26,30 @@ pub use voice_set::VoiceSet;
 #[cfg(feature = "htsvoice")]
 mod parser;
 
+/// Errors associated with Model.
 #[derive(Debug, thiserror::Error)]
 pub enum ModelError {
+    /// No voice model was given.
     #[error("No HTS voice was given.")]
     EmptyVoice,
+    /// The global metadata does not match among the provided Voice's.
     #[error("The global metadata does not match.")]
     MetadataError,
+    /// Failed in I/O.
     #[error("Io failed: {0}")]
     Io(#[from] std::io::Error),
 
     #[cfg(feature = "htsvoice")]
+    /// Failed to parse htsvoice.
     #[error("Parser returned error:{0}")]
     ParserError(#[from] parser::ModelParseError),
 }
 
+/// Structure for GV (global variance) parameter.
 pub type GvParameter = (Vec<MeanVari>, Vec<bool>);
 
+/// A temporary structure holding labels, voices, and weights,
+/// and provides modules with necessary parameters.
 pub struct Models<'a> {
     labels: Cow<'a, [Label]>,
 
@@ -48,6 +58,7 @@ pub struct Models<'a> {
 }
 
 impl<'a> Models<'a> {
+    /// Create a new Model structure.
     pub fn new(
         labels: &'a [Label],
         voices: &'a VoiceSet,
@@ -60,9 +71,12 @@ impl<'a> Models<'a> {
         }
     }
 
+    /// Get the number of states.
     pub fn nstate(&self) -> usize {
         self.voices.global_metadata().num_states
     }
+
+    /// Generate duration parameter sequence.
     pub fn duration(&self) -> Vec<MeanVari> {
         let weights = self.weights.get_duration();
         self.labels
@@ -79,6 +93,7 @@ impl<'a> Models<'a> {
     fn vector_length(&self, stream_index: usize) -> usize {
         self.voices.stream_metadata(stream_index).vector_length
     }
+
     /// FIXME: label/state -> window -> vector
     fn stream(&self, stream_index: usize) -> StreamParameter {
         let global_metadata = &self.voices.global_metadata();
@@ -130,6 +145,7 @@ impl<'a> Models<'a> {
         Some((params.parameters, gv_switch))
     }
 
+    /// Create [`ModelStream`] corresponding to the given stream index.
     pub fn model_stream(&self, stream_index: usize) -> ModelStream {
         ModelStream {
             vector_length: self.vector_length(stream_index),
@@ -140,6 +156,7 @@ impl<'a> Models<'a> {
     }
 }
 
+/// Load `.htsvoice` file as [`Voice`].
 #[cfg(feature = "htsvoice")]
 pub fn load_htsvoice_file<P: AsRef<std::path::Path>>(path: &P) -> Result<Voice, ModelError> {
     let f = std::fs::read(path)?;

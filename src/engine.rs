@@ -1,3 +1,5 @@
+//! Main components for voice synthesis.
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,17 +12,22 @@ use crate::model::{ModelError, Models, VoiceSet};
 use crate::speech::SpeechGenerator;
 use crate::vocoder::Vocoder;
 
+/// Error from Engine.
 #[derive(Debug, thiserror::Error)]
 pub enum EngineError {
+    /// Failed to load model.
     #[error("Model error: {0}")]
     ModelError(#[from] ModelError),
+    /// Failed to parse option written in the provided model.
     #[error("Failed to parse option {0}")]
     ParseOptionError(String),
 
+    /// Failed to parse provided labels.
     #[error("Label error: {0}")]
     LabelError(#[from] LabelError),
 }
 
+/// Settings used to generating voice.
 #[derive(Debug, Clone)]
 pub struct Condition {
     /// Sampling frequency
@@ -73,6 +80,7 @@ impl Default for Condition {
 }
 
 impl Condition {
+    /// Load default settings in the given [`VoiceSet`] to this [`Condition`].
     pub fn load_model(&mut self, voices: &VoiceSet) -> Result<(), EngineError> {
         let metadata = voices.global_metadata();
 
@@ -165,6 +173,7 @@ impl Condition {
     }
 
     /// Set speed
+    ///
     /// Note: Default value is 1.0.
     pub fn set_speed(&mut self, f: f64) {
         self.speed = f.max(1.0E-06);
@@ -175,6 +184,7 @@ impl Condition {
     }
 
     /// Set flag to use phoneme alignment in label
+    ///
     /// Note: Default value is 1.0.
     pub fn set_phoneme_alignment_flag(&mut self, b: bool) {
         self.phoneme_alignment_flag = b;
@@ -221,13 +231,17 @@ impl Condition {
     }
 }
 
+/// Voice synthesis engine.
 #[derive(Debug, Clone)]
 pub struct Engine {
+    /// Configuration of voice synthesis.
     pub condition: Condition,
+    /// Set of voice models used in voice synthesis.
     pub voices: VoiceSet,
 }
 
 impl Engine {
+    /// Loads `.htsvoice` files and create a new [`Engine`].
     #[cfg(feature = "htsvoice")]
     pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
         use crate::model::load_htsvoice_file;
@@ -243,14 +257,19 @@ impl Engine {
 
         Ok(Self::new(voiceset, condition))
     }
+    /// Create a new [`Engine`] with provided voices and condition.
     pub fn new(voices: VoiceSet, condition: Condition) -> Self {
         Engine { voices, condition }
     }
 
+    /// Synthesize voice from given labels, with current voiceset and condition.
     pub fn synthesize(&self, labels: impl ToLabels) -> Result<Vec<f64>, EngineError> {
         Ok(self.generator(labels)?.generate_all())
     }
 
+    /// Return a [`SpeechGenerator`], which synthesizes voice from given labels incrementally, with current voiceset and condition.
+    ///
+    /// This is useful for streaming or real-time synthesis.
     pub fn generator(&self, labels: impl ToLabels) -> Result<SpeechGenerator, EngineError> {
         let labels = labels.to_labels(&self.condition)?;
         let vocoder = Vocoder::new(

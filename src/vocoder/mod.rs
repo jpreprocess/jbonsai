@@ -1,3 +1,7 @@
+//! Generates the audio signal from log F0 (LF0), spectrum (MCP), and LPF parameters (LPF; optional).
+
+#![allow(missing_docs)]
+
 use crate::constants::{MAX_LF0, MIN_LF0, NODATA};
 
 #[macro_use]
