@@ -54,7 +54,7 @@ impl VoiceSet {
     }
     #[inline]
     /// Get whether the [`VoiceSet`] is empty.
-    /// 
+    ///
     /// This function always return `true`.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
