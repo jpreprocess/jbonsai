@@ -10,6 +10,10 @@ default = ["htsvoice"]
 binary = ["htsvoice", "dep:hound"]
 htsvoice = ["dep:nom"]
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [[example]]
 name = "is-bonsai"
 required-features = ["binary"]
