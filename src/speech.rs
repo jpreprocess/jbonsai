@@ -20,6 +20,13 @@ impl SpeechGenerator {
         lf0: Parameter,
         lpf: Parameter,
     ) -> Self {
+        if lf0.len() > 0 && lf0[0].len() != 1 {
+            panic!("The size of lf0 static vector must be 1.");
+        }
+        if lpf.len() > 0 && lpf[0].len() % 2 == 0 {
+            panic!("The number of low-pass filter coefficient must be odd numbers.");
+        }
+
         Self {
             fperiod,
             vocoder,
@@ -38,12 +45,6 @@ impl SpeechGenerator {
     pub fn synthesize(&mut self, speech: &mut [f64]) -> usize {
         if self.lf0.len() <= self.next {
             return 0;
-        }
-        if self.lf0[self.next].len() != 1 {
-            panic!("The size of lf0 static vector must be 1.");
-        }
-        if self.lpf[self.next].len() % 2 == 0 {
-            panic!("The number of low-pass filter coefficient must be odd numbers.");
         }
         if speech.len() < self.fperiod {
             panic!("The length of speech buffer must be larger than fperiod.");
