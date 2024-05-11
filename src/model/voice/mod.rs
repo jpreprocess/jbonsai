@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use serde::{Deserialize, Serialize};
+
 use self::{model::Model, window::Windows};
 
 pub mod model;
@@ -7,7 +9,7 @@ pub mod question;
 pub mod tree;
 pub mod window;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Voice {
     pub metadata: GlobalModelMetadata,
     pub duration_model: Model,
@@ -25,7 +27,7 @@ impl Display for Voice {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GlobalModelMetadata {
     pub hts_voice_version: String,
     pub sampling_frequency: usize,
@@ -55,7 +57,7 @@ impl Display for GlobalModelMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StreamModels {
     pub metadata: StreamModelMetadata,
 
@@ -101,7 +103,7 @@ impl StreamModels {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamModelMetadata {
     pub vector_length: usize,
     pub num_windows: usize,

@@ -1,8 +1,9 @@
 use jlabel::Label;
+use serde::{Deserialize, Serialize};
 
 use super::question::Question;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tree {
     pub state: usize,
     pub nodes: Vec<TreeNode>,
@@ -26,7 +27,7 @@ impl Tree {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TreeNode {
     Node {
         question: Question,

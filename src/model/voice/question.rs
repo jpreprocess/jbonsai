@@ -1,16 +1,17 @@
 use jlabel_question::{regex::RegexQuestion, AllQuestion, QuestionMatcher};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Question {
     AllQustion(AllQuestion),
-    Regex(RegexQuestion),
+    Regex(RegexWrap),
 }
 
 impl Question {
     pub fn parse(patterns: &[&str]) -> Result<Self, jlabel_question::ParseError> {
         match AllQuestion::parse(patterns) {
             Ok(question) => Ok(Self::AllQustion(question)),
-            Err(_) => Ok(Self::Regex(RegexQuestion::parse(patterns)?)),
+            Err(_) => Ok(Self::Regex(RegexWrap::parse(patterns)?)),
         }
     }
 
@@ -22,13 +23,48 @@ impl Question {
     }
 }
 
-impl PartialEq for Question {
+#[derive(Debug, Clone)]
+pub struct RegexWrap {
+    orig: Vec<String>,
+    q: RegexQuestion,
+}
+
+impl RegexWrap {
+    pub fn parse(patterns: &[&str]) -> Result<Self, jlabel_question::ParseError> {
+        Ok(Self {
+            orig: patterns.iter().map(|s| s.to_string()).collect(),
+            q: RegexQuestion::parse(patterns)?,
+        })
+    }
+    pub fn test(&self, label: &jlabel::Label) -> bool {
+        self.q.test(label)
+    }
+}
+
+impl PartialEq for RegexWrap {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::AllQustion(a), Self::AllQustion(b)) => a == b,
-            // TODO: :exploding_head:
-            (Self::Regex(_), Self::Regex(_)) => true,
-            _ => false,
-        }
+        self.orig == other.orig
+    }
+}
+
+impl Serialize for RegexWrap {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.orig.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for RegexWrap {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let orig = Vec::deserialize(deserializer)?;
+        Ok(Self {
+            q: RegexQuestion::parse(&orig).map_err(serde::de::Error::custom)?,
+            orig,
+        })
     }
 }

@@ -1,12 +1,13 @@
 use std::fmt::Display;
 
 use jlabel::Label;
+use serde::{Deserialize, Serialize};
 
 use crate::model::MeanVari;
 
 use super::tree::Tree;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Model {
     trees: Vec<Tree>,
     pdf: Vec<Vec<ModelParameter>>,
@@ -81,7 +82,7 @@ impl Model {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ModelParameter {
     pub parameters: Vec<MeanVari>,
     pub msd: Option<f64>,
