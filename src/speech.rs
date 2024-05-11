@@ -20,10 +20,10 @@ impl SpeechGenerator {
         lf0: Parameter,
         lpf: Parameter,
     ) -> Self {
-        if lf0.len() > 0 && lf0[0].len() != 1 {
+        if !lf0.is_empty() && lf0[0].len() != 1 {
             panic!("The size of lf0 static vector must be 1.");
         }
-        if lpf.len() > 0 && lpf[0].len() % 2 == 0 {
+        if !lpf.is_empty() && lpf[0].len() % 2 == 0 {
             panic!("The number of low-pass filter coefficient must be odd numbers.");
         }
 
