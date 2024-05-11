@@ -8,7 +8,7 @@
 //! This example produces a mono, 48,000 Hz (typically) PCM data saying 「盆栽」(ぼんさい; bonsai) in `speech` variable.
 //!
 //! ```rust
-//! # fn main() -> Box<dyn std::error::Error> {
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
 //! let lines = [
 //!     "xx^xx-sil+b=o/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:4_4%0_xx_xx/H:xx_xx/I:xx-xx@xx+xx&xx-xx|xx+xx/J:1_4/K:1+1-4",
@@ -32,6 +32,7 @@
 //!     "The synthesized voice has {} samples in total.",
 //!     speech.len()
 //! );
+//! # Ok(())
 //! # }
 //! ```
 
@@ -47,6 +48,8 @@ pub mod mlpg_adjust;
 pub mod model;
 pub mod speech;
 pub mod vocoder;
+
+pub use engine::*;
 
 #[cfg(test)]
 mod tests {
