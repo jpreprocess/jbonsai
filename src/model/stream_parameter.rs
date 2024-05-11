@@ -24,6 +24,8 @@ impl StreamParameter {
     }
 
     /// Add `additional_half_tone * HALF_TONE` to mean.
+    ///
+    /// If used to LF0 parameters, it means adding `additional_half_tone` amount of half tone.
     pub fn apply_additional_half_tone(&mut self, additional_half_tone: f64) {
         use crate::constants::{HALF_TONE, MAX_LF0, MIN_LF0};
         if additional_half_tone == 0.0 {

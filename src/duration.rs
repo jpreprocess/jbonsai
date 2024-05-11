@@ -1,11 +1,13 @@
-//! Estimate the duration of state (phoneme is divided into a few state).
+//! Estimates the duration of states.
+//! 
+//! Note: "State" is a unit into which a phoneme is divided.
 
 use crate::model::MeanVari;
 
 /// Estimate the duration of each state.
 ///
 /// The sequence of labels is divided into fixed number (`nstate`; typically 5) of states,
-/// and the duration for each state is estimated in [`DurationEstimator`].
+/// and the duration for each state is estimated here.
 pub struct DurationEstimator {
     parameters: Vec<MeanVari>,
     nstate: usize,

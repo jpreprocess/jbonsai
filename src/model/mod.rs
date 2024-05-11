@@ -49,7 +49,7 @@ pub enum ModelError {
 pub type GvParameter = (Vec<MeanVari>, Vec<bool>);
 
 /// A temporary structure holding labels, voices, and weights,
-/// and provides modules with necessary parameters.
+/// which provides modules with necessary parameters.
 pub struct Models<'a> {
     labels: Cow<'a, [Label]>,
 

@@ -17,7 +17,7 @@ pub enum LabelError {
     #[error("Failed to parse as floating-point number")]
     FloatParse(#[from] std::num::ParseFloatError),
 
-    /// The length of provided `times` and `labels` differed.
+    /// The length of the provided `times` and `labels` differed.
     #[error("The length of `times` and `labels` must be the same")]
     LengthMismatch,
 }
@@ -114,7 +114,7 @@ impl Labels {
         }
     }
 
-    /// Get [`jlabel::Label`].
+    /// Get labels ([`jlabel::Label`]).
     pub fn labels(&self) -> &[jlabel::Label] {
         &self.labels
     }

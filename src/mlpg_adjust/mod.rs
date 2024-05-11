@@ -1,4 +1,6 @@
 //! Smoothes speech parameters by "maximum likelihood parameter generation (MLPG)."
+//!
+//! For details on MLPG, please refer to <https://doi.org/10.1109/ICASSP.2000.861820>.
 
 use std::iter;
 

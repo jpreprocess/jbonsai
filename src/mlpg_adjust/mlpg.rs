@@ -1,6 +1,6 @@
 //! MLPG speech parameter generation algorithm.
 //!
-//! For details, please refer to https://doi.org/10.1109/ICASSP.2000.861820
+//! For details, please refer to <https://doi.org/10.1109/ICASSP.2000.861820>.
 
 use crate::model::{GvParameter, MeanVari, Windows};
 

@@ -1,4 +1,4 @@
-//! Set of voice model that are morphable.
+//! Set of voice model that can be morphed with each other.
 
 use std::{ops::Deref, sync::Arc};
 

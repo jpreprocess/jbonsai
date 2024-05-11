@@ -22,7 +22,7 @@ pub enum EngineError {
     #[error("Failed to parse option {0}")]
     ParseOptionError(String),
 
-    /// Failed to parse provided labels.
+    /// Failed to parse the provided labels.
     #[error("Label error: {0}")]
     LabelError(#[from] LabelError),
 }
@@ -124,25 +124,26 @@ impl Condition {
         Ok(())
     }
 
-    /// Set sampling frequency (Hz), 1 <= i
+    /// Set sampling frequency (Hz). 1 <= i
     pub fn set_sampling_frequency(&mut self, i: usize) {
         self.sampling_frequency = i.max(1);
     }
-    /// Get sampling frequency
+    /// Get sampling frequency.
     pub fn get_sampling_frequency(&self) -> usize {
         self.sampling_frequency
     }
 
-    /// Set frame shift (point), 1 <= i
+    /// Set frame shift (point). 1 <= i
     pub fn set_fperiod(&mut self, i: usize) {
         self.fperiod = i.max(1);
     }
-    /// Get frame shift (point)
+    /// Get frame shift (point).
     pub fn get_fperiod(&self) -> usize {
         self.fperiod
     }
 
-    /// Set volume in db
+    /// Set volume in db.
+    ///
     /// Note: Default value is 0.0.
     pub fn set_volume(&mut self, f: f64) {
         self.volume = (f * DB).exp();
@@ -152,7 +153,8 @@ impl Condition {
         self.volume.ln() / DB
     }
 
-    /// Set threshold for MSD
+    /// Set threshold for MSD (multi-space probability distribution).
+    ///
     /// Note: Default value is 0.5.
     pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
         self.msd_threshold[stream_index] = f.clamp(0.0, 1.0);
@@ -162,7 +164,8 @@ impl Condition {
         self.msd_threshold[stream_index]
     }
 
-    /// Set GV weight
+    /// Set GV (global variance) weight.
+    ///
     /// Note: Default value is 1.0.
     pub fn set_gv_weight(&mut self, stream_index: usize, f: f64) {
         self.gv_weight[stream_index] = f.max(0.0);
@@ -172,7 +175,7 @@ impl Condition {
         self.gv_weight[stream_index]
     }
 
-    /// Set speed
+    /// Set speed.
     ///
     /// Note: Default value is 1.0.
     pub fn set_speed(&mut self, f: f64) {
@@ -183,49 +186,49 @@ impl Condition {
         self.speed
     }
 
-    /// Set flag to use phoneme alignment in label
+    /// Set flag to use phoneme alignment in label.
     ///
     /// Note: Default value is 1.0.
     pub fn set_phoneme_alignment_flag(&mut self, b: bool) {
         self.phoneme_alignment_flag = b;
     }
-    /// Get flag to use phoneme alignment in label
+    /// Get flag to use phoneme alignment in label.
     pub fn get_phoneme_alignment_flag(&self) -> bool {
         self.phoneme_alignment_flag
     }
 
-    /// Set frequency warping parameter alpha
+    /// Set frequency warping parameter alpha.
     pub fn set_alpha(&mut self, f: f64) {
         self.alpha = f.clamp(0.0, 1.0);
     }
-    /// Get frequency warping parameter alpha
+    /// Get frequency warping parameter alpha.
     pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 
-    /// Set postfiltering coefficient parameter beta
+    /// Set postfiltering coefficient parameter beta.
     pub fn set_beta(&mut self, f: f64) {
         self.beta = f.clamp(0.0, 1.0);
     }
-    /// Get postfiltering coefficient parameter beta
+    /// Get postfiltering coefficient parameter beta.
     pub fn get_beta(&self) -> f64 {
         self.beta
     }
 
-    /// Set additional half tone
+    /// Set additional half tone.
     pub fn set_additional_half_tone(&mut self, f: f64) {
         self.additional_half_tone = f;
     }
-    /// Get additional half tone
+    /// Get additional half tone.
     pub fn get_additional_half_tone(&self) -> f64 {
         self.additional_half_tone
     }
 
-    /// Get interporation weight
+    /// Get interporation weight.
     pub fn get_interporation_weight(&self) -> &InterporationWeight {
         &self.interporation_weight
     }
-    /// Get interporation weight as mutable reference
+    /// Get interporation weight as mutable reference.
     pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
         &mut self.interporation_weight
     }
@@ -241,7 +244,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    /// Loads `.htsvoice` files and create a new [`Engine`].
+    /// Load a `.htsvoice` files and create a new [`Engine`].
     #[cfg(feature = "htsvoice")]
     pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
         use crate::model::load_htsvoice_file;
@@ -267,7 +270,7 @@ impl Engine {
         Ok(self.generator(labels)?.generate_all())
     }
 
-    /// Return a [`SpeechGenerator`], which synthesizes voice from given labels incrementally, with current voiceset and condition.
+    /// Returns [`SpeechGenerator`], which synthesizes voice from given labels incrementally, with current voiceset and condition.
     ///
     /// This is useful for streaming or real-time synthesis.
     pub fn generator(&self, labels: impl ToLabels) -> Result<SpeechGenerator, EngineError> {

@@ -9,7 +9,12 @@ use serde::{Deserialize, Serialize};
 
 /// Mean and variance (or, maybe, mean and inverted variance) of normal distribution.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct MeanVari(pub f64, pub f64);
+pub struct MeanVari(
+    /// Mean
+    pub f64,
+    /// Variance
+    pub f64,
+);
 
 impl MeanVari {
     /// Get [`MeanVari`] with inverted variance.
