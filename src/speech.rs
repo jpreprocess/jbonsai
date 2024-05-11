@@ -37,6 +37,10 @@ impl SpeechGenerator {
         }
     }
 
+    pub fn fperiod(&self) -> usize {
+        self.fperiod
+    }
+
     pub fn synthesized_frames(&self) -> usize {
         self.next
     }
