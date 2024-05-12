@@ -33,8 +33,8 @@ jbonsai = "0.1.0"
 
 ## Example
 
-This is an example of creating a TTS application using [jpreprocess](https://crates.io/crates/jpreprocess/0.9.1),
-[hound](https://crates.io/crates/hound/3.5.1) along with jbonsai.
+This is an example of creating a TTS application using [jpreprocess v0.9.1](https://crates.io/crates/jpreprocess/0.9.1),
+[hound v3.5.1](https://crates.io/crates/hound/3.5.1) along with jbonsai.
 
 For simpler example using only jbonsai, please refer to [docs.rs](https://docs.rs/jbonsai/0.1.0/jbonsai/).
 
