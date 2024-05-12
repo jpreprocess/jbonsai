@@ -30,7 +30,7 @@ impl SpeechGenerator {
         lpf: Parameter,
     ) -> Self {
         if spectrum.len() != lf0.len() || spectrum.len() != lpf.len() {
-            panic!("The length of spectrum, lf0, lpf must be the same.")
+            panic!("The length of spectrum, lf0, and lpf must be the same.")
         }
         if !lf0.is_empty() && lf0[0].len() != 1 {
             panic!("The size of lf0 static vector must be 1.");
