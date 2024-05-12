@@ -1,26 +1,18 @@
 # jbonsai
 
-Voice synthesis library for Text-to-Speech applications. Converts sequence of full-context labels into audio waveform.
+Voice synthesis library for Text-to-Speech applications.
 
-フルコンテキストラベルから音声を合成するライブラリです．TTSアプリケーションで使うことを意識して作られています．
+"jbonsai" converts sequence of full-context labels into audio waveform.
 
-This project is currently a rewrite of [HTS Engine](https://hts-engine.sourceforge.net) in Rust language.
+This project is currently a rewrite of [HTS Engine](https://hts-engine.sourceforge.net) in Rust language (This may change at any time, and there is no guarantee that jbonsai produces the same result as HTS Engine).
 
-現在のところ，[HTS Engine](https://hts-engine.sourceforge.net)をRustで書き直したものとなっています．
-
-## Objectives / 目標
+## Objectives
 
 - Improve readability as much as possible.
 - Without compromising readability,
   - Improve speed.
   - Keep memory consumption low.
-- Can be used in WebAssembly.
-
-- 可能な限り可読性を改善すること．
-- 可読性を損なわない範囲で，
-  - 高速であること
-  - メモリ消費量が少ないこと
-- WebAssembly向けにビルド可能であること
+- Can be compiled for WebAssembly.
 
 ## Usage
 
