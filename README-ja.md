@@ -1,36 +1,35 @@
 # jbonsai
 
-[日本語](https://github.com/jpreprocess/jbonsai/blob/main/README-ja.md)
+[English](README.md)
 
-Voice synthesis library for Text-to-Speech applications.
+フルコンテキストラベルから音声を合成するライブラリです．
 
-"jbonsai" converts sequence of full-context labels into audio waveform.
+TTSアプリケーションで使うことを意識して書かれています．
 
-This project is currently a rewrite of [HTS Engine](https://hts-engine.sourceforge.net) in Rust language (This may change at any time, and there is no guarantee that jbonsai produces the same result as HTS Engine).
+なお，現在は[HTS Engine](https://hts-engine.sourceforge.net)をRustで書いたものになっていますが，これは今後変わる可能性があります．また，現時点においても，jbonsaiとHTS Engineの出力が一致することは保証されていません．
 
-## Objectives
+## 目標
 
-- Improve readability as much as possible.
-- Without compromising readability,
-  - Improve speed.
-  - Keep memory consumption low.
-- Can be compiled for WebAssembly.
+- 可能な限り可読性を改善すること
+- 可読性を損なわない範囲で，
+  - 高速であること
+  - メモリ消費量が少ないこと
+- Webassembly向けにコンパイル可能であること
 
-## Usage
+## 使い方
 
-Put the following in `Cargo.toml`.
+`Cargo.toml`に次のように書いてください．
 
 ```toml
 [dependencies]
 jbonsai = "0.1.0"
 ```
 
-## Example
+## 使用例
 
-This example produces a mono, 48,000 Hz (typically) PCM data saying 「盆栽」(ぼんさい; bonsai) in `speech` variable.
+以下の例は，「盆栽」と読み上げる音声を生成し，`speech`変数にモノラル, 48000 HzのPCMとして格納します．
 
 ```rust
-# fn main() -> Result<(), Box<dyn std::error::Error>> {
 // 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
 let lines = [
     "xx^xx-sil+b=o/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:4_4%0_xx_xx/H:xx_xx/I:xx-xx@xx+xx&xx-xx|xx+xx/J:1_4/K:1+1-4",
@@ -43,8 +42,8 @@ let lines = [
     "a^i-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:4_4!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:1_4/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+1-4",
 ];
 let engine = jbonsai::Engine::load(&[
-    // The path to the `.htsvoice` model file.
-    // Currently only Japanese models are supported (due to the limitation of jlabel).
+    // `.htsvoice`モデルファイルへのパスです．
+    // 現在はjlabelの制約により，日本語の音声合成モデルのみに対応しています．
     "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice",
 ])?;
 let speech = engine.synthesize(&lines)?;
@@ -52,18 +51,16 @@ println!(
     "The synthesized voice has {} samples in total.",
     speech.len()
 );
-# Ok(())
-# }
 ```
 
-## Copyright
+## 著作権
 
-This software includes source code from:
+このソフトウェアは以下のコードを使用しています．
 
 - [hts_engine API](https://hts-engine.sourceforge.net).
   - Copyright (c) 2001-2014 Nagoya Institute of Technology Department of Computer Science
   - Copyright (c) 2001-2008 Tokyo Institute of Technology Interdisciplinary Graduate School of Science and Engineering
 
-## License
+## ライセンス
 
 BSD-3-Clause
