@@ -1,3 +1,5 @@
+//! Normal distribution parameter.
+
 use std::{
     iter::Sum,
     ops::{Add, Mul},
@@ -5,10 +7,17 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+/// Mean and variance (or, maybe, mean and inverted variance) of normal distribution.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct MeanVari(pub f64, pub f64);
+pub struct MeanVari(
+    /// Mean
+    pub f64,
+    /// Variance
+    pub f64,
+);
 
 impl MeanVari {
+    /// Get [`MeanVari`] with inverted variance.
     pub fn with_ivar(&self) -> Self {
         let Self(mean, vari) = self;
         let ivar = if vari.abs() > 1e19 {
@@ -21,11 +30,13 @@ impl MeanVari {
         Self(*mean, ivar)
     }
 
+    /// Returns new instance with its variance set to 0.
     pub fn with_0(&self) -> Self {
         let Self(mean, _) = self;
         Self(*mean, 0.0)
     }
 
+    /// Returns a new instance with provided weight applied.
     pub fn weighted(&self, weight: f64) -> Self {
         let Self(mean, vari) = self;
         Self(mean * weight, vari * weight)

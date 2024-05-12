@@ -1,3 +1,7 @@
+//! Voice model structure.
+
+#![allow(missing_docs)]
+
 use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};

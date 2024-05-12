@@ -1,3 +1,7 @@
+//! MLPG speech parameter generation algorithm.
+//!
+//! For details, please refer to <https://doi.org/10.1109/ICASSP.2000.861820>.
+
 use crate::model::{GvParameter, MeanVari, Windows};
 
 use super::{mask::Mask, IterExt};
@@ -5,6 +9,7 @@ use super::{mask::Mask, IterExt};
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
 
+/// MLPG matrices.
 #[derive(Debug, Clone)]
 pub struct MlpgMatrix {
     win_size: usize,
@@ -64,13 +69,13 @@ impl MlpgMatrix {
         }
     }
 
-    /// Solve equation $W^T U^{-1} W c = W^T U^{-1} \mu$ and return the vector $c$
+    /// Solve equation $W^T U^{-1} W c = W^T U^{-1} \mu$ and return the vector $c$.
     pub fn solve(&mut self) -> Vec<f64> {
         self.ldl_factorization();
         self.substitutions()
     }
 
-    /// Perform Cholesky decomposition
+    /// Perform Cholesky decomposition.
     fn ldl_factorization(&mut self) {
         for t in 0..self.length {
             for i in 1..self.width.min(t + 1) {
@@ -86,7 +91,7 @@ impl MlpgMatrix {
         }
     }
 
-    /// Forward & backward substitution
+    /// Forward & backward substitution.
     fn substitutions(&self) -> Vec<f64> {
         let mut g = vec![0.0; self.length];
         // forward
@@ -109,6 +114,7 @@ impl MlpgMatrix {
         par
     }
 
+    /// Solve the equasion, and if necessary, applies GV (global variance).
     pub fn par(
         &mut self,
         gv: &Option<GvParameter>,
@@ -136,6 +142,7 @@ impl MlpgMatrix {
     }
 }
 
+/// MLPG global variance (GV) calculator.
 #[derive(Debug, Clone)]
 pub struct MlpgGlobalVariance<'a> {
     par: Vec<f64>,
@@ -146,6 +153,7 @@ pub struct MlpgGlobalVariance<'a> {
 }
 
 impl<'a> MlpgGlobalVariance<'a> {
+    /// Create a new GV structure.
     pub fn new(mtx: MlpgMatrix, par: Vec<f64>, gv_switch: &'a [bool]) -> Self {
         let gv_length = gv_switch.iter().filter(|b| **b).count();
         Self {
@@ -156,6 +164,7 @@ impl<'a> MlpgGlobalVariance<'a> {
         }
     }
 
+    /// Apply GV to the current parameter and returns it.
     pub fn apply_gv(mut self, gv_mean: f64, gv_vari: f64) -> Vec<f64> {
         self.parmgen(gv_mean, gv_vari);
         self.par

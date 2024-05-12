@@ -1,3 +1,5 @@
+//! `.htsvoice` parser.
+
 use nom::{
     error::{ContextError, ParseError, VerboseError},
     IResult, Parser,
