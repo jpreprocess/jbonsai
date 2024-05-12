@@ -1,4 +1,4 @@
-//! (Relatively) lightweight voice synthesizer written in Rust.
+//! Voice synthesis library for Text-to-Speech applications in Rust.
 //!
 //! This project is currently a [HTS Engine](https://hts-engine.sourceforge.net) rewrite in Rust.
 //! However, this may change at any time, and there is no guarantee that jbonsai produces the same result as HTS Engine.
@@ -23,7 +23,7 @@
 //!
 //! let engine = jbonsai::Engine::load(&[
 //!     // The path to the `.htsvoice` model file.
-//!     // Currently only Japanese model is supported (due to the limitation of jlabel).
+//!     // Currently only Japanese models are supported (due to the limitation of jlabel).
 //!     "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice",
 //! ])?;
 //! let speech = engine.synthesize(&lines)?;
