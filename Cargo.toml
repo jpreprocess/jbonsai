@@ -5,7 +5,7 @@ edition = "2021"
 
 rust-version = "1.75.0"
 
-description = "Voice synthesis library based on HMM (Currently HTS Engine rewrite in Rust language)."
+description = "Voice synthesis library for Text-to-Speech applications (Currently HTS Engine rewrite in Rust language)."
 license = "BSD-3-Clause"
 repository = "https://github.com/jpreprocess/jbonsai"
 keywords = ["tts", "openjtalk", "library"]
