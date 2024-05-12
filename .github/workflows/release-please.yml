@@ -1,0 +1,108 @@
+name: release-please
+
+on:
+  push:
+    branches: ["main"]
+
+permissions: {}
+
+jobs:
+  release-please:
+    if: github.repository_owner == 'jpreprocess'
+    permissions: {}
+    runs-on: ubuntu-latest
+    outputs:
+      app-name: ${{ format('{0}[bot]', steps.generate_token.outputs.app-slug) }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@a0de6af83968303c8c955486bf9739a57d23c7f1 # v1.10.0
+        with:
+          app-id: ${{ vars.JPREPROCESS_RELEASE_APP_ID}}
+          private-key: ${{ secrets.JPREPROCESS_RELEASE_APP_KEY }}
+      - uses: google-github-actions/release-please-action@a37ac6e4f6449ce8b3f7607e4d97d0146028dc0b # v4.1.0
+        id: release
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+          config-file: .github/release-please/release-please-config.json
+          manifest-file: .github/release-please/.release-please-manifest.json
+          skip-github-pull-request: ${{ startsWith(github.event.head_commit.message, 'release:') && github.event.head_commit.author.name == format('{0}[bot]', steps.generate_token.outputs.app-slug) }}
+
+  publish-crates:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions: {}
+    uses: ./.github/workflows/publish-crates.yml
+    with:
+      dry-run: true
+
+  publish-release:
+    needs: [release-please, publish-crates]
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release edit ${{ needs.release-please.outputs.tag_name }} --draft=false
+
+  get-pr-number:
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions: {}
+    runs-on: ubuntu-latest
+    outputs:
+      pr_number: ${{ steps.pr-number.outputs.pr_number }}
+    steps:
+      - name: Get PR number
+        id: pr-number
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          echo "pr_number=$(printf "$HEAD_COMMIT_MESSAGE" | head -n1 | sed -nE 's/.+\(#([0-9]+)\)$/\1/p')" >> "$GITHUB_OUTPUT"
+
+  update-release-comment:
+    needs: [release-please, publish-release, get-pr-number]
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
+        id: fc
+        with:
+          issue-number: ${{ needs.get-pr-number.outputs.pr_number }}
+          comment-author: ${{ needs.release-please.outputs.app-name }}
+          body-includes: ":robot: Release is at ${{ github.event.repository.html_url }}/releases/tag/untagged-"
+      - if: steps.fc.conclusion == 'success'
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ needs.get-pr-number.outputs.pr_number }}
+          body: |
+            :robot: Release is at ${{ github.event.repository.html_url }}/releases/tag/${{ needs.release-please.outputs.tag_name }} :sunflower:
+          edit-mode: replace
+
+  label-published:
+    needs: [release-please, publish-release, get-pr-number]
+    if: ${{ needs.release-please.outputs.release_created }}
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create published label
+        run: |
+          gh label create 'autorelease: published' --color=EDEDED || true
+      - name: Change labels on PR
+        run: |
+          gh pr edit ${{ needs.get-pr-number.outputs.pr_number }} \
+          --remove-label='autorelease: tagged' \
+          --add-label='autorelease: published'
