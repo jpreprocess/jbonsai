@@ -1,24 +1,37 @@
+//! Sequence of [`jlabel::Label`]s with time alignments.
+//!
+//! Each [`jlabel::Label`] corresponds to one phoneme.
+
 use crate::engine::Condition;
 
+/// Error while parsing labels.
 #[derive(Debug, thiserror::Error)]
 pub enum LabelError {
+    /// jlabel failed to parse full-context label.
     #[error("jlabel failed to parse fullcontext-label: {0}")]
     JLabelParse(#[from] jlabel::ParseError),
+    /// Full-context label was not included in the provided string.
     #[error("Expected a fullcontext-label in {0}")]
     MissingLabel(String),
+    /// Failed to parse time alignment as `f64`.
     #[error("Failed to parse as floating-point number")]
     FloatParse(#[from] std::num::ParseFloatError),
 
+    /// The length of the provided `times` and `labels` differed.
     #[error("The length of `times` and `labels` must be the same")]
     LengthMismatch,
 }
 
+/// Sequence of [`jlabel::Label`] with time alignments.
 pub struct Labels {
     labels: Vec<jlabel::Label>,
     times: Vec<(f64, f64)>,
 }
 
 impl Labels {
+    /// Load [`Labels`] from sequence of strings.
+    ///
+    /// If the string contains time alignments, [`Labels::load_from_strings`] will parse and store it in [`Labels`].
     pub fn load_from_strings<S: AsRef<str>>(
         sampling_rate: usize,
         fperiod: usize,
@@ -65,6 +78,7 @@ impl Labels {
         Self::new(labels, Some(times))
     }
 
+    /// Create a new [`Labels`] directly from labels and time alignments.
     pub fn new(
         labels: Vec<jlabel::Label>,
         times: Option<Vec<(f64, f64)>>,
@@ -100,15 +114,19 @@ impl Labels {
         }
     }
 
+    /// Get labels ([`jlabel::Label`]).
     pub fn labels(&self) -> &[jlabel::Label] {
         &self.labels
     }
+    /// Get time alignments.
     pub fn times(&self) -> &[(f64, f64)] {
         &self.times
     }
 }
 
+/// Structs that can be converted into [`Labels`].
 pub trait ToLabels {
+    /// Convert this into [`Labels`].
     fn to_labels(self, condition: &Condition) -> Result<Labels, LabelError>;
 }
 

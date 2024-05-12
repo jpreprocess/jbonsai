@@ -1,3 +1,7 @@
+//! Smoothes speech parameters by "maximum likelihood parameter generation (MLPG)."
+//!
+//! For details on MLPG, please refer to <https://doi.org/10.1109/ICASSP.2000.861820>.
+
 use std::iter;
 
 use crate::{
@@ -10,6 +14,9 @@ mod mlpg;
 
 use self::{mask::Mask, mlpg::MlpgMatrix};
 
+/// Generate stream parameters.
+///
+/// Determines unvoiced frames and applies MLPG (maximum likelihood parameter generation) with GV (global variance) to a parameters.
 pub struct MlpgAdjust<'a> {
     gv_weight: f64,
     msd_threshold: f64,
@@ -20,6 +27,7 @@ pub struct MlpgAdjust<'a> {
 }
 
 impl<'a> MlpgAdjust<'a> {
+    /// Create a new [`MlpgAdjust`].
     pub fn new(
         gv_weight: f64,
         msd_threshold: f64,

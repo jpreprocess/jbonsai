@@ -1,7 +1,12 @@
+//! Masks unvoiced frames.
+//!
+//! The unvoiced frames are determined using multi-space probability distribution (MSD) parameter in stream.
+
 use crate::model::StreamParameter;
 
 use super::IterExt;
 
+/// Mask for unvoiced frames
 pub struct Mask(Vec<bool>);
 
 impl FromIterator<bool> for Mask {
@@ -11,6 +16,7 @@ impl FromIterator<bool> for Mask {
 }
 
 impl Mask {
+    /// Create mask from `msd` field in stream with lengths of `durations`.
     pub fn create(stream: &StreamParameter, threshold: f64, durations: &[usize]) -> Self {
         Self(
             stream
@@ -20,9 +26,11 @@ impl Mask {
                 .collect(),
         )
     }
+    /// Get the internal mask.
     pub fn mask(&self) -> &[bool] {
         &self.0
     }
+    /// Fill back the masked region with `default` and returns an iterator of full-length sequence.
     pub fn fill<'a, T: 'a + Clone>(
         &'a self,
         masked: impl 'a + IntoIterator<Item = T>,
@@ -39,6 +47,7 @@ impl Mask {
             }
         })
     }
+    /// Get distances from left- and right-boundaries.
     pub fn boundary_distances(&self) -> Vec<(usize, usize)> {
         if self.0.is_empty() {
             return vec![];

@@ -1,11 +1,22 @@
+//! Estimates the duration of states.
+//!
+//! Note: "State" is a unit into which a phoneme is divided.
+
 use crate::model::MeanVari;
 
+/// Estimate the duration of each state.
+///
+/// The sequence of labels is divided into fixed number (`nstate`; typically 5) of states,
+/// and the duration for each state is estimated here.
 pub struct DurationEstimator {
     parameters: Vec<MeanVari>,
     nstate: usize,
 }
 
 impl DurationEstimator {
+    /// Create [`DurationEstimator`] with the sequence of parameters.
+    ///
+    /// Please note that the length of `duration` equals to the total number of states.
     pub fn new(duration: Vec<MeanVari>, nstate: usize) -> Self {
         Self {
             parameters: duration,
@@ -13,6 +24,7 @@ impl DurationEstimator {
         }
     }
 
+    /// Estimate the duration with the provided speed.
     pub fn create(&self, speed: f64) -> Vec<usize> {
         // determine frame length
         let mut duration = Self::estimate_duration(&self.parameters, 0.0);
@@ -25,6 +37,7 @@ impl DurationEstimator {
         duration
     }
 
+    /// Estimate the duration to meet the provided time alignment.
     pub fn create_with_alignment(&self, times: &[(f64, f64)]) -> Vec<usize> {
         // determine state duration
         let mut duration = vec![];
@@ -51,14 +64,14 @@ impl DurationEstimator {
         duration
     }
 
-    /// Estimate state duration
+    /// Estimate state duration.
     fn estimate_duration(duration_params: &[MeanVari], rho: f64) -> Vec<usize> {
         duration_params
             .iter()
             .map(|MeanVari(mean, vari)| (mean + rho * vari).round().max(1.0) as usize)
             .collect()
     }
-    /// Estimate duration from state duration probability distribution and specified frame length
+    /// Estimate duration from state duration probability distribution and specified frame length.
     fn estimate_duration_with_frame_length(
         duration_params: &[MeanVari],
         frame_length: f64,

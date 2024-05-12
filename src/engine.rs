@@ -1,3 +1,5 @@
+//! Main components for voice synthesis.
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,17 +12,22 @@ use crate::model::{ModelError, Models, VoiceSet};
 use crate::speech::SpeechGenerator;
 use crate::vocoder::Vocoder;
 
+/// Error from Engine.
 #[derive(Debug, thiserror::Error)]
 pub enum EngineError {
+    /// Failed to load model.
     #[error("Model error: {0}")]
     ModelError(#[from] ModelError),
+    /// Failed to parse option written in the provided model.
     #[error("Failed to parse option {0}")]
     ParseOptionError(String),
 
+    /// Failed to parse the provided labels.
     #[error("Label error: {0}")]
     LabelError(#[from] LabelError),
 }
 
+/// Settings used in voice synthesis.
 #[derive(Debug, Clone)]
 pub struct Condition {
     /// Sampling frequency
@@ -73,6 +80,7 @@ impl Default for Condition {
 }
 
 impl Condition {
+    /// Load default settings in the given [`VoiceSet`] to this [`Condition`].
     pub fn load_model(&mut self, voices: &VoiceSet) -> Result<(), EngineError> {
         let metadata = voices.global_metadata();
 
@@ -116,118 +124,129 @@ impl Condition {
         Ok(())
     }
 
-    /// Set sampling frequency (Hz), 1 <= i
+    /// Set sampling frequency (Hz). 1 <= i
     pub fn set_sampling_frequency(&mut self, i: usize) {
         self.sampling_frequency = i.max(1);
     }
-    /// Get sampling frequency
+    /// Get sampling frequency.
     pub fn get_sampling_frequency(&self) -> usize {
         self.sampling_frequency
     }
 
-    /// Set frame shift (point), 1 <= i
+    /// Set frame shift (point). 1 <= i
     pub fn set_fperiod(&mut self, i: usize) {
         self.fperiod = i.max(1);
     }
-    /// Get frame shift (point)
+    /// Get frame shift (point).
     pub fn get_fperiod(&self) -> usize {
         self.fperiod
     }
 
-    /// Set volume in db
+    /// Set volume in dB.
+    ///
     /// Note: Default value is 0.0.
     pub fn set_volume(&mut self, f: f64) {
         self.volume = (f * DB).exp();
     }
-    /// Get volume in db
+    /// Get volume in dB.
     pub fn get_volume(&self) -> f64 {
         self.volume.ln() / DB
     }
 
-    /// Set threshold for MSD
+    /// Set threshold for MSD (multi-space probability distribution).
+    ///
     /// Note: Default value is 0.5.
     pub fn set_msd_threshold(&mut self, stream_index: usize, f: f64) {
         self.msd_threshold[stream_index] = f.clamp(0.0, 1.0);
     }
-    /// Get threshold for MSD
+    /// Get threshold for MSD.
     pub fn get_msd_threshold(&self, stream_index: usize) -> f64 {
         self.msd_threshold[stream_index]
     }
 
-    /// Set GV weight
+    /// Set GV (global variance) weight.
+    ///
     /// Note: Default value is 1.0.
     pub fn set_gv_weight(&mut self, stream_index: usize, f: f64) {
         self.gv_weight[stream_index] = f.max(0.0);
     }
-    /// Get GV weight
+    /// Get GV weight.
     pub fn get_gv_weight(&self, stream_index: usize) -> f64 {
         self.gv_weight[stream_index]
     }
 
-    /// Set speed
+    /// Set speed.
+    ///
     /// Note: Default value is 1.0.
     pub fn set_speed(&mut self, f: f64) {
         self.speed = f.max(1.0E-06);
     }
-    /// Get speed
+    /// Get speed.
     pub fn get_speed(&self) -> f64 {
         self.speed
     }
 
-    /// Set flag to use phoneme alignment in label
-    /// Note: Default value is 1.0.
+    /// Set whether to use phoneme alignment in label.
+    ///
+    /// Note: Default value is `false`.
     pub fn set_phoneme_alignment_flag(&mut self, b: bool) {
         self.phoneme_alignment_flag = b;
     }
-    /// Get flag to use phoneme alignment in label
+    /// Get whether to use phoneme alignment in label.
     pub fn get_phoneme_alignment_flag(&self) -> bool {
         self.phoneme_alignment_flag
     }
 
-    /// Set frequency warping parameter alpha
+    /// Set frequency warping parameter alpha.
     pub fn set_alpha(&mut self, f: f64) {
         self.alpha = f.clamp(0.0, 1.0);
     }
-    /// Get frequency warping parameter alpha
+    /// Get frequency warping parameter alpha.
     pub fn get_alpha(&self) -> f64 {
         self.alpha
     }
 
-    /// Set postfiltering coefficient parameter beta
+    /// Set postfiltering coefficient parameter beta.
     pub fn set_beta(&mut self, f: f64) {
         self.beta = f.clamp(0.0, 1.0);
     }
-    /// Get postfiltering coefficient parameter beta
+    /// Get postfiltering coefficient parameter beta.
     pub fn get_beta(&self) -> f64 {
         self.beta
     }
 
-    /// Set additional half tone
+    /// Set additional half tone.
     pub fn set_additional_half_tone(&mut self, f: f64) {
         self.additional_half_tone = f;
     }
-    /// Get additional half tone
+    /// Get additional half tone.
     pub fn get_additional_half_tone(&self) -> f64 {
         self.additional_half_tone
     }
 
-    /// Get interporation weight
+    /// Get interporation weight.
     pub fn get_interporation_weight(&self) -> &InterporationWeight {
         &self.interporation_weight
     }
-    /// Get interporation weight as mutable reference
+    /// Get interporation weight as mutable reference.
+    ///
+    /// For details on interpolation weight, please refer to [`InterporationWeight`].
     pub fn get_interporation_weight_mut(&mut self) -> &mut InterporationWeight {
         &mut self.interporation_weight
     }
 }
 
+/// Voice synthesis engine.
 #[derive(Debug, Clone)]
 pub struct Engine {
+    /// Configuration of voice synthesis.
     pub condition: Condition,
+    /// Set of voice models used in voice synthesis.
     pub voices: VoiceSet,
 }
 
 impl Engine {
+    /// Load `.htsvoice` files and create a new [`Engine`].
     #[cfg(feature = "htsvoice")]
     pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
         use crate::model::load_htsvoice_file;
@@ -243,14 +262,19 @@ impl Engine {
 
         Ok(Self::new(voiceset, condition))
     }
+    /// Create a new [`Engine`] with provided voices and condition.
     pub fn new(voices: VoiceSet, condition: Condition) -> Self {
         Engine { voices, condition }
     }
 
+    /// Synthesize voice from given labels with current voiceset and condition.
     pub fn synthesize(&self, labels: impl ToLabels) -> Result<Vec<f64>, EngineError> {
         Ok(self.generator(labels)?.generate_all())
     }
 
+    /// Returns [`SpeechGenerator`], which synthesizes voice from given labels incrementally, with current voiceset and condition.
+    ///
+    /// This is useful for streaming or real-time synthesis.
     pub fn generator(&self, labels: impl ToLabels) -> Result<SpeechGenerator, EngineError> {
         let labels = labels.to_labels(&self.condition)?;
         let vocoder = Vocoder::new(
