@@ -10,6 +10,7 @@ license = "BSD-3-Clause"
 repository = "https://github.com/jpreprocess/jbonsai"
 keywords = ["tts", "openjtalk", "library"]
 categories = ["multimedia::audio"]
+documentation = "https://docs.rs/jbonsai"
 
 [features]
 default = ["htsvoice"]
