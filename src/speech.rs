@@ -19,6 +19,7 @@ impl SpeechGenerator {
     /// Create a new [`SpeechGenerator`] with provided parameters.
     ///
     /// This function will panic unless all the following conditions are met:
+    /// - The outer length of spectrum, lf0, and lpf are the same.
     /// - The inner length of LF0 must be 1.
     /// - The inner length of LPF must be an odd number.
     pub fn new(
@@ -28,6 +29,9 @@ impl SpeechGenerator {
         lf0: Parameter,
         lpf: Parameter,
     ) -> Self {
+        if spectrum.len() != lf0.len() || spectrum.len() != lpf.len() {
+            panic!("The length of spectrum, lf0, and lpf must be the same.")
+        }
         if !lf0.is_empty() && lf0[0].len() != 1 {
             panic!("The size of lf0 static vector must be 1.");
         }
