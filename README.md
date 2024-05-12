@@ -33,50 +33,33 @@ jbonsai = "0.1.0"
 
 ## Example
 
-This is an example of creating a TTS application using [jpreprocess v0.9.1](https://crates.io/crates/jpreprocess/0.9.1),
-[hound v3.5.1](https://crates.io/crates/hound/3.5.1) along with jbonsai.
-
-For simpler example using only jbonsai, please refer to [docs.rs](https://docs.rs/jbonsai/0.1.0/jbonsai/).
+This example produces a mono, 48,000 Hz (typically) PCM data saying 「盆栽」(ぼんさい; bonsai) in `speech` variable.
 
 ```rust
-// First, convert text into full-context label (requires jpreprocess v0.9.1).
-let config = jpreprocess::JPreprocessConfig {
-    dictionary: jpreprocess::SystemDictionaryConfig::File(/* path to dictionary file */),
-    user_dictionary: None,
-};
-let jpreprocess = jpreprocess::JPreprocess::from_config(config)?;
-
-let jpcommon_label = jpreprocess
-    .extract_fullcontext("日本語文を解析し、音声合成エンジンに渡せる形式に変換します．")?;
-
-// Next, synthesize voice.
-let engine = crate::Engine::load(&[
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+// 盆栽,名詞,一般,*,*,*,*,盆栽,ボンサイ,ボンサイ,0/4,C2
+let lines = [
+    "xx^xx-sil+b=o/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:4_4%0_xx_xx/H:xx_xx/I:xx-xx@xx+xx&xx-xx|xx+xx/J:1_4/K:1+1-4",
+    "xx^sil-b+o=N/A:-3+1+4/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
+    "sil^b-o+N=s/A:-3+1+4/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
+    "b^o-N+s=a/A:-2+2+3/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
+    "o^N-s+a=i/A:-1+3+2/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
+    "N^s-a+i=sil/A:-1+3+2/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
+    "s^a-i+sil=xx/A:0+4+1/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
+    "a^i-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:4_4!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:1_4/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+1-4",
+];
+let engine = jbonsai::Engine::load(&[
+    // The path to the `.htsvoice` model file.
+    // Currently only Japanese models are supported (due to the limitation of jlabel).
     "models/hts_voice_nitech_jp_atr503_m001-1.05/nitech_jp_atr503_m001.htsvoice",
 ])?;
-let speech = engine.synthesize(jpcommon_label)?;
-
+let speech = engine.synthesize(&lines)?;
 println!(
     "The synthesized voice has {} samples in total.",
     speech.len()
 );
-
-// Finally, write the resulting audio file to `result/sample.wav` (requires hound v3.5.1).
-let mut writer = hound::WavWriter::create(
-    "result/sample.wav",
-    hound::WavSpec {
-        channels: 1,
-        // As `nitech_jp_atr503_m001` voice model's sampling frequency is 48,000 Hz,
-        // the resulting audio data will also be 48,000 Hz.
-        sample_rate: 48000,
-        // jbonsai produces f64 waveform, but i16 is a more popular format, so we will use i16 here.
-        bits_per_sample: 16,
-        sample_format: hound::SampleFormat::Int,
-    },
-)?;
-for value in speech {
-    let clamped = value.clamp(i16::MIN as f64, i16::MAX as f64);
-    writer.write_sample(clamped as i16)?;
-}
+# Ok(())
+# }
 ```
 
 ## Copyright
