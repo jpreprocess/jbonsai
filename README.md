@@ -14,13 +14,13 @@ This project is currently a rewrite of [HTS Engine](https://hts-engine.sourcefor
 - Without compromising readability,
   - Improve speed.
   - Keep memory consumption low.
-- Buildable for WebAssembly.
+- Can be used in WebAssembly.
 
 - 可能な限り可読性を改善すること．
 - 可読性を損なわない範囲で，
   - 高速であること
   - メモリ消費量が少ないこと
-- Webassembly向けにビルド可能であること
+- WebAssembly向けにビルド可能であること
 
 ## Usage
 
