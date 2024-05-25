@@ -136,8 +136,13 @@ mod tests {
 
     #[test]
     fn empty() {
-        let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+        let mut engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
         let labels: [&str; 0] = [];
+        
+        let speech = engine.synthesize(&labels[..]).unwrap();
+        assert_eq!(speech.len(), 0);
+
+        engine.condition.set_speed(1.2);
         let speech = engine.synthesize(&labels[..]).unwrap();
         assert_eq!(speech.len(), 0);
     }
