@@ -91,7 +91,7 @@ impl DurationEstimator {
         let rho = (target_length as f64 - mean) / vari;
 
         let mut duration = Self::estimate_duration(duration_params, rho);
-        if duration.len() == 0 {
+        if duration.is_empty() {
             // If there is no duration that can be adjusted to match frame_length,
             // simply return an empty duration
             return vec![];
