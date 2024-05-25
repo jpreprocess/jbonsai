@@ -138,7 +138,7 @@ mod tests {
     fn empty() {
         let mut engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
         let labels: [&str; 0] = [];
-        
+
         let speech = engine.synthesize(&labels[..]).unwrap();
         assert_eq!(speech.len(), 0);
 
