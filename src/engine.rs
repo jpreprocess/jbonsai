@@ -178,6 +178,12 @@ impl Condition {
     /// Set speed.
     ///
     /// Note: Default value is 1.0.
+    ///
+    /// ## Security
+    ///
+    /// Setting this parameter to near-zero value can lead to extremely high CPU time and memory consumption.
+    ///
+    /// When providing untrusted input to this method, please remove such values in advance.
     pub fn set_speed(&mut self, f: f64) {
         self.speed = f.max(1.0E-06);
     }
