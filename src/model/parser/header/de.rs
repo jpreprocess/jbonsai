@@ -145,7 +145,7 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
+impl<'de> de::Deserializer<'de> for &mut Deserializer<'de> {
     type Error = DeserializeError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
@@ -303,7 +303,7 @@ impl<'a, 'de> List<'a, 'de> {
     }
 }
 
-impl<'de, 'a> SeqAccess<'de> for List<'a, 'de> {
+impl<'de> SeqAccess<'de> for List<'_, 'de> {
     type Error = DeserializeError;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
@@ -339,7 +339,7 @@ impl<'a, 'de> NewlineSeparated<'a, 'de> {
     }
 }
 
-impl<'de, 'a> MapAccess<'de> for NewlineSeparated<'a, 'de> {
+impl<'de> MapAccess<'de> for NewlineSeparated<'_, 'de> {
     type Error = DeserializeError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>

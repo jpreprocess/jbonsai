@@ -48,7 +48,7 @@ impl<'de> MapDeserializer<'de> {
         MapDeserializer { inner }
     }
 }
-impl<'de, 'a> serde::de::Deserializer<'de> for &'a mut MapDeserializer<'de> {
+impl<'de> serde::de::Deserializer<'de> for &mut MapDeserializer<'de> {
     type Error = DeserializeError;
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
     where
@@ -72,7 +72,7 @@ impl<'a, 'de> AlreadySeparated<'a, 'de> {
         Self { de, index: 0 }
     }
 }
-impl<'de, 'a> MapAccess<'de> for AlreadySeparated<'a, 'de> {
+impl<'de> MapAccess<'de> for AlreadySeparated<'_, 'de> {
     type Error = DeserializeError;
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
     where
