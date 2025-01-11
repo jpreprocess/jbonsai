@@ -164,8 +164,7 @@ pub fn load_htsvoice_file<P: AsRef<std::path::Path>>(path: &P) -> Result<Voice, 
 }
 
 #[cfg(all(test, feature = "htsvoice"))]
-#[allow(missing_docs)]
-pub mod tests {
+pub(crate) mod tests {
     use std::{borrow::Cow, sync::Arc};
 
     use crate::{
