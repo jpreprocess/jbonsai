@@ -83,6 +83,7 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
     // Code optimization was done in
     // [#12](https://github.com/jpreprocess/jbonsai/pull/12)
     // [#16](https://github.com/jpreprocess/jbonsai/pull/16)
+    // [#57](https://github.com/jpreprocess/jbonsai/pull/57)
     #[inline(always)]
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
         Self::fir_step1(d, x, alpha);
