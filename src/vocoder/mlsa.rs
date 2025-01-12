@@ -1,3 +1,5 @@
+use std::ops::IndexMut;
+
 use super::coefficients::Coefficients;
 
 const PADE: [f64; 21] = [
@@ -23,26 +25,20 @@ const PADE: [f64; 21] = [
     0.00095648530f64,
     0.00003041721f64,
 ];
+const PADE_OFFSET: [usize; 6] = [0, 1, 3, 6, 10, 15];
 
 /// N == pd + 1
 #[derive(Debug, Clone)]
 pub struct MelLogSpectrumApproximation<const N: usize> {
-    ppade: [f64; N],
-    d11: [f64; N],
-    d12: [f64; N],
-    d21: [Vec<f64>; N],
-    d22: [f64; N],
+    d1: [[f64; 2]; N],
+    d2: [Vec<f64>; N],
 }
 
 impl<const N: usize> MelLogSpectrumApproximation<N> {
     pub fn new(nmcp: usize) -> Self {
-        let pade_start = (N - 1) * N / 2;
         Self {
-            ppade: std::array::from_fn(|i| PADE[pade_start + i]),
-            d11: [0.0; N],
-            d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; nmcp]),
-            d22: [0.0; N],
+            d1: [[0.0; 2]; N],
+            d2: std::array::from_fn(|_| vec![0.0; nmcp]),
         }
     }
 
@@ -54,30 +50,22 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
 
     #[inline(always)]
     fn df1(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
-        let aa = 1.0 - alpha * alpha;
-        let mut out = 0.0;
         for i in (1..N).rev() {
-            self.d11[i] = aa * self.d12[i - 1] + alpha * self.d11[i];
-            self.d12[i] = self.d11[i] * coefficients[1];
-            let v = self.d12[i] * self.ppade[i];
-            *x += if i & 1 != 0 { v } else { -v };
-            out += v;
+            Self::df1_step1(&mut self.d1[i - 1], alpha);
+            self.d1[i][0] = Self::df1_step2(&self.d1[i - 1], coefficients);
         }
-        self.d12[0] = *x;
-        *x += out;
+        self.d1[0][0] = Self::df_apply(&self.d1, x);
     }
 
     #[inline(always)]
-    fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
-        let mut out = 0.0;
-        for i in (1..N).rev() {
-            self.d22[i] = Self::fir(&mut self.d21[i - 1], self.d22[i - 1], alpha, coefficients);
-            let v = self.d22[i] * self.ppade[i];
-            *x += if i & 1 != 0 { v } else { -v };
-            out += v;
-        }
-        self.d22[0] = *x;
-        *x += out;
+    fn df1_step1(d: &mut [f64], alpha: f64) {
+        let aa = 1.0 - alpha * alpha;
+        d[1] = alpha * d[1] + aa * d[0];
+    }
+
+    #[inline(always)]
+    fn df1_step2(d: &[f64], coefficients: &'_ Coefficients) -> f64 {
+        d[1] * coefficients[1]
     }
 
     // Code optimization was done in
@@ -85,15 +73,17 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
     // [#16](https://github.com/jpreprocess/jbonsai/pull/16)
     // [#57](https://github.com/jpreprocess/jbonsai/pull/57)
     #[inline(always)]
-    fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
-        Self::fir_step1(d, x, alpha);
-        Self::fir_step2(d, coefficients)
+    fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
+        for i in (1..N).rev() {
+            Self::df2_step1(&mut self.d2[i - 1], alpha);
+            self.d2[i][0] = Self::df2_step2(&self.d2[i - 1], coefficients);
+        }
+        self.d2[0][0] = Self::df_apply(&self.d2, x);
     }
 
     #[inline(always)]
-    fn fir_step1(d: &mut [f64], x: f64, alpha: f64) {
-        let mut prev = alpha * x;
-        d[0] = x;
+    fn df2_step1(d: &mut [f64], alpha: f64) {
+        let mut prev = alpha * d[0];
         for i in 0..d.len() - 1 {
             d[i] += alpha * (d[i + 1] - prev);
             (d[i], prev) = (prev, d[i]);
@@ -102,11 +92,26 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
     }
 
     #[inline(always)]
-    fn fir_step2(d: &[f64], coefficients: &'_ Coefficients) -> f64 {
+    fn df2_step2(d: &[f64], coefficients: &'_ Coefficients) -> f64 {
         let mut y = 0.0;
         for i in 2..d.len() {
             y += d[i] * coefficients[i];
         }
         y
+    }
+
+    #[inline(always)]
+    fn df_apply(d: &[impl IndexMut<usize, Output = f64>; N], x: &mut f64) -> f64 {
+        let mut d00 = *x;
+        for i in (1..N).rev() {
+            let v = d[i][0] * PADE[PADE_OFFSET[N - 1] + i];
+            if i & 1 != 0 {
+                d00 += v;
+                *x += v + v;
+            } else {
+                d00 -= v;
+            }
+        }
+        d00
     }
 }
