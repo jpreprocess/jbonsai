@@ -16,6 +16,9 @@ documentation = "https://docs.rs/jbonsai"
 default = ["htsvoice"]
 binary = ["htsvoice", "dep:hound"]
 htsvoice = ["dep:nom"]
+simd-x2 = []
+simd-x4 = []
+simd-x8 = []
 
 [package.metadata.docs.rs]
 all-features = true

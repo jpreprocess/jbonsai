@@ -2,6 +2,25 @@ use std::ops::IndexMut;
 
 use super::coefficients::Coefficients;
 
+#[cfg_attr(
+    any(feature = "simd-x2", feature = "simd-x4", feature = "simd-x8"),
+    path = "mlsa/df2_simd.rs"
+)]
+mod df2;
+
+#[cfg(feature = "simd-x2")]
+type D2 = df2::D2<2>;
+#[cfg(all(not(feature = "simd-x2"), feature = "simd-x4",))]
+type D2 = df2::D2<4>;
+#[cfg(all(
+    not(feature = "simd-x2"),
+    not(feature = "simd-x4"),
+    feature = "simd-x8",
+))]
+type D2 = df2::D2<8>;
+#[cfg(not(any(feature = "simd-x2", feature = "simd-x4", feature = "simd-x8",)))]
+use df2::D2;
+
 const PADE: [f64; 21] = [
     1.00000000000f64,
     1.00000000000f64,
@@ -31,14 +50,14 @@ const PADE_OFFSET: [usize; 6] = [0, 1, 3, 6, 10, 15];
 #[derive(Debug, Clone)]
 pub struct MelLogSpectrumApproximation<const N: usize> {
     d1: [[f64; 2]; N],
-    d2: [Vec<f64>; N],
+    d2: [D2; N],
 }
 
 impl<const N: usize> MelLogSpectrumApproximation<N> {
     pub fn new(nmcp: usize) -> Self {
         Self {
             d1: [[0.0; 2]; N],
-            d2: std::array::from_fn(|_| vec![0.0; nmcp]),
+            d2: std::array::from_fn(|_| D2::new(nmcp)),
         }
     }
 
@@ -50,17 +69,17 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
 
     #[inline(always)]
     fn df1(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
+        let matrix = [1.0 - alpha * alpha, alpha];
         for i in (1..N).rev() {
-            Self::df1_step1(&mut self.d1[i - 1], alpha);
+            Self::df1_step1(&mut self.d1[i - 1], &matrix);
             self.d1[i][0] = Self::df1_step2(&self.d1[i - 1], coefficients);
         }
         self.d1[0][0] = Self::df_apply(&self.d1, x);
     }
 
     #[inline(always)]
-    fn df1_step1(d: &mut [f64], alpha: f64) {
-        let aa = 1.0 - alpha * alpha;
-        d[1] = alpha * d[1] + aa * d[0];
+    fn df1_step1(d: &mut [f64], matrix: &[f64; 2]) {
+        d[1] = matrix[0] * d[0] + matrix[1] * d[1];
     }
 
     #[inline(always)]
@@ -74,45 +93,12 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
     // [#57](https://github.com/jpreprocess/jbonsai/pull/57)
     #[inline(always)]
     fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
+        let matrix = df2::AlphaMatrix::new(alpha);
         for i in (1..N).rev() {
-            Self::df2_step1(&mut self.d2[i - 1], alpha);
-            self.d2[i][0] = Self::df2_step2(&self.d2[i - 1], coefficients);
+            df2::df2_step1(&mut self.d2[i - 1], &matrix);
+            self.d2[i][0] = df2::df2_step2(&self.d2[i - 1], coefficients);
         }
         self.d2[0][0] = Self::df_apply(&self.d2, x);
-    }
-
-    // calculate d[t] from d[t-1] such that
-    // - d[t][0] = alpha d[t-1][0]
-    // - d[t][i] = d[t-1][i-1] + alpha (d[t-1][i] - dr[t][i-1])
-    //
-    // using rem(i) := d[t-1][i-1] - alpha d[t][i-1], we have
-    // - d[t][i]  = alpha d[t-1][i] + rem(i)
-    // - rem(1)   = d[t-1][0] - alpha d[t][0]
-    //            = (1 - alpha^2) d[t-1][0]
-    // - rem(i+1) = d[t-1][i] - alpha d[t][i]
-    //            = (1 - alpha^2) d[t-1][i] - alpha rem(i)
-    //
-    // needless_range_loop for better understanding along with the explanation
-    #[inline(always)]
-    #[allow(clippy::needless_range_loop)]
-    fn df2_step1(d: &mut [f64], alpha: f64) {
-        let aa = 1.0 - alpha * alpha;
-        // skip d[t][0] as it is never used
-        // `rem` value used in loop of i = rem(i)
-        let mut rem = aa * d[0]; // rem(1)
-        for i in 1..d.len() {
-            // calculate d[t][i] and rem(i+1)
-            (d[i], rem) = (alpha * d[i] + rem, aa * d[i] - alpha * rem);
-        }
-    }
-
-    #[inline(always)]
-    fn df2_step2(d: &[f64], coefficients: &'_ Coefficients) -> f64 {
-        let mut y = 0.0;
-        for i in 2..d.len() {
-            y += d[i] * coefficients[i];
-        }
-        y
     }
 
     #[inline(always)]
