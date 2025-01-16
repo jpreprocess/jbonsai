@@ -2,24 +2,9 @@ use std::ops::IndexMut;
 
 use super::coefficients::Coefficients;
 
-#[cfg_attr(
-    any(feature = "simd-x2", feature = "simd-x4", feature = "simd-x8"),
-    path = "mlsa/df2_simd.rs"
-)]
 mod df2;
-
-#[cfg(feature = "simd-x2")]
-type D2 = df2::D2<2>;
-#[cfg(all(not(feature = "simd-x2"), feature = "simd-x4",))]
+// SIMD lanes declared here
 type D2 = df2::D2<4>;
-#[cfg(all(
-    not(feature = "simd-x2"),
-    not(feature = "simd-x4"),
-    feature = "simd-x8",
-))]
-type D2 = df2::D2<8>;
-#[cfg(not(any(feature = "simd-x2", feature = "simd-x4", feature = "simd-x8",)))]
-use df2::D2;
 
 const PADE: [f64; 21] = [
     1.00000000000f64,
@@ -91,6 +76,7 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
     // [#12](https://github.com/jpreprocess/jbonsai/pull/12)
     // [#16](https://github.com/jpreprocess/jbonsai/pull/16)
     // [#57](https://github.com/jpreprocess/jbonsai/pull/57)
+    // [#58](https://github.com/jpreprocess/jbonsai/pull/58)
     #[inline(always)]
     fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let matrix = df2::AlphaMatrix::new(alpha);

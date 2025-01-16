@@ -1,13 +1,7 @@
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
-#![cfg_attr(
-    any(feature = "simd-x2", feature = "simd-x4", feature = "simd-x8",),
-    feature(portable_simd)
-)]
-#![cfg_attr(
-    any(feature = "simd-x2", feature = "simd-x4", feature = "simd-x8",),
-    feature(slice_as_chunks)
-)]
+#![feature(portable_simd)]
+#![feature(slice_as_chunks)]
 #![doc = include_str!("../README.md")]
 
 mod constants;
