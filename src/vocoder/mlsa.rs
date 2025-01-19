@@ -41,7 +41,7 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
             ppade: std::array::from_fn(|i| PADE[pade_start + i]),
             d11: [0.0; N],
             d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; nmcp + 1]),
+            d21: std::array::from_fn(|_| vec![0.0; nmcp]),
             d22: [0.0; N],
         }
     }
@@ -82,17 +82,15 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
 
     #[inline(always)]
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
-        for i in (2..d.len()).rev() {
-            d[i] = d[i - 1];
-        }
+        let dc = d.to_vec();
         let aa = 1.0 - alpha * alpha;
         d[0] = x;
-        d[1] = aa * d[0] + alpha * d[1];
-        for i in 2..coefficients.len() {
-            d[i] += alpha * (d[i + 1] - d[i - 1]);
+        d[1] = aa * d[0] + alpha * dc[1];
+        for i in 2..d.len() {
+            d[i] = dc[i - 1] + alpha * (dc[i] - d[i - 1]);
         }
         let mut y = 0.0;
-        for i in 2..coefficients.len() {
+        for i in 2..d.len() {
             y += d[i] * coefficients[i];
         }
         y
