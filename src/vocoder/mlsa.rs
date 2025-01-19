@@ -85,8 +85,10 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
         d[0] = x; // so that dc[0] = x
         let dc = d.to_vec();
         d[0] = alpha * dc[0];
+        let mut rem = dc[0] - alpha * d[0];
         for i in 1..d.len() {
-            d[i] = dc[i - 1] + alpha * (dc[i] - d[i - 1]);
+            d[i] = alpha * dc[i] + rem;
+            rem = dc[i] - alpha * d[i];
         }
         let mut y = 0.0;
         for i in 2..d.len() {
