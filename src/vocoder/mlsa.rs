@@ -41,7 +41,7 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
             ppade: std::array::from_fn(|i| PADE[pade_start + i]),
             d11: [0.0; N],
             d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; nmcp + 1]),
+            d21: std::array::from_fn(|_| vec![0.0; nmcp]),
             d22: [0.0; N],
         }
     }
@@ -80,28 +80,18 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
         *x += out;
     }
 
-    // Code optimization was done in
-    // [#12](https://github.com/jpreprocess/jbonsai/pull/12)
-    // [#16](https://github.com/jpreprocess/jbonsai/pull/16)
     #[inline(always)]
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
-        // This ensures the unsafe code will not cause undefined behavior
-        assert_eq!(d.len(), coefficients.len() + 1);
-
-        let aa = 1.0 - alpha * alpha;
         d[0] = x;
-        d[1] = aa * d[0] + alpha * d[1];
-        let mut y = 0.0;
-        let mut prev = d[1];
-        for i in 2..coefficients.len() {
-            unsafe {
-                let di = d.get_unchecked(i) + alpha * (d.get_unchecked(i + 1) - prev);
-                y += di * coefficients.get_unchecked(i);
-                *d.get_unchecked_mut(i) = std::mem::replace(&mut prev, di);
-            }
+        let iaa = 1.0 - alpha * alpha;
+        let mut rem = 0.0;
+        for di in &mut d[..] {
+            (*di, rem) = (alpha * *di + rem, iaa * *di - alpha * rem);
         }
-        d[coefficients.len()] = prev;
-
+        let mut y = 0.0;
+        for i in 2..d.len() {
+            y += d[i] * coefficients[i];
+        }
         y
     }
 }
