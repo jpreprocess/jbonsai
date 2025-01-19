@@ -84,10 +84,11 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
     fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
         d[0] = x; // so that dc[0] = x
         let dc = d.to_vec();
+        let iaa = 1.0 - alpha * alpha;
         let mut rem = 0.0;
         for i in 0..d.len() {
             d[i] = alpha * dc[i] + rem;
-            rem = dc[i] - alpha * d[i];
+            rem = iaa * dc[i] - alpha * rem;
         }
         let mut y = 0.0;
         for i in 2..d.len() {
