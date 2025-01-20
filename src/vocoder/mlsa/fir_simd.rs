@@ -114,28 +114,23 @@ impl Df2 {
 
     #[inline(always)]
     pub(super) fn fir(&mut self, x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
-        self.0[0] = x;
+        let d = &mut self.0.chunks[..];
+
+        d[0][0] = x;
+
         let matrix = AlphaMatrix::new(alpha);
         let mut rem = 0.0;
-        for d in &mut self.0.chunks {
+        for d in &mut d[..] {
             (*d, rem) = matrix.mul((*d, rem));
         }
-        self.dot_skip2(coefficients)
-    }
 
-    #[inline(always)]
-    #[allow(clippy::needless_range_loop)] // affects performance (for now)
-    fn dot_skip2(&self, coefficients: &[f64]) -> f64 {
-        let d = &self.0.chunks[..];
         let (c, last) = coefficients.as_chunks();
         assert!(c.len() < d.len());
-
         let mut y = Simd::load_or(&[0.0; 2], d[0]) * Simd::from_array(c[0]);
         for i in 1..c.len() {
             y = d[i].mul_add(Simd::from_array(c[i]), y);
         }
         y = d[c.len()].mul_add(Simd::load_or_default(last), y);
-
         y.reduce_sum()
     }
 }
