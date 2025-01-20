@@ -1,5 +1,3 @@
-use super::MelLogSpectrumApproximation;
-
 #[derive(Debug, Clone)]
 pub(super) struct Df2(Vec<f64>);
 
