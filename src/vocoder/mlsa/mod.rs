@@ -1,5 +1,12 @@
 use super::coefficients::Coefficients;
 
+#[cfg_attr(
+    any(target_feature = "avx", target_feature = "neon"),
+    path = "fir_simd.rs"
+)]
+mod fir;
+use fir::Df2;
+
 const PADE: [f64; 21] = [
     1.00000000000f64,
     1.00000000000f64,
@@ -30,7 +37,7 @@ pub struct MelLogSpectrumApproximation<const N: usize> {
     ppade: [f64; N],
     d11: [f64; N],
     d12: [f64; N],
-    d21: [Vec<f64>; N],
+    d21: [Df2; N],
     d22: [f64; N],
 }
 
@@ -41,7 +48,7 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
             ppade: std::array::from_fn(|i| PADE[pade_start + i]),
             d11: [0.0; N],
             d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; nmcp]),
+            d21: std::array::from_fn(|_| Df2::new(nmcp)),
             d22: [0.0; N],
         }
     }
@@ -71,27 +78,12 @@ impl<const N: usize> MelLogSpectrumApproximation<N> {
     fn df2(&mut self, x: &mut f64, alpha: f64, coefficients: &'_ Coefficients) {
         let mut out = 0.0;
         for i in (1..N).rev() {
-            self.d22[i] = Self::fir(&mut self.d21[i - 1], self.d22[i - 1], alpha, coefficients);
+            self.d22[i] = self.d21[i - 1].fir(self.d22[i - 1], alpha, coefficients);
             let v = self.d22[i] * self.ppade[i];
             *x += if i & 1 != 0 { v } else { -v };
             out += v;
         }
         self.d22[0] = *x;
         *x += out;
-    }
-
-    #[inline(always)]
-    fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &'_ Coefficients) -> f64 {
-        d[0] = x;
-        let iaa = 1.0 - alpha * alpha;
-        let mut rem = 0.0;
-        for di in &mut d[..] {
-            (*di, rem) = (alpha * *di + rem, iaa * *di - alpha * rem);
-        }
-        let mut y = 0.0;
-        for i in 2..d.len() {
-            y += d[i] * coefficients[i];
-        }
-        y
     }
 }

@@ -1,5 +1,7 @@
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
+#![feature(portable_simd)]
+#![feature(slice_as_chunks)]
 #![doc = include_str!("../README.md")]
 
 mod constants;
