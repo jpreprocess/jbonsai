@@ -25,6 +25,19 @@ TTSアプリケーションで使うことを意識して書かれています�
 jbonsai = "0.1.0"
 ```
 
+### SIMD (experimental)
+
+jbonsaiは、feature [portable_simd](https://github.com/rust-lang/portable-simd)による高速化をサポートしています。SIMD高速化を有効にするには、
+
+- nightly ツールチェーンを使用する必要があります。
+- 次のように`features = ["simd"]`を指定する必要があります。
+  ```toml
+  [dependencies]
+  jbonsai = { version = "0.1.0", features = ["simd"] }
+  ```
+
+SIMDサポートは非常に実験的であり、いつでも変更される可能性があります。
+
 ## 使用例
 
 以下の例は，「盆栽」と読み上げる音声を生成し，`speech`変数にモノラル, 48000 HzのPCMとして格納します．
