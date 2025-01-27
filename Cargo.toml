@@ -13,9 +13,10 @@ categories = ["multimedia::audio"]
 documentation = "https://docs.rs/jbonsai"
 
 [features]
-default = ["htsvoice"]
+default = ["htsvoice", "simd"]
 binary = ["htsvoice", "dep:hound"]
 htsvoice = ["dep:nom"]
+simd = []
 
 [package.metadata.docs.rs]
 all-features = true

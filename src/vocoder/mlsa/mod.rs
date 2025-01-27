@@ -1,7 +1,7 @@
 use super::coefficients::Coefficients;
 
 #[cfg_attr(
-    any(target_feature = "avx", target_feature = "neon"),
+    all(feature = "simd", any(target_feature = "avx", target_feature = "neon")),
     path = "fir_simd.rs"
 )]
 mod fir;
