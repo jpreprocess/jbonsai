@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/jpreprocess/jbonsai/compare/v0.1.1...v0.2.0) (2025-01-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* pub(crate) for ::model::tests ([#55](https://github.com/jpreprocess/jbonsai/issues/55))
+
+### Features
+
+* add SIMD impl for MLSA::fir ([#61](https://github.com/jpreprocess/jbonsai/issues/61)) ([09c31cd](https://github.com/jpreprocess/jbonsai/commit/09c31cdb9f2d926201105adc9303695b91dea1ce))
+
+
+### Miscellaneous Chores
+
+* pub(crate) for ::model::tests ([#55](https://github.com/jpreprocess/jbonsai/issues/55)) ([f19159b](https://github.com/jpreprocess/jbonsai/commit/f19159bf0a8214e7d5967ed7d19ee0baa190d64c))
+
 ## [0.1.1](https://github.com/jpreprocess/jbonsai/compare/v0.1.0...v0.1.1) (2024-05-26)
 
 
