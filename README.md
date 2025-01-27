@@ -25,6 +25,19 @@ Put the following in `Cargo.toml`.
 jbonsai = "0.1.0"
 ```
 
+### SIMD (experimental)
+
+jbonsai supports acceleration provided by feature [portable_simd](https://github.com/rust-lang/portable-simd). In order to enable SIMD acceleration,
+
+- you must use nightly toolchain.
+- you have to specify `features = ["simd"]` as follows:
+  ```toml
+  [dependencies]
+  jbonsai = { version = "0.1.0", features = ["simd"] }
+  ```
+
+The SIMD support is highly experimental and may change at any time.
+
 ## Example
 
 This example produces a mono, 48,000 Hz (typically) PCM data saying 「盆栽」(ぼんさい; bonsai) in `speech` variable.
