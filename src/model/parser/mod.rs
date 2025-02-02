@@ -271,7 +271,7 @@ GV_TREE[LF0]:1167968-1168282
     #[test]
     fn nom_error() {
         let err =
-            split_sections::<&[u8], nom::error::VerboseError<&[u8]>>(CONTENT[..500].as_bytes())
+            split_sections::<&[u8], nom::error::VerboseError<&[u8]>>(&CONTENT.as_bytes()[..500])
                 .unwrap_err();
 
         let ModelParseError::NomError(nomerr_str) = err.into() else {

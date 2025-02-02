@@ -29,6 +29,7 @@ impl LineSpectralPairs {
         let (mh1, mh2) = if m % 2 == 0 {
             (m / 2, m / 2)
         } else {
+            #[allow(clippy::manual_div_ceil)] // The semantics of this division is not div_ceil
             ((m + 1) / 2, (m - 1) / 2)
         };
 
