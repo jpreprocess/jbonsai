@@ -1,5 +1,3 @@
-use std::ops::{Range, RangeFrom, RangeTo};
-
 use nom::{
     branch::alt,
     bytes::complete::{take_while, take_while1},
@@ -7,7 +5,7 @@ use nom::{
     error::{ErrorKind, FromExternalError, ParseError},
     multi::separated_list0,
     sequence::{delimited, pair},
-    IResult,
+    IResult, Parser,
 };
 
 use super::question::Question;
@@ -20,13 +18,7 @@ pub trait ParseTarget
 where
     Self: Sized
         + Clone
-        + nom::Slice<Range<usize>>
-        + nom::Slice<RangeFrom<usize>>
-        + nom::Slice<RangeTo<usize>>
-        + nom::InputIter
-        + nom::InputLength
-        + nom::InputTake
-        + nom::InputTakeAtPosition
+        + nom::Input
         + nom::Offset
         + nom::AsBytes
         + nom::ParseTo<isize>
@@ -35,7 +27,7 @@ where
         + nom::Compare<&'static str>
         + for<'a> nom::Compare<&'a [u8]>
         + for<'a> nom::FindSubstring<&'a str>,
-    <Self as nom::InputIter>::Item: nom::AsChar,
+    Self::Item: nom::AsChar,
 {
     fn parse_utf8(&self) -> Result<&str, std::str::Utf8Error>;
 
@@ -100,7 +92,8 @@ where
                 let slice: Vec<_> = v.iter().map(|s| s.as_str()).collect();
                 Question::parse(&slice).map_err(nom::Err::Failure)
             },
-        )(self)
+        )
+        .parse(self)
     }
 }
 
@@ -168,14 +161,12 @@ impl ParseTarget for &[u8] {
 
 #[cfg(test)]
 mod tests {
-    use nom::error::VerboseError;
-
     use super::ParseTarget;
 
     #[test]
     fn ascii() {
         assert_eq!(
-            "hogehoge\"\nfugafuga".parse_ascii::<VerboseError<&str>>(),
+            "hogehoge\"\nfugafuga".parse_ascii::<nom::error::Error<&str>>(),
             Ok(("\nfugafuga", "hogehoge\""))
         );
     }

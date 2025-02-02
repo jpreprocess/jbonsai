@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use nom::Parser;
+
 use crate::model::voice::{model::Model, question::Question};
 
 use super::{base::ParseTarget, parse_all, ModelParseError};
@@ -36,7 +38,7 @@ pub fn parse_model(
     let (_, pdf) = parse_all(
         |i| {
             let ntree = trees.len();
-            let (mut i, npdf) = many_m_n(ntree, ntree, le_u32)(i)?;
+            let (mut i, npdf) = many_m_n(ntree, ntree, le_u32).parse(i)?;
             let mut pdf = Vec::with_capacity(ntree);
             for n in npdf {
                 let n = n as usize;
@@ -47,7 +49,8 @@ pub fn parse_model(
                         many_m_n(pdf_len, pdf_len, map(le_f32, |v| v as f64)),
                         crate::model::voice::model::ModelParameter::from_linear,
                     ),
-                )(i)?;
+                )
+                .parse(i)?;
                 pdf.push(r);
                 i = ni;
             }

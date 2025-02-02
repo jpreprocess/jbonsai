@@ -6,7 +6,7 @@ use nom::{
     error::{context, ContextError, FromExternalError, ParseError},
     multi::separated_list0,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
-    IResult,
+    IResult, Parser,
 };
 
 use crate::model::{parser::base::ParseTarget, voice::question};
@@ -17,9 +17,8 @@ pub struct QuestionParser<T>(PhantomData<T>);
 
 impl<S: ParseTarget> QuestionParser<S>
 where
-    <S as nom::InputIter>::Item: nom::AsChar + Clone + Copy,
-    <S as nom::InputTakeAtPosition>::Item: nom::AsChar + Clone,
-    for<'a> &'a str: nom::FindToken<<S as nom::InputIter>::Item>,
+    S::Item: nom::AsChar + Clone + Copy,
+    for<'a> &'a str: nom::FindToken<S::Item>,
 {
     fn parse_question_ident<E: ParseError<S> + ContextError<S>>(i: S) -> IResult<S, S, E> {
         i.parse_template1(|c| c.is_ascii() && !" \n".contains(c))
@@ -39,7 +38,8 @@ where
                 S::parse_question,
                 pair(S::sp, char('}')),
             )),
-        )(i)
+        )
+        .parse(i)
     }
     fn parse_question<
         E: ParseError<S>
@@ -58,7 +58,8 @@ where
                     Self::parse_pattern_list_section,
                 ),
             ),
-        )(i)
+        )
+        .parse(i)
         .and_then(|(rest, (name, question))| {
             Ok((rest, (name.parse_ascii_to_string()?.1, question)))
         })
@@ -77,14 +78,14 @@ where
                 delimited(space0, char('\n'), S::sp),
                 QuestionParser::parse_question,
             )),
-        )(i)
+        )
+        .parse(i)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use jlabel_question::{position::SignedRangePosition, AllQuestion};
-    use nom::error::VerboseError;
 
     use crate::model::parser::question;
 
@@ -93,7 +94,7 @@ mod tests {
     #[test]
     fn parse_question() {
         assert_eq!(
-            QuestionParser::parse_question::<VerboseError<&str>>(
+            QuestionParser::parse_question::<nom::error::Error<&str>>(
                 r#"QS C-Mora_diff_Acc-Type<=0 { "*/A:-??+*","*/A:-?+*","*/A:0+*" }"#
             ),
             Ok((

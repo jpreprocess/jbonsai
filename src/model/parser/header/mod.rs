@@ -13,7 +13,7 @@ use super::{base::ParseTarget, ModelParseError};
 pub fn parse_header<'de, S, T>(input: &'de S) -> Result<T, ModelParseError>
 where
     S: ParseTarget,
-    <S as nom::InputIter>::Item: nom::AsChar,
+    S::Item: nom::AsChar,
     T: Deserialize<'de>,
 {
     Ok(from_str(
