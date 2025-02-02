@@ -20,10 +20,14 @@ This project is currently a rewrite of [HTS Engine](https://hts-engine.sourcefor
 
 Put the following in `Cargo.toml`.
 
+<!-- x-release-please-start-version -->
+
 ```toml
 [dependencies]
-jbonsai = "0.1.0"
+jbonsai = "0.1.1"
 ```
+
+<!-- x-release-please-end -->
 
 ### SIMD (experimental)
 
@@ -31,10 +35,12 @@ jbonsai supports acceleration provided by feature [portable_simd](https://github
 
 - you must use nightly toolchain.
 - you have to specify `features = ["simd"]` as follows:
+  <!-- x-release-please-start-version -->
   ```toml
   [dependencies]
-  jbonsai = { version = "0.1.0", features = ["simd"] }
+  jbonsai = { version = "0.2.0", features = ["simd"] }
   ```
+  <!-- x-release-please-end -->
 
 The SIMD support is highly experimental and may change at any time.
 

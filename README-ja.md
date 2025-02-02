@@ -20,10 +20,14 @@ TTSアプリケーションで使うことを意識して書かれています�
 
 `Cargo.toml`に次のように書いてください．
 
+<!-- x-release-please-start-version -->
+
 ```toml
 [dependencies]
-jbonsai = "0.1.0"
+jbonsai = "0.1.1"
 ```
+
+<!-- x-release-please-end -->
 
 ### SIMD (experimental)
 
@@ -31,10 +35,12 @@ jbonsaiは、feature [portable_simd](https://github.com/rust-lang/portable-simd)
 
 - nightly ツールチェーンを使用する必要があります。
 - 次のように`features = ["simd"]`を指定する必要があります。
+  <!-- x-release-please-start-version -->
   ```toml
   [dependencies]
-  jbonsai = { version = "0.1.0", features = ["simd"] }
+  jbonsai = { version = "0.2.0", features = ["simd"] }
   ```
+  <!-- x-release-please-end -->
 
 SIMDサポートは非常に実験的であり、いつでも変更される可能性があります。
 
