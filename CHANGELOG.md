@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/jpreprocess/jbonsai/compare/v0.2.1...v0.2.2) (2025-02-08)
+
+
+### Continuous Integration
+
+* inherit secrets in release workflow ([#71](https://github.com/jpreprocess/jbonsai/issues/71)) ([5b27727](https://github.com/jpreprocess/jbonsai/commit/5b27727a03f60f3b686ed24b847a316b6529b02b))
+
 ## [0.2.1](https://github.com/jpreprocess/jbonsai/compare/v0.2.0...v0.2.1) (2025-02-08)
 
 
