@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/jpreprocess/jbonsai/compare/v0.2.0...v0.2.1) (2025-02-08)
+
+
+### Continuous Integration
+
+* fix publish command ([#69](https://github.com/jpreprocess/jbonsai/issues/69)) ([d042103](https://github.com/jpreprocess/jbonsai/commit/d0421035db49cb8d732fb4c00ae2dfccec07462d))
+
 ## [0.2.0](https://github.com/jpreprocess/jbonsai/compare/v0.1.1...v0.2.0) (2025-02-03)
 
 
