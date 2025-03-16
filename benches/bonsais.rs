@@ -20,7 +20,7 @@ fn bonsai(bencher: &mut Bencher) {
         "N^s-a+i=sil/A:-1+3+2/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
         "s^a-i+sil=xx/A:0+4+1/B:xx-xx_xx/C:02_xx+xx/D:xx+xx_xx/E:xx_xx!xx_xx-xx/F:4_4#0_xx@1_1|1_4/G:xx_xx%xx_xx_xx/H:xx_xx/I:1-4@1+1&1-1|1+4/J:xx_xx/K:1+1-4",
         "a^i-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:4_4!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:1_4/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+1-4",
-        ];
+    ];
 
     let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 
@@ -58,7 +58,7 @@ fn is_bonsai(bencher: &mut Bencher) {
         "s^U-k+a=sil/A:2+7+1/B:10-7_2/C:23_xx+xx/D:xx+xx_xx/E:3_3!0_xx-1/F:7_5#1_xx@2_1|4_7/G:xx_xx%xx_xx_xx/H:xx_xx/I:2-10@1+1&1-2|1+10/J:xx_xx/K:1+2-10",
         "U^k-a+sil=xx/A:2+7+1/B:10-7_2/C:23_xx+xx/D:xx+xx_xx/E:3_3!0_xx-1/F:7_5#1_xx@2_1|4_7/G:xx_xx%xx_xx_xx/H:xx_xx/I:2-10@1+1&1-2|1+10/J:xx_xx/K:1+2-10",
         "k^a-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:7_5!1_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:2_10/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+2-10",
-        ];
+    ];
 
     let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 
@@ -130,7 +130,7 @@ fn bonsai_letter(bencher: &mut Bencher) {
         "a^cl-t+a=sil/A:2+3+1/B:17-1_1/C:10_7+2/D:xx+xx_xx/E:3_1!0_xx-1/F:3_1#0_xx@6_1|22_3/G:xx_xx%xx_xx_xx/H:xx_xx/I:6-24@1+1&1-6|1+24/J:xx_xx/K:1+6-24",
         "cl^t-a+sil=xx/A:2+3+1/B:17-1_1/C:10_7+2/D:xx+xx_xx/E:3_1!0_xx-1/F:3_1#0_xx@6_1|22_3/G:xx_xx%xx_xx_xx/H:xx_xx/I:6-24@1+1&1-6|1+24/J:xx_xx/K:1+6-24",
         "t^a-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:3_1!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:6_24/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+6-24",
-        ];
+    ];
 
     let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
 

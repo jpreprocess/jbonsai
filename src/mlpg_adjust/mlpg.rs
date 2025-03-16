@@ -4,7 +4,7 @@
 
 use crate::model::{GvParameter, MeanVari, Windows};
 
-use super::{mask::Mask, IterExt};
+use super::{IterExt, mask::Mask};
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;

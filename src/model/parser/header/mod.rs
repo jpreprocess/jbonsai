@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use super::{base::ParseTarget, ModelParseError};
+use super::{ModelParseError, base::ParseTarget};
 
 pub fn parse_header<'de, S, T>(input: &'de S) -> Result<T, ModelParseError>
 where
@@ -113,7 +113,7 @@ pub struct PositionData {
 #[cfg(test)]
 mod tests {
     use super::{
-        de::from_str, deserialize_hashmap, Global, Position, PositionData, Stream, StreamData,
+        Global, Position, PositionData, Stream, StreamData, de::from_str, deserialize_hashmap,
     };
 
     use std::collections::HashMap;
