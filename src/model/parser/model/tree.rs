@@ -1,14 +1,14 @@
 use std::marker::PhantomData;
 
 use nom::{
+    AsChar, IResult, Parser,
     branch::alt,
     bytes::complete::tag,
     character::complete::digit1,
     combinator::{cut, map, opt, peek, recognize},
-    error::{context, ContextError, ErrorKind, FromExternalError, ParseError},
+    error::{ContextError, ErrorKind, FromExternalError, ParseError, context},
     multi::{many_m_n, separated_list0},
     sequence::{delimited, pair, preceded},
-    AsChar, IResult, Parser,
 };
 
 use crate::model::parser::base::ParseTarget;

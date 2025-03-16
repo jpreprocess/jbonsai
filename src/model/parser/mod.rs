@@ -1,19 +1,19 @@
 //! `.htsvoice` parser.
 
 use nom::{
-    error::{ContextError, ParseError},
     IResult, Parser,
+    error::{ContextError, ParseError},
 };
 
 use self::{
     base::ParseTarget,
     header::parse_header,
-    header::{error::DeserializeError, Global, Position, Stream},
+    header::{Global, Position, Stream, error::DeserializeError},
     model::parse_model,
     window::WindowParser,
 };
 
-use super::voice::{model::Model, question, window::Windows, StreamModels, Voice};
+use super::voice::{StreamModels, Voice, model::Model, question, window::Windows};
 
 mod base;
 mod header;
@@ -192,7 +192,7 @@ mod tests {
 
     use crate::{model::parser::split_sections, tests::MODEL_NITECH_ATR503};
 
-    use super::{parse_htsvoice, ModelParseError};
+    use super::{ModelParseError, parse_htsvoice};
 
     #[test]
     fn load() {

@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use serde::{
+    Deserialize, Deserializer,
     de::{MapAccess, Visitor},
-    forward_to_deserialize_any, Deserialize, Deserializer,
+    forward_to_deserialize_any,
 };
 
 use super::error::DeserializeError;

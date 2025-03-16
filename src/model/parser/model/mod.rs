@@ -4,7 +4,7 @@ use nom::Parser;
 
 use crate::model::voice::{model::Model, question::Question};
 
-use super::{base::ParseTarget, parse_all, ModelParseError};
+use super::{ModelParseError, base::ParseTarget, parse_all};
 
 use self::{
     question::QuestionParser,

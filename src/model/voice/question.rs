@@ -1,4 +1,4 @@
-use jlabel_question::{regex::RegexQuestion, AllQuestion, QuestionMatcher};
+use jlabel_question::{AllQuestion, QuestionMatcher, regex::RegexQuestion};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

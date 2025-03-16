@@ -1,11 +1,11 @@
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{take_while, take_while1},
     combinator::{cut, map_res},
     error::{ErrorKind, FromExternalError, ParseError},
     multi::separated_list0,
     sequence::{delimited, pair},
-    IResult, Parser,
 };
 
 use super::question::Question;

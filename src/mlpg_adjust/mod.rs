@@ -113,7 +113,7 @@ impl<T: Copy + 'static, I: Iterator<Item = T>> IterExt for I {
         durations: impl IntoIterator<Item = &'a usize> + 'a,
     ) -> impl Iterator<Item = Self::Item> {
         self.zip(durations)
-            .flat_map(move |(item, duration)| iter::repeat(item).take(*duration))
+            .flat_map(move |(item, duration)| iter::repeat_n(item, *duration))
     }
 
     fn filter_by<'a>(

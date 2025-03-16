@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 
 use nom::{
+    IResult, Parser,
     character::complete::{digit1, space1},
     combinator::map,
     error::{ContextError, ErrorKind, ParseError},
     multi::many_m_n,
     number::complete::double,
     sequence::preceded,
-    IResult, Parser,
 };
 
 use crate::model::voice::window::Window;
