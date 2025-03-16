@@ -37,6 +37,7 @@ jobs:
     uses: ./.github/workflows/publish-crates.yml
     with:
       dry-run: false
+    secrets: inherit
 
   publish-release:
     needs: [release-please, publish-crates]

@@ -24,7 +24,7 @@ TTSアプリケーションで使うことを意識して書かれています�
 
 ```toml
 [dependencies]
-jbonsai = "0.2.0"
+jbonsai = "0.2.2"
 ```
 
 <!-- x-release-please-end -->
@@ -38,7 +38,7 @@ jbonsaiは、feature [portable_simd](https://github.com/rust-lang/portable-simd)
   <!-- x-release-please-start-version -->
   ```toml
   [dependencies]
-  jbonsai = { version = "0.2.0", features = ["simd"] }
+  jbonsai = { version = "0.2.2", features = ["simd"] }
   ```
   <!-- x-release-please-end -->
 
