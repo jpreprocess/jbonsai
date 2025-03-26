@@ -45,7 +45,7 @@ jobs:
           submodules: true
 
       - name: Use stable
-        run: echo 'stable' > rust-toolchain
+        run: patch --strip=0 <patches/toolchain-to-stable.patch
 
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
@@ -63,7 +63,7 @@ jobs:
           submodules: true
 
       - name: Reset rust-toolchain
-        run: rm rust-toolchain
+        run: rm rust-toolchain.toml
 
       - name: Get MSRV
         id: msrv
