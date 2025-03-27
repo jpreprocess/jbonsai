@@ -28,13 +28,9 @@ jobs:
         run: cargo test --verbose --all-features -- --include-ignored
 
       - name: Run Clippy
-        run: |
-          rustup component add clippy --toolchain nightly-x86_64-unknown-linux-gnu
-          cargo clippy --all-targets
+        run: cargo clippy --all-targets
       - name: Run Format Check
-        run: |
-          rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
-          cargo fmt --check
+        run: cargo fmt --check
 
   build-stable:
     runs-on: ubuntu-latest
