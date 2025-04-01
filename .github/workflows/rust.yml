@@ -88,7 +88,7 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     container:
-      image: xd009642/tarpaulin:develop-nightly@sha256:7b70cf134040778b0cf76f165c78336a10b83118ebf650c1ed46802b98eba9b6
+      image: xd009642/tarpaulin:develop-nightly@sha256:0caca04d63b7bc4e91df7f275b020006d490eb3dadf03bfeaeb779858a2c5312
       options: --security-opt seccomp=unconfined
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
