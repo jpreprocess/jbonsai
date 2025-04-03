@@ -41,7 +41,7 @@ jobs:
           submodules: true
 
       - name: Use stable
-        run: patch --strip=0 <patches/toolchain-to-stable.patch
+        run: patch --fuzz=0 --strip=0 <patches/toolchain-to-stable.patch
 
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
