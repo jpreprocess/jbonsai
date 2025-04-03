@@ -22,6 +22,9 @@ jobs:
         with:
           app-id: ${{ vars.JPREPROCESS_RELEASE_APP_ID}}
           private-key: ${{ secrets.JPREPROCESS_RELEASE_APP_KEY }}
+          # Limit token permissions to only what's needed for release-please
+          permission-contents: write
+          permission-pull-requests: write
       - uses: googleapis/release-please-action@a37ac6e4f6449ce8b3f7607e4d97d0146028dc0b # v4.1.0
         id: release
         with:
