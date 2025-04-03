@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Generate a token
         id: generate_token
-        uses: actions/create-github-app-token@a0de6af83968303c8c955486bf9739a57d23c7f1 # v1.10.0
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
         with:
           app-id: ${{ vars.JPREPROCESS_RELEASE_APP_ID}}
           private-key: ${{ secrets.JPREPROCESS_RELEASE_APP_KEY }}
