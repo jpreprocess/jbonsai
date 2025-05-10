@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0](https://github.com/jpreprocess/jbonsai/compare/v0.2.2...v0.3.0) (2025-05-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* move `jbonsai::model::load_htsvoice_file` to `jbonsai::model::load_htsvoice_from_bytes`
+
+### Features
+
+* add Engine::load_from_bytes() ([#59](https://github.com/jpreprocess/jbonsai/issues/59)) ([13cf2f3](https://github.com/jpreprocess/jbonsai/commit/13cf2f3fd77faf341e973ca87061b8ebdca5baa7))
+* edition 2024 ([#77](https://github.com/jpreprocess/jbonsai/issues/77)) ([1f3d741](https://github.com/jpreprocess/jbonsai/commit/1f3d7417c7cc4b8cd98fa578744dc26c41b19365))
+
+
+### Bug Fixes
+
+* clippy ([#89](https://github.com/jpreprocess/jbonsai/issues/89)) ([4c23191](https://github.com/jpreprocess/jbonsai/commit/4c231915c26ab0aa6859e535c14b05494f78f010))
+* **deps:** update dependencies (non-major) ([#74](https://github.com/jpreprocess/jbonsai/issues/74)) ([f4d6d0b](https://github.com/jpreprocess/jbonsai/commit/f4d6d0b1efa4b793a0f1e8e7eaa2372fcbd6c64e))
+
 ## [0.2.2](https://github.com/jpreprocess/jbonsai/compare/v0.2.1...v0.2.2) (2025-02-08)
 
 
