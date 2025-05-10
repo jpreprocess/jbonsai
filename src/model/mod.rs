@@ -6,7 +6,7 @@ use self::voice::model::ModelParameter;
 
 pub use self::{
     interporation_weight::InterporationWeight,
-    voice::{window::Windows, GlobalModelMetadata, StreamModelMetadata, Voice},
+    voice::{GlobalModelMetadata, StreamModelMetadata, Voice, window::Windows},
 };
 
 use jlabel::Label;
@@ -168,13 +168,13 @@ pub(crate) mod tests {
     use std::{borrow::Cow, sync::Arc};
 
     use crate::{
-        model::{interporation_weight::InterporationWeight, MeanVari},
+        model::{MeanVari, interporation_weight::InterporationWeight},
         tests::{
             MODEL_NITECH_ATR503, MODEL_TOHOKU_F01_HAPPY, MODEL_TOHOKU_F01_NORMAL, SAMPLE_SENTENCE_1,
         },
     };
 
-    use super::{load_htsvoice_file, Models, Voice, VoiceSet};
+    use super::{Models, Voice, VoiceSet, load_htsvoice_file};
 
     fn load_voice() -> Voice {
         load_htsvoice_file(&MODEL_NITECH_ATR503).unwrap()

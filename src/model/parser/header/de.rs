@@ -1,7 +1,7 @@
 use std::ops::{AddAssign, MulAssign};
 
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
-use serde::{forward_to_deserialize_any, Deserialize};
+use serde::{Deserialize, forward_to_deserialize_any};
 
 use super::error::DeserializeError;
 

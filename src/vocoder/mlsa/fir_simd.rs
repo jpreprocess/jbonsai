@@ -1,6 +1,6 @@
 use std::{
     ops::{Deref, DerefMut},
-    simd::{num::SimdFloat, LaneCount, Simd, StdFloat, SupportedLaneCount},
+    simd::{LaneCount, Simd, StdFloat, SupportedLaneCount, num::SimdFloat},
 };
 
 #[derive(Debug, Clone)]

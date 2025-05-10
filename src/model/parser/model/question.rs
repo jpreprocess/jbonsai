@@ -1,12 +1,12 @@
 use std::marker::PhantomData;
 
 use nom::{
+    IResult, Parser,
     bytes::complete::tag,
     combinator::cut,
-    error::{context, ContextError, FromExternalError, ParseError},
+    error::{ContextError, FromExternalError, ParseError, context},
     multi::separated_list0,
     sequence::{delimited, pair, preceded, separated_pair, terminated},
-    IResult, Parser,
 };
 
 use crate::model::{parser::base::ParseTarget, voice::question};
@@ -85,7 +85,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use jlabel_question::{position::SignedRangePosition, AllQuestion};
+    use jlabel_question::{AllQuestion, position::SignedRangePosition};
 
     use crate::model::parser::question;
 

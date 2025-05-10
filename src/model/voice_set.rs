@@ -3,8 +3,8 @@
 use std::{ops::Deref, sync::Arc};
 
 use super::{
-    interporation_weight::Weights, voice::model::ModelParameter, GlobalModelMetadata, ModelError,
-    StreamModelMetadata, Voice, Windows,
+    GlobalModelMetadata, ModelError, StreamModelMetadata, Voice, Windows,
+    interporation_weight::Weights, voice::model::ModelParameter,
 };
 
 /// Set of voice model that can be morphed with each other.
