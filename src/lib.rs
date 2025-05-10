@@ -38,7 +38,19 @@ mod tests {
 
     #[test]
     fn bonsai() {
-        let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+        let engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
+
+        let speech = engine.synthesize(&SAMPLE_SENTENCE_1).unwrap();
+
+        assert_eq!(speech.len(), 66480);
+        approx::assert_abs_diff_eq!(speech[2000], 19.35141137623778, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], -980.6757547598129, epsilon = 1.0e-10);
+    }
+
+    #[test]
+    fn bonsai_load_from_bytes() {
+        let model_bytes = std::fs::read(MODEL_NITECH_ATR503).unwrap();
+        let engine = Engine::load_from_bytes(&[model_bytes]).unwrap();
 
         let speech = engine.synthesize(&SAMPLE_SENTENCE_1).unwrap();
 
@@ -54,7 +66,7 @@ mod tests {
             .map(|l| l.parse().unwrap())
             .collect();
 
-        let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+        let engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
 
         let speech = engine.synthesize(labels).unwrap();
 
@@ -65,7 +77,7 @@ mod tests {
 
     #[test]
     fn bonsai_multi() {
-        let mut engine = Engine::load(&[MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY]).unwrap();
+        let mut engine = Engine::load([MODEL_TOHOKU_F01_NORMAL, MODEL_TOHOKU_F01_HAPPY]).unwrap();
         let iw = engine.condition.get_interporation_weight_mut();
         iw.set_duration(&[0.7, 0.3]).unwrap();
         iw.set_parameter(0, &[0.7, 0.3]).unwrap();
@@ -110,7 +122,7 @@ mod tests {
 
     #[test]
     fn is_this_bonsai() {
-        let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+        let engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
 
         let speech = engine.synthesize(&SAMPLE_SENTENCE_2).unwrap();
 
@@ -123,7 +135,7 @@ mod tests {
 
     #[test]
     fn is_this_bonsai_fast() {
-        let mut engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+        let mut engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
         engine.condition.set_speed(1.4);
 
         let speech = engine.synthesize(&SAMPLE_SENTENCE_2).unwrap();
@@ -137,7 +149,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let mut engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+        let mut engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
         let labels: [&str; 0] = [];
 
         let speech = engine.synthesize(&labels[..]).unwrap();

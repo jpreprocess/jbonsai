@@ -254,13 +254,29 @@ pub struct Engine {
 impl Engine {
     /// Load `.htsvoice` files and create a new [`Engine`].
     #[cfg(feature = "htsvoice")]
-    pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
-        use crate::model::load_htsvoice_file;
+    pub fn load<P: AsRef<Path>>(voices: impl IntoIterator<Item = P>) -> Result<Self, EngineError> {
+        Self::load_from_result_bytes(voices.into_iter().map(std::fs::read))
+    }
+
+    /// Load htsvoice file content and create a new [`Engine`].
+    #[cfg(feature = "htsvoice")]
+    pub fn load_from_bytes<B: AsRef<[u8]>>(
+        voices: impl IntoIterator<Item = B>,
+    ) -> Result<Self, EngineError> {
+        Self::load_from_result_bytes(voices.into_iter().map(Ok))
+    }
+
+    #[cfg(feature = "htsvoice")]
+    fn load_from_result_bytes<B: AsRef<[u8]>>(
+        voices: impl IntoIterator<Item = std::io::Result<B>>,
+    ) -> Result<Self, EngineError> {
+        use crate::model::load_htsvoice_from_bytes;
 
         let voices = voices
-            .iter()
-            .map(|path| Ok(Arc::new(load_htsvoice_file(path)?)))
+            .into_iter()
+            .map(|bytes| Ok(Arc::new(load_htsvoice_from_bytes(bytes?.as_ref())?)))
             .collect::<Result<Vec<_>, ModelError>>()?;
+
         let voiceset = VoiceSet::new(voices)?;
 
         let mut condition = Condition::default();
@@ -268,6 +284,7 @@ impl Engine {
 
         Ok(Self::new(voiceset, condition))
     }
+
     /// Create a new [`Engine`] with provided voices and condition.
     pub fn new(voices: VoiceSet, condition: Condition) -> Self {
         Engine { voices, condition }

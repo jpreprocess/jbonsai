@@ -4,7 +4,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let label_str = std::fs::read_to_string("examples/genji/genji.lab")?;
 
     let lines: Vec<_> = label_str.lines().collect();
-    let mut engine = Engine::load(&[
+    let mut engine = Engine::load([
         "models/tohoku-f01/tohoku-f01-sad.htsvoice",
         "models/tohoku-f01/tohoku-f01-happy.htsvoice",
     ])?;

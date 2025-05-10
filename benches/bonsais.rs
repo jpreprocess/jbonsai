@@ -22,7 +22,7 @@ fn bonsai(bencher: &mut Bencher) {
         "a^i-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:4_4!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:1_4/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+1-4",
     ];
 
-    let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+    let engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
 
     bencher.iter(|| {
         engine.synthesize(&lines).unwrap();
@@ -60,7 +60,7 @@ fn is_bonsai(bencher: &mut Bencher) {
         "k^a-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:7_5!1_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:2_10/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+2-10",
     ];
 
-    let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+    let engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
 
     bencher.iter(|| {
         engine.synthesize(&lines).unwrap();
@@ -132,7 +132,7 @@ fn bonsai_letter(bencher: &mut Bencher) {
         "t^a-sil+xx=xx/A:xx+xx+xx/B:xx-xx_xx/C:xx_xx+xx/D:xx+xx_xx/E:3_1!0_xx-xx/F:xx_xx#xx_xx@xx_xx|xx_xx/G:xx_xx%xx_xx_xx/H:6_24/I:xx-xx@xx+xx&xx-xx|xx+xx/J:xx_xx/K:1+6-24",
     ];
 
-    let engine = Engine::load(&[MODEL_NITECH_ATR503]).unwrap();
+    let engine = Engine::load([MODEL_NITECH_ATR503]).unwrap();
 
     bencher.iter(|| {
         engine.synthesize(&lines).unwrap();

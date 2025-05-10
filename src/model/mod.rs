@@ -156,11 +156,10 @@ impl<'a> Models<'a> {
     }
 }
 
-/// Load `.htsvoice` file as [`Voice`].
+/// Load `.htsvoice` file content as [`Voice`].
 #[cfg(feature = "htsvoice")]
-pub fn load_htsvoice_file<P: AsRef<std::path::Path>>(path: &P) -> Result<Voice, ModelError> {
-    let f = std::fs::read(path)?;
-    Ok(parser::parse_htsvoice(&f)?)
+pub fn load_htsvoice_from_bytes(bytes: &[u8]) -> Result<Voice, ModelError> {
+    Ok(parser::parse_htsvoice(bytes)?)
 }
 
 #[cfg(all(test, feature = "htsvoice"))]
@@ -174,10 +173,11 @@ pub(crate) mod tests {
         },
     };
 
-    use super::{Models, Voice, VoiceSet, load_htsvoice_file};
+    use super::{Models, Voice, VoiceSet, load_htsvoice_from_bytes};
 
     fn load_voice() -> Voice {
-        load_htsvoice_file(&MODEL_NITECH_ATR503).unwrap()
+        let htsvoice = std::fs::read(MODEL_NITECH_ATR503).unwrap();
+        load_htsvoice_from_bytes(&htsvoice).unwrap()
     }
 
     #[test]
@@ -394,8 +394,10 @@ pub(crate) mod tests {
 
     #[test]
     fn multiple_models() {
-        let normal = load_htsvoice_file(&MODEL_TOHOKU_F01_NORMAL).unwrap();
-        let happy = load_htsvoice_file(&MODEL_TOHOKU_F01_HAPPY).unwrap();
+        let normal_htsvoice = std::fs::read(MODEL_TOHOKU_F01_NORMAL).unwrap();
+        let normal = load_htsvoice_from_bytes(&normal_htsvoice).unwrap();
+        let happy_htsvoice = std::fs::read(MODEL_TOHOKU_F01_HAPPY).unwrap();
+        let happy = load_htsvoice_from_bytes(&happy_htsvoice).unwrap();
         let voiceset = VoiceSet::new(vec![Arc::new(normal), Arc::new(happy)]).unwrap();
         let labels = vec![SAMPLE_SENTENCE_1[2].parse().unwrap()];
 
