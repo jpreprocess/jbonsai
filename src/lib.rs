@@ -48,6 +48,18 @@ mod tests {
     }
 
     #[test]
+    fn bonsai_load_from_bytes() {
+        let model_bytes = std::fs::read(MODEL_NITECH_ATR503).unwrap();
+        let engine = Engine::load_from_bytes(&[model_bytes]).unwrap();
+
+        let speech = engine.synthesize(&SAMPLE_SENTENCE_1).unwrap();
+
+        assert_eq!(speech.len(), 66480);
+        approx::assert_abs_diff_eq!(speech[2000], 19.35141137623778, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], -980.6757547598129, epsilon = 1.0e-10);
+    }
+
+    #[test]
     fn bonsai_from_labels() {
         let labels: Vec<jlabel::Label> = SAMPLE_SENTENCE_1
             .iter()
