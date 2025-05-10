@@ -254,8 +254,8 @@ pub struct Engine {
 impl Engine {
     /// Load `.htsvoice` files and create a new [`Engine`].
     #[cfg(feature = "htsvoice")]
-    pub fn load<P: AsRef<Path>>(voices: &[P]) -> Result<Self, EngineError> {
-        Self::load_from_result_bytes(voices.iter().map(std::fs::read))
+    pub fn load<P: AsRef<Path>>(voices: impl IntoIterator<Item = P>) -> Result<Self, EngineError> {
+        Self::load_from_result_bytes(voices.into_iter().map(std::fs::read))
     }
 
     /// Load htsvoice file content and create a new [`Engine`].
