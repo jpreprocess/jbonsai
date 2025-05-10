@@ -257,7 +257,6 @@ mod tests {
 }"#;
         TreeParser::parse_trees::<nom::error::Error<&str>>(tree).unwrap();
         TreeParser::parse_trees::<nom::error::Error<&str>>(&format!("{tree}  \n")).unwrap();
-        TreeParser::parse_trees::<nom::error::Error<&str>>(&format!("{tree}  \n{tree}"))
-            .unwrap();
+        TreeParser::parse_trees::<nom::error::Error<&str>>(&format!("{tree}  \n{tree}")).unwrap();
     }
 }
