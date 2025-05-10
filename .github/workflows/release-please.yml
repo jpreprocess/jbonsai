@@ -25,7 +25,7 @@ jobs:
           # Limit token permissions to only what's needed for release-please
           permission-contents: write
           permission-pull-requests: write
-      - uses: googleapis/release-please-action@a37ac6e4f6449ce8b3f7607e4d97d0146028dc0b # v4.1.0
+      - uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445 # v4.2.0
         id: release
         with:
           token: ${{ steps.generate_token.outputs.token }}
