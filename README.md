@@ -24,7 +24,7 @@ Put the following in `Cargo.toml`.
 
 ```toml
 [dependencies]
-jbonsai = "0.2.2"
+jbonsai = "0.3.0"
 ```
 
 <!-- x-release-please-end -->
@@ -38,7 +38,7 @@ jbonsai supports acceleration provided by feature [portable_simd](https://github
   <!-- x-release-please-start-version -->
   ```toml
   [dependencies]
-  jbonsai = { version = "0.2.2", features = ["simd"] }
+  jbonsai = { version = "0.3.0", features = ["simd"] }
   ```
   <!-- x-release-please-end -->
 
