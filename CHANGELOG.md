@@ -5,7 +5,7 @@
 
 ### ⚠ BREAKING CHANGES
 
-* move `jbonsai::model::load_htsvoice_file` to
+* move `jbonsai::model::load_htsvoice_file` to `jbonsai::model::load_htsvoice_from_bytes`
 
 ### Features
 
