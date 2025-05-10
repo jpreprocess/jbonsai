@@ -95,7 +95,7 @@ impl Condition {
         /* spectrum */
         for option in &voices.stream_metadata(0).option {
             let Some((key, value)) = option.split_once('=') else {
-                eprintln!("Skipped unrecognized option {}.", option);
+                eprintln!("Skipped unrecognized option {option}.");
                 continue;
             };
             match key {
@@ -114,7 +114,7 @@ impl Condition {
                         .parse()
                         .map_err(|_| EngineError::ParseOptionError(key.to_string()))?
                 }
-                _ => eprintln!("Skipped unrecognized option {}.", option),
+                _ => eprintln!("Skipped unrecognized option {option}."),
             }
         }
 

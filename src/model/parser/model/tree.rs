@@ -256,8 +256,7 @@ mod tests {
 -1 Utt_Len_Mora=18                                     "gv_lf0_3"       "gv_lf0_2" 
 }"#;
         TreeParser::parse_trees::<nom::error::Error<&str>>(tree).unwrap();
-        TreeParser::parse_trees::<nom::error::Error<&str>>(&format!("{}  \n", tree)).unwrap();
-        TreeParser::parse_trees::<nom::error::Error<&str>>(&format!("{}  \n{}", tree, tree))
-            .unwrap();
+        TreeParser::parse_trees::<nom::error::Error<&str>>(&format!("{tree}  \n")).unwrap();
+        TreeParser::parse_trees::<nom::error::Error<&str>>(&format!("{tree}  \n{tree}")).unwrap();
     }
 }

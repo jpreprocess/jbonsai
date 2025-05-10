@@ -25,7 +25,7 @@ impl Display for Voice {
         write!(f, "Duration Model: {}", self.duration_model)?;
         writeln!(f, "Stream Models:")?;
         for (i, model) in self.stream_models.iter().enumerate() {
-            write!(f, "#{}:\n{}", i, model)?;
+            write!(f, "#{i}:\n{model}")?;
         }
         Ok(())
     }
@@ -74,7 +74,7 @@ impl Display for StreamModels {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "  Model: {}", self.stream_model)?;
         if let Some(ref gv_model) = self.gv_model {
-            write!(f, "  GV Model: {}", gv_model)?;
+            write!(f, "  GV Model: {gv_model}")?;
         }
         writeln!(
             f,
