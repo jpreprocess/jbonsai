@@ -84,10 +84,19 @@ fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     d[0] = x;
 
     let a = alpha;
-    let iaa = 1.0 - a * a;
+    let aa = a * a;
+    let iaa = 1.0 - aa;
     let mut rem = 0.0;
 
-    for di in &mut d[..] {
+    let mut chunks = d.chunks_exact_mut(2);
+    for chunk in chunks.by_ref() {
+        (chunk[0], chunk[1], rem) = (
+            a * chunk[0] + rem,
+            iaa * chunk[0] + a * chunk[1] - a * rem,
+            -a * iaa * chunk[0] + iaa * chunk[1] + aa * rem,
+        );
+    }
+    for di in chunks.into_remainder() {
         (*di, rem) = (a * *di + rem, iaa * *di - a * rem);
     }
 
