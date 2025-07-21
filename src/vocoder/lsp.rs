@@ -26,7 +26,7 @@ impl LineSpectralPairs {
 
     fn lsp2lpc(&self) -> MelGeneralizedCepstrum {
         let m = self.len();
-        let (mh1, mh2) = if m % 2 == 0 {
+        let (mh1, mh2) = if m.is_multiple_of(2) {
             (m / 2, m / 2)
         } else {
             #[allow(clippy::manual_div_ceil)] // The semantics of this division is not div_ceil

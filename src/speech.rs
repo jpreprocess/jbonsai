@@ -35,7 +35,7 @@ impl SpeechGenerator {
         if !lf0.is_empty() && lf0[0].len() != 1 {
             panic!("The size of lf0 static vector must be 1.");
         }
-        if !lpf.is_empty() && lpf[0].len() % 2 == 0 {
+        if !lpf.is_empty() && lpf[0].len().is_multiple_of(2) {
             panic!("The number of low-pass filter coefficient must be odd numbers.");
         }
 
