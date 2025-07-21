@@ -146,7 +146,7 @@ impl<'a> Models<'a> {
     }
 
     /// Create [`ModelStream`] corresponding to the given stream index.
-    pub fn model_stream(&self, stream_index: usize) -> ModelStream {
+    pub fn model_stream(&self, stream_index: usize) -> ModelStream<'_> {
         ModelStream {
             vector_length: self.vector_length(stream_index),
             stream: self.stream(stream_index),
