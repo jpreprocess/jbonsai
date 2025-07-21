@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/jpreprocess/jbonsai/compare/v0.3.0...v0.3.1) (2025-07-21)
+
+
+### Bug Fixes
+
+* warnings ([#97](https://github.com/jpreprocess/jbonsai/issues/97)) ([506c136](https://github.com/jpreprocess/jbonsai/commit/506c136ba69c0c824aef85814b21cd4a4ecfeeb8))
+
 ## [0.3.0](https://github.com/jpreprocess/jbonsai/compare/v0.2.2...v0.3.0) (2025-05-10)
 
 
