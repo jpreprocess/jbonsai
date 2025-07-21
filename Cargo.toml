@@ -3,7 +3,7 @@ name = "jbonsai"
 version = "0.3.0"
 edition = "2024"
 
-rust-version = "1.85.0"
+rust-version = "1.88.0"
 
 description = "Voice synthesis library for Text-to-Speech applications (Currently HTS Engine rewrite in Rust language)."
 license = "BSD-3-Clause"
