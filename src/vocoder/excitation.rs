@@ -1,8 +1,6 @@
 #[derive(Debug, Clone)]
 pub struct Excitation {
-    pitch_of_curr_point: f64,
-    pitch_counter: f64,
-    pitch_inc_per_point: f64,
+    pitch: Pitch,
     ring_buffer: RingBuffer,
     random: Random,
 }
@@ -10,22 +8,14 @@ pub struct Excitation {
 impl Excitation {
     pub fn new(nlpf: usize) -> Self {
         Self {
-            pitch_of_curr_point: 0.0,
-            pitch_counter: 0.0,
-            pitch_inc_per_point: 0.0,
+            pitch: Pitch::new(),
             ring_buffer: RingBuffer::new(nlpf),
             random: Random::new(),
         }
     }
 
     pub fn start(&mut self, pitch: f64, fperiod: usize) {
-        if self.pitch_of_curr_point != 0.0 && pitch != 0.0 {
-            self.pitch_inc_per_point = (pitch - self.pitch_of_curr_point) / fperiod as f64;
-        } else {
-            self.pitch_inc_per_point = 0.0;
-            self.pitch_of_curr_point = pitch;
-            self.pitch_counter = pitch;
-        }
+        self.pitch.start(pitch, fperiod);
     }
 
     fn white_noise(&mut self) -> f64 {
@@ -36,37 +26,69 @@ impl Excitation {
     pub fn get(&mut self, lpf: &[f64]) -> f64 {
         if self.ring_buffer.len() > 0 {
             let noise = self.white_noise();
-            if self.pitch_of_curr_point == 0.0 {
-                self.ring_buffer.unvoiced_frame(noise);
-            } else {
-                self.pitch_counter += 1.0;
-                let pulse = if self.pitch_counter >= self.pitch_of_curr_point {
-                    self.pitch_counter -= self.pitch_of_curr_point;
-                    self.pitch_of_curr_point.sqrt()
-                } else {
-                    0.0
-                };
+            if self.pitch.is_voiced() {
+                let pulse = self.pitch.get_pulse();
                 self.ring_buffer.voiced_frame(noise, pulse, lpf);
-                self.pitch_of_curr_point += self.pitch_inc_per_point;
-            }
-            self.ring_buffer.advance()
-        } else if self.pitch_of_curr_point == 0.0 {
-            self.white_noise()
-        } else {
-            self.pitch_counter += 1.0;
-            let x = if self.pitch_counter >= self.pitch_of_curr_point {
-                self.pitch_counter -= self.pitch_of_curr_point;
-                self.pitch_of_curr_point.sqrt()
             } else {
-                0.0
+                self.ring_buffer.unvoiced_frame(noise);
             };
-            self.pitch_of_curr_point += self.pitch_inc_per_point;
-            x
+            self.ring_buffer.advance()
+        } else if self.pitch.is_voiced() {
+            self.pitch.get_pulse()
+        } else {
+            self.white_noise()
         }
     }
 
     pub fn end(&mut self, pitch: f64) {
-        self.pitch_of_curr_point = pitch;
+        self.pitch.end(pitch);
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Pitch {
+    current: f64,
+    counter: f64,
+    increment: f64,
+}
+
+impl Pitch {
+    fn new() -> Self {
+        Self {
+            current: 0.0,
+            counter: 0.0,
+            increment: 0.0,
+        }
+    }
+
+    fn start(&mut self, pitch: f64, fperiod: usize) {
+        if self.current != 0.0 && pitch != 0.0 {
+            self.increment = (pitch - self.current) / fperiod as f64;
+        } else {
+            self.increment = 0.0;
+            self.current = pitch;
+            self.counter = pitch;
+        }
+    }
+
+    fn is_voiced(&self) -> bool {
+        self.current != 0.0
+    }
+
+    fn get_pulse(&mut self) -> f64 {
+        self.counter += 1.0;
+        let ret = if self.counter >= self.current {
+            self.counter -= self.current;
+            self.current.sqrt()
+        } else {
+            0.0
+        };
+        self.current += self.increment;
+        ret
+    }
+
+    fn end(&mut self, pitch: f64) {
+        self.current = pitch;
     }
 }
 
