@@ -71,7 +71,7 @@ impl Excitation {
 }
 
 #[derive(Debug, Clone)]
-pub struct RingBuffer {
+struct RingBuffer {
     buffer: Vec<f64>,
     index: usize,
 }
@@ -115,7 +115,7 @@ impl RingBuffer {
 }
 
 #[derive(Debug, Clone)]
-pub struct Random {
+struct Random {
     sw: bool,
     r1: f64,
     r2: f64,
@@ -124,7 +124,7 @@ pub struct Random {
 }
 
 impl Random {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             sw: false,
             r1: 0.0,
