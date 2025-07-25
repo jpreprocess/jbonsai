@@ -49,10 +49,7 @@ impl Excitation {
                 self.ring_buffer.voiced_frame(noise, pulse, lpf);
                 self.pitch_of_curr_point += self.pitch_inc_per_point;
             }
-            let x = *self.ring_buffer.get();
-            *self.ring_buffer.get_mut() = 0.0;
-            self.ring_buffer.advance();
-            x
+            self.ring_buffer.advance()
         } else if self.pitch_of_curr_point == 0.0 {
             self.white_noise()
         } else {
@@ -87,14 +84,6 @@ impl RingBuffer {
         }
     }
 
-    fn get(&self) -> &f64 {
-        &self.buffer[self.index]
-    }
-
-    fn get_mut(&mut self) -> &mut f64 {
-        &mut self.buffer[self.index]
-    }
-
     fn iter_mut(&mut self) -> impl Iterator<Item = &mut f64> {
         let (left, right) = self.buffer.split_at_mut(self.index);
         right.iter_mut().chain(left.iter_mut())
@@ -113,11 +102,11 @@ impl RingBuffer {
         }
     }
 
-    fn advance(&mut self) {
-        self.index += 1;
-        if self.index >= self.buffer.len() {
-            self.index = 0;
-        }
+    fn advance(&mut self) -> f64 {
+        let ret = self.buffer[self.index];
+        self.buffer[self.index] = 0.0;
+        self.index = (self.index + 1) % self.buffer.len();
+        ret
     }
 
     fn len(&self) -> usize {
