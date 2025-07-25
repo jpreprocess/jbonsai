@@ -1,15 +1,20 @@
 #[derive(Debug, Clone)]
 pub struct Excitation {
     pitch: Pitch,
-    ring_buffer: RingBuffer,
+    ring_buffer: Option<RingBuffer>,
     random: Random,
 }
 
 impl Excitation {
     pub fn new(nlpf: usize) -> Self {
+        let ring_buffer = if nlpf > 0 {
+            Some(RingBuffer::new(nlpf))
+        } else {
+            None
+        };
         Self {
             pitch: Pitch::new(),
-            ring_buffer: RingBuffer::new(nlpf),
+            ring_buffer,
             random: Random::new(),
         }
     }
@@ -18,25 +23,27 @@ impl Excitation {
         self.pitch.start(pitch, fperiod);
     }
 
-    fn white_noise(&mut self) -> f64 {
-        self.random.nrandom()
-    }
-
     /// lpf.len() == nlpf
     pub fn get(&mut self, lpf: &[f64]) -> f64 {
-        if self.ring_buffer.len() > 0 {
-            let noise = self.white_noise();
-            if self.pitch.is_voiced() {
-                let pulse = self.pitch.get_pulse();
-                self.ring_buffer.voiced_frame(noise, pulse, lpf);
-            } else {
-                self.ring_buffer.unvoiced_frame(noise);
-            };
-            self.ring_buffer.advance()
-        } else if self.pitch.is_voiced() {
-            self.pitch.get_pulse()
-        } else {
-            self.white_noise()
+        match &mut self.ring_buffer {
+            Some(ring_buffer) => {
+                if self.pitch.is_voiced() {
+                    let noise = self.random.nrandom();
+                    let pulse = self.pitch.get_pulse();
+                    ring_buffer.voiced_frame(noise, pulse, lpf)
+                } else {
+                    let noise = self.random.nrandom();
+                    ring_buffer.unvoiced_frame(noise);
+                }
+                ring_buffer.advance()
+            }
+            None => {
+                if self.pitch.is_voiced() {
+                    self.pitch.get_pulse()
+                } else {
+                    self.random.nrandom()
+                }
+            }
         }
     }
 
