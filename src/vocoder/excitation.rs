@@ -107,20 +107,9 @@ impl RingBuffer {
 
     #[allow(clippy::needless_range_loop)]
     fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
-        let center = (self.len() - 1) / 2;
-        if noise != 0.0 {
-            for i in 0..self.len() {
-                if i == center {
-                    *self.get_mut_with_offset(i) += noise * (1.0 - lpf[i]);
-                } else {
-                    *self.get_mut_with_offset(i) += noise * (0.0 - lpf[i]);
-                }
-            }
-        }
-        if pulse != 0.0 {
-            for i in 0..self.len() {
-                *self.get_mut_with_offset(i) += pulse * lpf[i];
-            }
+        self.unvoiced_frame(noise);
+        for i in 0..self.len() {
+            *self.get_mut_with_offset(i) += (pulse - noise) * lpf[i];
         }
     }
 
