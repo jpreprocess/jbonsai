@@ -3,7 +3,7 @@ pub struct Excitation {
     pitch_of_curr_point: f64,
     pitch_counter: f64,
     pitch_inc_per_point: f64,
-    ring_buffer: RingBuffer<f64>,
+    ring_buffer: RingBuffer,
     random: Random,
 }
 
@@ -32,37 +32,12 @@ impl Excitation {
         self.random.nrandom()
     }
 
-    fn unvoiced_frame(&mut self, noise: f64) {
-        let center = (self.ring_buffer.len() - 1) / 2;
-        *self.ring_buffer.get_mut_with_offset(center) += noise;
-    }
-
-    /// lpf.len() == nlpf
-    #[allow(clippy::needless_range_loop)]
-    fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
-        let center = (self.ring_buffer.len() - 1) / 2;
-        if noise != 0.0 {
-            for i in 0..self.ring_buffer.len() {
-                if i == center {
-                    *self.ring_buffer.get_mut_with_offset(i) += noise * (1.0 - lpf[i]);
-                } else {
-                    *self.ring_buffer.get_mut_with_offset(i) += noise * (0.0 - lpf[i]);
-                }
-            }
-        }
-        if pulse != 0.0 {
-            for i in 0..self.ring_buffer.len() {
-                *self.ring_buffer.get_mut_with_offset(i) += pulse * lpf[i];
-            }
-        }
-    }
-
     /// lpf.len() == nlpf
     pub fn get(&mut self, lpf: &[f64]) -> f64 {
         if self.ring_buffer.len() > 0 {
             let noise = self.white_noise();
             if self.pitch_of_curr_point == 0.0 {
-                self.unvoiced_frame(noise);
+                self.ring_buffer.unvoiced_frame(noise);
             } else {
                 self.pitch_counter += 1.0;
                 let pulse = if self.pitch_counter >= self.pitch_of_curr_point {
@@ -71,7 +46,7 @@ impl Excitation {
                 } else {
                     0.0
                 };
-                self.voiced_frame(noise, pulse, lpf);
+                self.ring_buffer.voiced_frame(noise, pulse, lpf);
                 self.pitch_of_curr_point += self.pitch_inc_per_point;
             }
             let x = *self.ring_buffer.get();
@@ -99,33 +74,54 @@ impl Excitation {
 }
 
 #[derive(Debug, Clone)]
-pub struct RingBuffer<T> {
-    buffer: Vec<T>,
+pub struct RingBuffer {
+    buffer: Vec<f64>,
     index: usize,
 }
 
-impl<T> RingBuffer<T> {
-    fn new(size: usize) -> Self
-    where
-        T: Default + Clone,
-    {
+impl RingBuffer {
+    fn new(size: usize) -> Self {
         Self {
-            buffer: vec![Default::default(); size],
+            buffer: vec![0.0; size],
             index: 0,
         }
     }
 
-    fn get(&self) -> &T {
+    fn get(&self) -> &f64 {
         &self.buffer[self.index]
     }
 
-    fn get_mut(&mut self) -> &mut T {
+    fn get_mut(&mut self) -> &mut f64 {
         &mut self.buffer[self.index]
     }
 
-    fn get_mut_with_offset(&mut self, i: usize) -> &mut T {
+    fn get_mut_with_offset(&mut self, i: usize) -> &mut f64 {
         let index = (self.index + i) % self.buffer.len();
         &mut self.buffer[index]
+    }
+
+    fn unvoiced_frame(&mut self, noise: f64) {
+        let center = (self.len() - 1) / 2;
+        *self.get_mut_with_offset(center) += noise;
+    }
+
+    #[allow(clippy::needless_range_loop)]
+    fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
+        let center = (self.len() - 1) / 2;
+        if noise != 0.0 {
+            for i in 0..self.len() {
+                if i == center {
+                    *self.get_mut_with_offset(i) += noise * (1.0 - lpf[i]);
+                } else {
+                    *self.get_mut_with_offset(i) += noise * (0.0 - lpf[i]);
+                }
+            }
+        }
+        if pulse != 0.0 {
+            for i in 0..self.len() {
+                *self.get_mut_with_offset(i) += pulse * lpf[i];
+            }
+        }
     }
 
     fn advance(&mut self) {
