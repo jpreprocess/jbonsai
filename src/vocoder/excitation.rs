@@ -4,8 +4,6 @@ pub struct Excitation {
     pitch_counter: f64,
     pitch_inc_per_point: f64,
     ring_buffer: RingBuffer<f64>,
-    gauss: bool,
-    mseq: Mseq,
     random: Random,
 }
 
@@ -16,8 +14,6 @@ impl Excitation {
             pitch_counter: 0.0,
             pitch_inc_per_point: 0.0,
             ring_buffer: RingBuffer::new(nlpf),
-            gauss: true,
-            mseq: Mseq::new(),
             random: Random::new(),
         }
     }
@@ -33,11 +29,7 @@ impl Excitation {
     }
 
     fn white_noise(&mut self) -> f64 {
-        if self.gauss {
-            self.random.nrandom()
-        } else {
-            self.mseq.next() as f64
-        }
+        self.random.nrandom()
     }
 
     fn unvoiced_frame(&mut self, noise: f64) {
@@ -145,29 +137,6 @@ impl<T> RingBuffer<T> {
 
     fn len(&self) -> usize {
         self.buffer.len()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Mseq {
-    x: u32,
-}
-
-impl Mseq {
-    pub fn new() -> Self {
-        Self { x: 0x55555555 }
-    }
-
-    fn next(&mut self) -> i32 {
-        self.x >>= 1;
-        let x0 = if self.x & 0x00000001 != 0 { 1 } else { -1 };
-        let x28 = if self.x & 0x10000000 != 0 { 1 } else { -1 };
-        if x0 + x28 != 0 {
-            self.x &= 0x7fffffff;
-        } else {
-            self.x |= 0x80000000;
-        }
-        x0
     }
 }
 
