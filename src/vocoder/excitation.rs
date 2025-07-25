@@ -95,19 +95,14 @@ impl RingBuffer {
         &mut self.buffer[self.index]
     }
 
-    fn get_mut_with_offset(&mut self, i: usize) -> &mut f64 {
-        let index = (self.index + i) % self.buffer.len();
-        &mut self.buffer[index]
-    }
-
     fn iter_mut(&mut self) -> impl Iterator<Item = &mut f64> {
         let (left, right) = self.buffer.split_at_mut(self.index);
         right.iter_mut().chain(left.iter_mut())
     }
 
     fn unvoiced_frame(&mut self, noise: f64) {
-        let center = (self.len() - 1) / 2;
-        *self.get_mut_with_offset(center) += noise;
+        let index = (self.index + (self.len() - 1) / 2) % self.buffer.len();
+        self.buffer[index] += noise;
     }
 
     #[allow(clippy::needless_range_loop)]
