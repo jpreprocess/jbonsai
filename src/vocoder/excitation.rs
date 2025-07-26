@@ -115,7 +115,7 @@ impl RingBuffer {
 
     fn iter_mut(&mut self) -> impl Iterator<Item = &mut f64> {
         let (left, right) = self.buffer.split_at_mut(self.index);
-        right.iter_mut().chain(left.iter_mut())
+        right.iter_mut().chain(left)
     }
 
     fn unvoiced_frame(&mut self, noise: f64) {
@@ -123,10 +123,9 @@ impl RingBuffer {
         self.buffer[index] += noise;
     }
 
-    #[allow(clippy::needless_range_loop)]
     fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
         self.unvoiced_frame(noise);
-        for (bi, lpf_i) in self.iter_mut().zip(lpf.iter()) {
+        for (bi, lpf_i) in self.iter_mut().zip(lpf) {
             *bi += (pulse - noise) * lpf_i;
         }
     }
