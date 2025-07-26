@@ -14,17 +14,36 @@ impl Excitation {
         }
     }
 
-    pub fn start(&mut self, pitch: f64, fperiod: usize) {
-        self.pitch.start(pitch, fperiod);
+    pub fn start<'a>(
+        &'a mut self,
+        pitch: f64,
+        fperiod: usize,
+        lpf: &'a [f64],
+    ) -> ExcitationSession<'a> {
+        let pitch_session = self.pitch.start(pitch, fperiod);
+        ExcitationSession {
+            pitch_session,
+            ring_buffer: &mut self.ring_buffer,
+            random: &mut self.random,
+            lpf,
+        }
     }
+}
 
-    /// lpf.len() == nlpf
-    pub fn get(&mut self, lpf: &[f64]) -> f64 {
-        match (self.ring_buffer.is_active(), self.pitch.is_voiced()) {
+pub struct ExcitationSession<'a> {
+    pitch_session: PitchSession<'a>,
+    ring_buffer: &'a mut RingBuffer,
+    random: &'a mut Random,
+    lpf: &'a [f64],
+}
+
+impl ExcitationSession<'_> {
+    pub fn get(&mut self) -> f64 {
+        match (self.ring_buffer.is_active(), self.pitch_session.is_voiced()) {
             (true, true) => {
                 let noise = self.random.nrandom();
-                let pulse = self.pitch.get_pulse();
-                self.ring_buffer.voiced_frame(noise, pulse, lpf);
+                let pulse = self.pitch_session.get_pulse();
+                self.ring_buffer.voiced_frame(noise, pulse, self.lpf);
                 self.ring_buffer.advance()
             }
             (true, false) => {
@@ -32,13 +51,9 @@ impl Excitation {
                 self.ring_buffer.unvoiced_frame(noise);
                 self.ring_buffer.advance()
             }
-            (false, true) => self.pitch.get_pulse(),
+            (false, true) => self.pitch_session.get_pulse(),
             (false, false) => self.random.nrandom(),
         }
-    }
-
-    pub fn end(&mut self, pitch: f64) {
-        self.pitch.end(pitch);
     }
 }
 
@@ -46,7 +61,6 @@ impl Excitation {
 struct Pitch {
     current: f64,
     counter: f64,
-    increment: f64,
 }
 
 impl Pitch {
@@ -54,38 +68,55 @@ impl Pitch {
         Self {
             current: 0.0,
             counter: 0.0,
-            increment: 0.0,
         }
     }
 
-    fn start(&mut self, pitch: f64, fperiod: usize) {
+    fn start(&mut self, pitch: f64, fperiod: usize) -> PitchSession<'_> {
+        let increment;
         if self.current != 0.0 && pitch != 0.0 {
-            self.increment = (pitch - self.current) / fperiod as f64;
+            increment = (pitch - self.current) / fperiod as f64;
         } else {
-            self.increment = 0.0;
+            increment = 0.0;
             self.current = pitch;
             self.counter = pitch;
         }
+        PitchSession {
+            current: &mut self.current,
+            counter: &mut self.counter,
+            increment,
+            pitch,
+        }
     }
+}
 
+struct PitchSession<'a> {
+    current: &'a mut f64,
+    counter: &'a mut f64,
+    increment: f64,
+    pitch: f64,
+}
+
+impl PitchSession<'_> {
     fn is_voiced(&self) -> bool {
-        self.current != 0.0
+        *self.current != 0.0
     }
 
     fn get_pulse(&mut self) -> f64 {
-        self.counter += 1.0;
+        *self.counter += 1.0;
         let ret = if self.counter >= self.current {
-            self.counter -= self.current;
+            *self.counter -= *self.current;
             self.current.sqrt()
         } else {
             0.0
         };
-        self.current += self.increment;
+        *self.current += self.increment;
         ret
     }
+}
 
-    fn end(&mut self, pitch: f64) {
-        self.current = pitch;
+impl Drop for PitchSession<'_> {
+    fn drop(&mut self) {
+        *self.current = self.pitch;
     }
 }
 
