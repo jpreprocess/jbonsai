@@ -1,20 +1,15 @@
 #[derive(Debug, Clone)]
 pub struct Excitation {
     pitch: Pitch,
-    ring_buffer: Option<RingBuffer>,
+    ring_buffer: RingBuffer,
     random: Random,
 }
 
 impl Excitation {
     pub fn new(nlpf: usize) -> Self {
-        let ring_buffer = if nlpf > 0 {
-            Some(RingBuffer::new(nlpf))
-        } else {
-            None
-        };
         Self {
             pitch: Pitch::new(),
-            ring_buffer,
+            ring_buffer: RingBuffer::new(nlpf),
             random: Random::new(),
         }
     }
@@ -25,25 +20,20 @@ impl Excitation {
 
     /// lpf.len() == nlpf
     pub fn get(&mut self, lpf: &[f64]) -> f64 {
-        match &mut self.ring_buffer {
-            Some(ring_buffer) => {
-                if self.pitch.is_voiced() {
-                    let noise = self.random.nrandom();
-                    let pulse = self.pitch.get_pulse();
-                    ring_buffer.voiced_frame(noise, pulse, lpf)
-                } else {
-                    let noise = self.random.nrandom();
-                    ring_buffer.unvoiced_frame(noise);
-                }
-                ring_buffer.advance()
+        match (self.ring_buffer.is_active(), self.pitch.is_voiced()) {
+            (true, true) => {
+                let noise = self.random.nrandom();
+                let pulse = self.pitch.get_pulse();
+                self.ring_buffer.voiced_frame(noise, pulse, lpf);
+                self.ring_buffer.advance()
             }
-            None => {
-                if self.pitch.is_voiced() {
-                    self.pitch.get_pulse()
-                } else {
-                    self.random.nrandom()
-                }
+            (true, false) => {
+                let noise = self.random.nrandom();
+                self.ring_buffer.unvoiced_frame(noise);
+                self.ring_buffer.advance()
             }
+            (false, true) => self.pitch.get_pulse(),
+            (false, false) => self.random.nrandom(),
         }
     }
 
@@ -111,6 +101,10 @@ impl RingBuffer {
             buffer: vec![0.0; size],
             index: 0,
         }
+    }
+
+    fn is_active(&self) -> bool {
+        !self.buffer.is_empty()
     }
 
     fn iter_mut(&mut self) -> impl Iterator<Item = &mut f64> {
