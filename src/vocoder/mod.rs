@@ -2,10 +2,7 @@
 
 #![allow(missing_docs)]
 
-use crate::{
-    constants::{MAX_LF0, MIN_LF0, NODATA},
-    vocoder::coefficients::CoefficientsT,
-};
+use crate::constants::{MAX_LF0, MIN_LF0, NODATA};
 
 #[macro_use]
 mod buffer;
@@ -20,6 +17,7 @@ mod stage;
 
 use self::{
     cepstrum::{CepstrumT, MelCepstrum},
+    coefficients::CoefficientsT,
     excitation::Excitation,
     generalized::Generalized,
     lsp::LineSpectralPairs,
