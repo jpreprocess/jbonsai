@@ -119,7 +119,7 @@ impl RingBuffer {
     }
 
     fn unvoiced_frame(&mut self, noise: f64) {
-        let index = (self.index + (self.len() - 1) / 2) % self.buffer.len();
+        let index = (self.index + (self.buffer.len() - 1) / 2) % self.buffer.len();
         self.buffer[index] += noise;
     }
 
@@ -135,10 +135,6 @@ impl RingBuffer {
         self.buffer[self.index] = 0.0;
         self.index = (self.index + 1) % self.buffer.len();
         ret
-    }
-
-    fn len(&self) -> usize {
-        self.buffer.len()
     }
 }
 
