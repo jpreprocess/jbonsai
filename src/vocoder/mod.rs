@@ -2,7 +2,10 @@
 
 #![allow(missing_docs)]
 
-use crate::constants::{MAX_LF0, MIN_LF0, NODATA};
+use crate::{
+    constants::{MAX_LF0, MIN_LF0, NODATA},
+    vocoder::coefficients::CoefficientsT,
+};
 
 #[macro_use]
 mod buffer;
@@ -116,28 +119,21 @@ impl Vocoder {
                 let mut cepstrum = MelCepstrum::new(spectrum, self.alpha);
                 cepstrum.postfilter_mcp(self.beta);
                 let cc = cepstrum.mc2b();
-                let cinc: Vec<_> = cc
-                    .iter()
-                    .zip(coefficients.iter())
-                    .map(|(cc, c)| (cc - c) / self.fperiod as f64)
-                    .collect();
 
+                let mut coefficients = coefficients.start(cc, self.fperiod);
                 self.excitation.start(p, self.fperiod);
 
-                (0..self.fperiod).for_each(|i| {
+                for r in &mut rawdata[..self.fperiod] {
                     let mut x = self.excitation.get(lpf);
                     if x != 0.0 {
                         x *= coefficients[0].exp();
                     }
-                    filter.df(&mut x, self.alpha, coefficients);
-                    for i in 0..coefficients.len() {
-                        coefficients[i] += cinc[i];
-                    }
-                    rawdata[i] = x * self.volume;
-                });
+                    filter.df(&mut x, self.alpha, &coefficients);
+                    coefficients.advance();
+                    *r = x * self.volume;
+                }
 
                 self.excitation.end(p);
-                *coefficients = cc;
             }
             Stage::NonZero {
                 stage,
@@ -153,26 +149,19 @@ impl Vocoder {
                 for i in 1..cc.len() {
                     cc[i] *= gamma;
                 }
-                let cinc: Vec<_> = cc
-                    .iter()
-                    .zip(coefficients.iter())
-                    .map(|(cc, c)| (cc - c) / self.fperiod as f64)
-                    .collect();
 
+                let mut coefficients = coefficients.start(cc, self.fperiod);
                 self.excitation.start(p, self.fperiod);
 
-                (0..self.fperiod).for_each(|i| {
+                for r in &mut rawdata[..self.fperiod] {
                     let mut x = self.excitation.get(lpf);
                     x *= coefficients[0];
-                    filter.df(&mut x, self.alpha, coefficients);
-                    for i in 0..coefficients.len() {
-                        coefficients[i] += cinc[i];
-                    }
-                    rawdata[i] = x * self.volume;
-                });
+                    filter.df(&mut x, self.alpha, &coefficients);
+                    coefficients.advance();
+                    *r = x * self.volume;
+                }
 
                 self.excitation.end(p);
-                *coefficients = cc;
             }
         }
     }
