@@ -118,6 +118,7 @@ impl RingBuffer {
     }
 
     fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
+        assert_eq!(lpf.len(), self.buffer.len());
         self.unvoiced_frame(noise);
         for (bi, lpf_i) in self.iter_mut().zip(lpf) {
             *bi += (pulse - noise) * lpf_i;
