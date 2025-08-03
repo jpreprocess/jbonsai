@@ -92,7 +92,7 @@ fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     for chunk in chunks.by_ref() {
         (chunk[0], chunk[1], rem) = (
             iaa * rem + a * chunk[0],
-            -a * iaa * rem + iaa * chunk[0] + a * chunk[1],
+            iaa * (-a * rem + chunk[0]) + a * chunk[1],
             aa * rem + -a * chunk[0] + chunk[1],
         );
     }
