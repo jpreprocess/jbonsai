@@ -91,13 +91,13 @@ fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     let mut chunks = d.chunks_exact_mut(2);
     for chunk in chunks.by_ref() {
         (chunk[0], chunk[1], rem) = (
-            a * chunk[0] + rem,
-            iaa * chunk[0] + a * chunk[1] - a * rem,
-            -a * iaa * chunk[0] + iaa * chunk[1] + aa * rem,
+            rem + a * chunk[0],
+            -a * rem + iaa * chunk[0] + a * chunk[1],
+            aa * rem + -a * iaa * chunk[0] + iaa * chunk[1],
         );
     }
     for di in chunks.into_remainder() {
-        (*di, rem) = (a * *di + rem, iaa * *di - a * rem);
+        (*di, rem) = (rem + a * *di, -a * rem + iaa * *di);
     }
 
     let mut y = 0.0;
