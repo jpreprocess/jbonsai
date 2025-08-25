@@ -122,10 +122,10 @@ impl Vocoder {
                     .map(|(cc, c)| (cc - c) / self.fperiod as f64)
                     .collect();
 
-                self.excitation.start(p, self.fperiod);
+                let mut excitation = self.excitation.start(p, self.fperiod, lpf);
 
                 (0..self.fperiod).for_each(|i| {
-                    let mut x = self.excitation.get(lpf);
+                    let mut x = excitation.get();
                     if x != 0.0 {
                         x *= coefficients[0].exp();
                     }
@@ -136,7 +136,6 @@ impl Vocoder {
                     rawdata[i] = x * self.volume;
                 });
 
-                self.excitation.end(p);
                 *coefficients = cc;
             }
             Stage::NonZero {
@@ -159,10 +158,10 @@ impl Vocoder {
                     .map(|(cc, c)| (cc - c) / self.fperiod as f64)
                     .collect();
 
-                self.excitation.start(p, self.fperiod);
+                let mut excitation = self.excitation.start(p, self.fperiod, lpf);
 
                 (0..self.fperiod).for_each(|i| {
-                    let mut x = self.excitation.get(lpf);
+                    let mut x = excitation.get();
                     x *= coefficients[0];
                     filter.df(&mut x, self.alpha, coefficients);
                     for i in 0..coefficients.len() {
@@ -171,7 +170,6 @@ impl Vocoder {
                     rawdata[i] = x * self.volume;
                 });
 
-                self.excitation.end(p);
                 *coefficients = cc;
             }
         }
