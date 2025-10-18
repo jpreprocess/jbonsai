@@ -1,178 +1,171 @@
 #[derive(Debug, Clone)]
 pub struct Excitation {
-    pitch_of_curr_point: f64,
-    pitch_counter: f64,
-    pitch_inc_per_point: f64,
-    ring_buffer: RingBuffer<f64>,
-    gauss: bool,
-    mseq: Mseq,
+    pitch: Pitch,
+    ring_buffer: RingBuffer,
     random: Random,
 }
 
 impl Excitation {
     pub fn new(nlpf: usize) -> Self {
         Self {
-            pitch_of_curr_point: 0.0,
-            pitch_counter: 0.0,
-            pitch_inc_per_point: 0.0,
+            pitch: Pitch::new(),
             ring_buffer: RingBuffer::new(nlpf),
-            gauss: true,
-            mseq: Mseq::new(),
             random: Random::new(),
         }
     }
 
-    pub fn start(&mut self, pitch: f64, fperiod: usize) {
-        if self.pitch_of_curr_point != 0.0 && pitch != 0.0 {
-            self.pitch_inc_per_point = (pitch - self.pitch_of_curr_point) / fperiod as f64;
-        } else {
-            self.pitch_inc_per_point = 0.0;
-            self.pitch_of_curr_point = pitch;
-            self.pitch_counter = pitch;
+    pub fn start<'a>(
+        &'a mut self,
+        pitch: f64,
+        fperiod: usize,
+        lpf: &'a [f64],
+    ) -> ExcitationSession<'a> {
+        let pitch_session = self.pitch.start(pitch, fperiod);
+        ExcitationSession {
+            pitch_session,
+            ring_buffer: &mut self.ring_buffer,
+            random: &mut self.random,
+            lpf,
         }
     }
+}
 
-    fn white_noise(&mut self) -> f64 {
-        if self.gauss {
-            self.random.nrandom()
-        } else {
-            self.mseq.next() as f64
-        }
-    }
+pub struct ExcitationSession<'a> {
+    pitch_session: PitchSession<'a>,
+    ring_buffer: &'a mut RingBuffer,
+    random: &'a mut Random,
+    lpf: &'a [f64],
+}
 
-    fn unvoiced_frame(&mut self, noise: f64) {
-        let center = (self.ring_buffer.len() - 1) / 2;
-        *self.ring_buffer.get_mut_with_offset(center) += noise;
-    }
-
-    /// lpf.len() == nlpf
-    #[allow(clippy::needless_range_loop)]
-    fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
-        let center = (self.ring_buffer.len() - 1) / 2;
-        if noise != 0.0 {
-            for i in 0..self.ring_buffer.len() {
-                if i == center {
-                    *self.ring_buffer.get_mut_with_offset(i) += noise * (1.0 - lpf[i]);
-                } else {
-                    *self.ring_buffer.get_mut_with_offset(i) += noise * (0.0 - lpf[i]);
-                }
+impl ExcitationSession<'_> {
+    pub fn get(&mut self) -> f64 {
+        match (self.ring_buffer.is_active(), self.pitch_session.is_voiced()) {
+            (true, true) => {
+                let noise = self.random.nrandom();
+                let pulse = self.pitch_session.get_pulse();
+                self.ring_buffer.voiced_frame(noise, pulse, self.lpf);
+                self.ring_buffer.advance()
             }
-        }
-        if pulse != 0.0 {
-            for i in 0..self.ring_buffer.len() {
-                *self.ring_buffer.get_mut_with_offset(i) += pulse * lpf[i];
+            (true, false) => {
+                let noise = self.random.nrandom();
+                self.ring_buffer.unvoiced_frame(noise);
+                self.ring_buffer.advance()
             }
+            (false, true) => self.pitch_session.get_pulse(),
+            (false, false) => self.random.nrandom(),
         }
-    }
-
-    /// lpf.len() == nlpf
-    pub fn get(&mut self, lpf: &[f64]) -> f64 {
-        if self.ring_buffer.len() > 0 {
-            let noise = self.white_noise();
-            if self.pitch_of_curr_point == 0.0 {
-                self.unvoiced_frame(noise);
-            } else {
-                self.pitch_counter += 1.0;
-                let pulse = if self.pitch_counter >= self.pitch_of_curr_point {
-                    self.pitch_counter -= self.pitch_of_curr_point;
-                    self.pitch_of_curr_point.sqrt()
-                } else {
-                    0.0
-                };
-                self.voiced_frame(noise, pulse, lpf);
-                self.pitch_of_curr_point += self.pitch_inc_per_point;
-            }
-            let x = *self.ring_buffer.get();
-            *self.ring_buffer.get_mut() = 0.0;
-            self.ring_buffer.advance();
-            x
-        } else if self.pitch_of_curr_point == 0.0 {
-            self.white_noise()
-        } else {
-            self.pitch_counter += 1.0;
-            let x = if self.pitch_counter >= self.pitch_of_curr_point {
-                self.pitch_counter -= self.pitch_of_curr_point;
-                self.pitch_of_curr_point.sqrt()
-            } else {
-                0.0
-            };
-            self.pitch_of_curr_point += self.pitch_inc_per_point;
-            x
-        }
-    }
-
-    pub fn end(&mut self, pitch: f64) {
-        self.pitch_of_curr_point = pitch;
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct RingBuffer<T> {
-    buffer: Vec<T>,
+struct Pitch {
+    current: f64,
+    counter: f64,
+}
+
+impl Pitch {
+    fn new() -> Self {
+        Self {
+            current: 0.0,
+            counter: 0.0,
+        }
+    }
+
+    fn start(&mut self, pitch: f64, fperiod: usize) -> PitchSession<'_> {
+        let increment;
+        if self.current != 0.0 && pitch != 0.0 {
+            increment = (pitch - self.current) / fperiod as f64;
+        } else {
+            increment = 0.0;
+            self.current = pitch;
+            self.counter = pitch;
+        }
+        PitchSession {
+            current: &mut self.current,
+            counter: &mut self.counter,
+            increment,
+            pitch,
+        }
+    }
+}
+
+struct PitchSession<'a> {
+    current: &'a mut f64,
+    counter: &'a mut f64,
+    increment: f64,
+    pitch: f64,
+}
+
+impl PitchSession<'_> {
+    fn is_voiced(&self) -> bool {
+        *self.current != 0.0
+    }
+
+    fn get_pulse(&mut self) -> f64 {
+        *self.counter += 1.0;
+        let ret = if self.counter >= self.current {
+            *self.counter -= *self.current;
+            self.current.sqrt()
+        } else {
+            0.0
+        };
+        *self.current += self.increment;
+        ret
+    }
+}
+
+impl Drop for PitchSession<'_> {
+    fn drop(&mut self) {
+        *self.current = self.pitch;
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RingBuffer {
+    buffer: Vec<f64>,
     index: usize,
 }
 
-impl<T> RingBuffer<T> {
-    fn new(size: usize) -> Self
-    where
-        T: Default + Clone,
-    {
+impl RingBuffer {
+    fn new(size: usize) -> Self {
         Self {
-            buffer: vec![Default::default(); size],
+            buffer: vec![0.0; size],
             index: 0,
         }
     }
 
-    fn get(&self) -> &T {
-        &self.buffer[self.index]
+    fn is_active(&self) -> bool {
+        !self.buffer.is_empty()
     }
 
-    fn get_mut(&mut self) -> &mut T {
-        &mut self.buffer[self.index]
+    fn iter_mut(&mut self) -> impl Iterator<Item = &mut f64> {
+        let (left, right) = self.buffer.split_at_mut(self.index);
+        right.iter_mut().chain(left)
     }
 
-    fn get_mut_with_offset(&mut self, i: usize) -> &mut T {
-        let index = (self.index + i) % self.buffer.len();
-        &mut self.buffer[index]
+    fn unvoiced_frame(&mut self, noise: f64) {
+        let index = (self.index + (self.buffer.len() - 1) / 2) % self.buffer.len();
+        self.buffer[index] += noise;
     }
 
-    fn advance(&mut self) {
-        self.index += 1;
-        if self.index >= self.buffer.len() {
-            self.index = 0;
+    fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
+        assert_eq!(lpf.len(), self.buffer.len());
+        self.unvoiced_frame(noise);
+        for (bi, lpf_i) in self.iter_mut().zip(lpf) {
+            *bi += (pulse - noise) * lpf_i;
         }
     }
 
-    fn len(&self) -> usize {
-        self.buffer.len()
+    fn advance(&mut self) -> f64 {
+        let ret = self.buffer[self.index];
+        self.buffer[self.index] = 0.0;
+        self.index = (self.index + 1) % self.buffer.len();
+        ret
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Mseq {
-    x: u32,
-}
-
-impl Mseq {
-    pub fn new() -> Self {
-        Self { x: 0x55555555 }
-    }
-
-    fn next(&mut self) -> i32 {
-        self.x >>= 1;
-        let x0 = if self.x & 0x00000001 != 0 { 1 } else { -1 };
-        let x28 = if self.x & 0x10000000 != 0 { 1 } else { -1 };
-        if x0 + x28 != 0 {
-            self.x &= 0x7fffffff;
-        } else {
-            self.x |= 0x80000000;
-        }
-        x0
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Random {
+struct Random {
     sw: bool,
     r1: f64,
     r2: f64,
@@ -181,7 +174,7 @@ pub struct Random {
 }
 
 impl Random {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             sw: false,
             r1: 0.0,
