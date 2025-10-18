@@ -196,7 +196,7 @@ impl Random {
     }
 
     fn nrandom(&mut self) -> f64 {
-        if self.used >= self.s.len() * 2 {
+        if self.used >= self.queue.len() {
             self.fill_queue();
             self.used = 0;
         }
