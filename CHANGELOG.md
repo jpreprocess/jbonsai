@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.4.0](https://github.com/jpreprocess/jbonsai/compare/v0.3.0...v0.4.0) (2025-10-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove unstable SIMD optimization
+
+### Features
+
+* Remove unstable SIMD optimization ([4392df6](https://github.com/jpreprocess/jbonsai/commit/4392df662bbd12710af79bd9f1269a983e96a682))
+
+
+### Bug Fixes
+
+* warnings ([#97](https://github.com/jpreprocess/jbonsai/issues/97)) ([506c136](https://github.com/jpreprocess/jbonsai/commit/506c136ba69c0c824aef85814b21cd4a4ecfeeb8))
+
+
+### Performance Improvements
+
+* Optimize excitation ([#108](https://github.com/jpreprocess/jbonsai/issues/108)) ([be245e1](https://github.com/jpreprocess/jbonsai/commit/be245e10941e26bd3f895077953eca08dc8aa626))
+
+
+### Dependencies
+
+* update rust crate thiserror to v2.0.14 ([#102](https://github.com/jpreprocess/jbonsai/issues/102)) ([6403653](https://github.com/jpreprocess/jbonsai/commit/6403653a6db054538d67786ac68e423a2db48e3e))
+* update rust crate thiserror to v2.0.15 ([#103](https://github.com/jpreprocess/jbonsai/issues/103)) ([77ecdcc](https://github.com/jpreprocess/jbonsai/commit/77ecdccb424bb1fe2c9f6fa5803f82b3b16e6a3a))
+* update rust crate thiserror to v2.0.16 ([#104](https://github.com/jpreprocess/jbonsai/issues/104)) ([fe69bd3](https://github.com/jpreprocess/jbonsai/commit/fe69bd30c3ebf335145376386b3208b731bc3f23))
+
 ## [0.3.0](https://github.com/jpreprocess/jbonsai/compare/v0.2.2...v0.3.0) (2025-05-10)
 
 
