@@ -136,7 +136,7 @@ impl<T> RingBuffer<T> {
     }
 
     fn get_antipode_mut(&mut self) -> &mut T {
-        let index = (self.index + self.buffer.len() / 2) % self.buffer.len();
+        let index = (self.index + (self.buffer.len() - 1) / 2) % self.buffer.len();
         &mut self.buffer[index]
     }
 
