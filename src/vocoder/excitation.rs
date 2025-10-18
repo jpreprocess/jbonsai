@@ -18,7 +18,7 @@ impl Excitation {
             ring_buffer: RingBuffer::new(nlpf),
             gauss: true,
             mseq: Mseq::new(),
-            random: Random::new(),
+            random: Random::new(32),
         }
     }
 
@@ -177,46 +177,62 @@ impl Mseq {
 
 #[derive(Debug, Clone)]
 pub struct Random {
-    sw: bool,
-    r1: f64,
-    r2: f64,
-    s: f64,
+    queue: Box<[f64]>,
+    s: Box<[f64]>,
+
+    used: usize,
     next: usize,
 }
 
 impl Random {
-    pub fn new() -> Self {
+    pub fn new(rep: usize) -> Self {
         Self {
-            sw: false,
-            r1: 0.0,
-            r2: 0.0,
-            s: 0.0,
+            queue: vec![0.0; rep * 2].into_boxed_slice(),
+            s: vec![0.0; rep].into_boxed_slice(),
+
+            used: rep * 2,
             next: 1,
         }
     }
 
     fn nrandom(&mut self) -> f64 {
-        if self.sw {
-            self.sw = false;
-            self.r2 * self.s
-        } else {
-            self.sw = true;
-            loop {
-                self.r1 = 2.0 * self.rnd() - 1.0;
-                self.r2 = 2.0 * self.rnd() - 1.0;
-                self.s = self.r1 * self.r1 + self.r2 * self.r2;
-                if !(self.s > 1.0 || self.s == 0.0) {
-                    break;
-                }
-            }
-            self.s = (-2.0 * self.s.ln() / self.s).sqrt();
-            self.r1 * self.s
+        if self.used >= self.s.len() * 2 {
+            self.fill_queue();
+            self.used = 0;
         }
+
+        let ret = self.queue[self.used];
+        self.used += 1;
+        ret
     }
 
-    fn rnd(&mut self) -> f64 {
-        self.next = self.next.wrapping_mul(1103515245).wrapping_add(12345);
-        let r = self.next.wrapping_div(65536).wrapping_rem(32768);
-        r as f64 / 32767.0
+    fn fill_queue(&mut self) {
+        let (chunks, _) = self.queue.as_chunks_mut::<2>();
+        assert!(self.s.len() <= chunks.len());
+
+        let mut i = 0;
+        while i < self.s.len() {
+            let r1 = 2.0 * rnd(&mut self.next) - 1.0;
+            let r2 = 2.0 * rnd(&mut self.next) - 1.0;
+            let s = r1 * r1 + r2 * r2;
+            if 0.0 < s && s < 1.0 {
+                chunks[i][0] = r1;
+                chunks[i][1] = r2;
+                self.s[i] = s;
+                i += 1;
+            }
+        }
+
+        for (s, chunk) in self.s.iter().zip(chunks) {
+            let m = (-2.0 * s.ln() / s).sqrt();
+            chunk[0] *= m;
+            chunk[1] *= m;
+        }
     }
+}
+
+fn rnd(next: &mut usize) -> f64 {
+    *next = next.wrapping_mul(1103515245).wrapping_add(12345);
+    let r = next.wrapping_div(65536).wrapping_rem(32768);
+    r as f64 / 32767.0
 }
