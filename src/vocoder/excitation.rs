@@ -41,27 +41,26 @@ impl Excitation {
     }
 
     fn unvoiced_frame(&mut self, noise: f64) {
-        let center = (self.ring_buffer.len() - 1) / 2;
-        *self.ring_buffer.get_mut_with_offset(center) += noise;
+        *self.ring_buffer.get_antipode_mut() += noise;
     }
 
     /// lpf.len() == nlpf
     #[allow(clippy::needless_range_loop)]
     fn voiced_frame(&mut self, noise: f64, pulse: f64, lpf: &[f64]) {
-        let center = (self.ring_buffer.len() - 1) / 2;
-        if noise != 0.0 {
-            for i in 0..self.ring_buffer.len() {
-                if i == center {
-                    *self.ring_buffer.get_mut_with_offset(i) += noise * (1.0 - lpf[i]);
-                } else {
-                    *self.ring_buffer.get_mut_with_offset(i) += noise * (0.0 - lpf[i]);
-                }
-            }
+        *self.ring_buffer.get_antipode_mut() += noise;
+
+        let (right, left) = self.ring_buffer.as_mut_slices();
+        let (lpf_right, lpf_left) = lpf.split_at(right.len());
+
+        let c = pulse - noise;
+
+        for i in 0..right.len() {
+            right[i] += c * lpf_right[i];
         }
-        if pulse != 0.0 {
-            for i in 0..self.ring_buffer.len() {
-                *self.ring_buffer.get_mut_with_offset(i) += pulse * lpf[i];
-            }
+
+        assert!(left.len() <= lpf_left.len());
+        for i in 0..left.len() {
+            left[i] += c * lpf_left[i];
         }
     }
 
@@ -131,8 +130,13 @@ impl<T> RingBuffer<T> {
         &mut self.buffer[self.index]
     }
 
-    fn get_mut_with_offset(&mut self, i: usize) -> &mut T {
-        let index = (self.index + i) % self.buffer.len();
+    fn as_mut_slices(&mut self) -> (&mut [T], &mut [T]) {
+        let (left, right) = self.buffer.split_at_mut(self.index);
+        (right, left)
+    }
+
+    fn get_antipode_mut(&mut self) -> &mut T {
+        let index = (self.index + self.buffer.len() / 2) % self.buffer.len();
         &mut self.buffer[index]
     }
 
