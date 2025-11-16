@@ -114,6 +114,16 @@ macro_rules! mul_add {
     };
 }
 
+#[cfg(not(any(
+    all(target_arch = "x86_64", target_feature = "fma"),
+    all(target_arch = "aarch64", target_feature = "neon"),
+)))]
+macro_rules! mul_add {
+    ($e:expr) => {
+        $e
+    };
+}
+
 #[cfg_attr(test, inline(never))] // cargo-show-asm passes `--test`
 fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     assert!(2 <= d.len());
