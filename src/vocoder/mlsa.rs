@@ -79,6 +79,51 @@ where
     }
 }
 
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "fma"),
+    all(target_arch = "aarch64", target_feature = "neon"),
+))]
+macro_rules! mul_add {
+    ($s:ident * ($($a:tt)+) + ($($b:tt)+)) => {
+        f64::mul_add($s, mul_add!($($a)+), mul_add!($($b)+))
+    };
+    ($s:ident * ($($a:tt)+) + $b:expr) => {
+        f64::mul_add($s, mul_add!($($a)+), $b)
+    };
+    ($s:ident * $a:ident $([$ai:literal])? + ($($b:tt)+)) => {
+        f64::mul_add($s, $a $([$ai])?, mul_add!($($b)+))
+    };
+    ($s:ident * $a:ident $([$ai:literal])? + $e:expr) => {
+        f64::mul_add($s, $a $([$ai])?, $e)
+    };
+    (-$s:ident * ($($a:tt)+) + ($($b:tt)+)) => {
+        f64::mul_add(-$s, mul_add!($($a)+), mul_add!($($b)+))
+    };
+    (-$s:ident * ($($a:tt)+) + $b:expr) => {
+        f64::mul_add(-$s, mul_add!($($a)+), $b)
+    };
+    (-$s:ident * $a:ident $([$ai:literal])? + ($($b:tt)+)) => {
+        f64::mul_add(-$s, $a $([$ai])?, mul_add!($($b)+))
+    };
+    (-$s:ident * $a:ident $([$ai:literal])? + $e:expr) => {
+        f64::mul_add(-$s, $a $([$ai])?, $e)
+    };
+
+    ($e:expr) => {
+        $e
+    };
+}
+
+#[cfg(not(any(
+    all(target_arch = "x86_64", target_feature = "fma"),
+    all(target_arch = "aarch64", target_feature = "neon"),
+)))]
+macro_rules! mul_add {
+    ($e:expr) => {
+        $e
+    };
+}
+
 #[cfg_attr(test, inline(never))] // cargo-show-asm passes `--test`
 fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     assert!(2 <= d.len());
@@ -100,11 +145,11 @@ fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     use std::iter::zip;
     for (c, d) in zip(&mut c, &mut d) {
         (d[0], d[1], d[2], d[3], rem) = (
-            iaa * rem + a * d[0],
-            iaa * (-a * rem + d[0]) + a * d[1],
-            iaa * (aa * rem + (-a * d[0] + d[1])) + a * d[2],
-            iaa * (aa * (-a * rem + d[0]) + (-a * d[1] + d[2])) + a * d[3],
-            aaaa * rem + (aa * (-a * d[0] + d[1]) + (-a * d[2] + d[3])),
+            mul_add!(iaa * rem + a * d[0]),
+            mul_add!(iaa * (-a * rem + d[0]) + a * d[1]),
+            mul_add!(iaa * (aa * rem + (-a * d[0] + d[1])) + a * d[2]),
+            mul_add!(iaa * (aa * (-a * rem + d[0]) + (-a * d[1] + d[2])) + a * d[3]),
+            mul_add!(aaaa * rem + (aa * (-a * d[0] + d[1]) + (-a * d[2] + d[3]))),
         );
         y[0] += c[0] * d[0] + c[2] * d[2];
         y[1] += c[1] * d[1] + c[3] * d[3];

@@ -9,13 +9,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: x86_64+avx2-base
+          - name: x86_64+avx2+fma-base
             runs-on: ubuntu-24.04
-            target-feature: +avx2
+            target-feature: +avx2,+fma
             ref: ${{ github.base_ref }}
-          - name: x86_64+avx2-merge
+          - name: x86_64+avx2+fma-merge
             runs-on: ubuntu-24.04
-            target-feature: +avx2
+            target-feature: +avx2,+fma
             ref: ${{ github.ref }}
           - name: x86_64-base
             runs-on: ubuntu-24.04
