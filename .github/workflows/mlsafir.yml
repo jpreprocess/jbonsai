@@ -52,6 +52,7 @@ jobs:
             mlsafir.bench
 
   comment:
+    if: ${{ always() }}
     needs: collect
     runs-on: ubuntu-latest
 
