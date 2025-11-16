@@ -77,7 +77,7 @@ jobs:
             echo >> comment.md
 
             echo "Assembly:" >> comment.md
-            echo "<details>"
+            echo "<details>" >> comment.md
             echo >> comment.md
             echo '```asm' >> comment.md
             cat artifacts/$artifact/mlsafir.asm >> comment.md
