@@ -9,18 +9,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: x86_64 +avx2
+          - name: x86_64+avx2
             runs-on: ubuntu-24.04
             target-feature: +avx2
-          - name: x86_64 -avx2
+          - name: x86_64-avx2
             runs-on: ubuntu-24.04
             target-feature: -avx2
-          - name: aarch64 +neon
+          - name: aarch64+neon
             runs-on: ubuntu-24.04-arm
             target-feature: +neon
-          - name: aarch64 -neon
-            runs-on: ubuntu-24.04-arm
-            target-feature: -neon
         ref:
           - ${{ github.base_ref }}
           - ${{ github.ref }}
@@ -49,17 +46,11 @@ jobs:
 
       - name: Collect benchmark
         run: cargo bench --bench=bonsais > mlsafir.bench
-
-      - name: Get escaped artifact name
-        id: artifact-name
-        run: |
-          echo -n name= >> $GITHUB_OUTPUT
-          echo ${{ matrix.runs-on }}-${{ matrix.ref }} | tr '/' '_' >> $GITHUB_OUTPUT
       
       - name: Upload artifacts
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          name: ${{ steps.artifact-name.outputs.name }}
+          name: ${{ matrix.name }}
           path: |
             mlsafir.asm
             mlsafir.bench
