@@ -17,22 +17,6 @@ jobs:
             runs-on: ubuntu-24.04
             target-feature: +avx2,+fma
             ref: ${{ github.ref }}
-          - name: x86_64+fma-base
-            runs-on: ubuntu-24.04
-            target-feature: +fma
-            ref: ${{ github.base_ref }}
-          - name: x86_64+fma-merge
-            runs-on: ubuntu-24.04
-            target-feature: +fma
-            ref: ${{ github.ref }}
-          - name: x86_64+avx2-base
-            runs-on: ubuntu-24.04
-            target-feature: +avx2
-            ref: ${{ github.base_ref }}
-          - name: x86_64+avx2-merge
-            runs-on: ubuntu-24.04
-            target-feature: +avx2
-            ref: ${{ github.ref }}
           - name: x86_64-base
             runs-on: ubuntu-24.04
             target-feature: ""
