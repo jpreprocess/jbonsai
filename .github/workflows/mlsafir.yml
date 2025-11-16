@@ -79,12 +79,14 @@ jobs:
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           path: artifacts
-      
+
       - name: Render comment
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "# mlsafir diagnostics" > comment.md
           echo >> comment.md
-          echo "ref: \`$GITHUB_SHA\`" >> comment.md
+          echo "ref: \`$HEAD_SHA\`" >> comment.md
           echo >> comment.md
 
           for artifact in $(ls artifacts); do
