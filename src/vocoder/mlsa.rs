@@ -79,6 +79,10 @@ where
     }
 }
 
+#[cfg(any(
+    all(target_arch = "x86_64", target_feature = "fma"),
+    all(target_arch = "aarch64", target_feature = "neon"),
+))]
 macro_rules! mul_add {
     ($s:ident * ($($a:tt)+) + ($($b:tt)+)) => {
         f64::mul_add($s, mul_add!($($a)+), mul_add!($($b)+))
