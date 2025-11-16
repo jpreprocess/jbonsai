@@ -12,6 +12,7 @@ jobs:
         ref:
           - ${{ github.base_ref }}
           - ${{ github.ref }}
+      fail-fast: false
     runs-on: ${{ matrix.runs-on }}
     env:
       CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: "-C target-feature=+avx2"
