@@ -13,6 +13,8 @@ jobs:
           - ${{ github.base_ref }}
           - ${{ github.ref }}
     runs-on: ${{ matrix.runs-on }}
+    env:
+      CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: "-C target-feature=+avx2"
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
