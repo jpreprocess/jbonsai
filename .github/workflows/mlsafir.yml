@@ -1,0 +1,125 @@
+name: MLSA FIR optimization diagnostics
+on:
+  pull_request:
+    paths:
+      - src/vocoder/mlsa.rs
+
+jobs:
+  collect:
+    strategy:
+      matrix:
+        include:
+          - name: x86_64+avx2-base
+            runs-on: ubuntu-24.04
+            target-feature: +avx2
+            ref: ${{ github.base_ref }}
+          - name: x86_64+avx2-merge
+            runs-on: ubuntu-24.04
+            target-feature: +avx2
+            ref: ${{ github.ref }}
+          - name: x86_64-base
+            runs-on: ubuntu-24.04
+            target-feature: ""
+            ref: ${{ github.base_ref }}
+          - name: x86_64-merge
+            runs-on: ubuntu-24.04
+            target-feature: ""
+            ref: ${{ github.ref }}
+          - name: aarch64-base
+            runs-on: ubuntu-24.04-arm
+            target-feature: ""
+            ref: ${{ github.base_ref }}
+          - name: aarch64-merge
+            runs-on: ubuntu-24.04-arm
+            target-feature: ""
+            ref: ${{ github.ref }}
+      fail-fast: false
+    runs-on: ${{ matrix.runs-on }}
+    env:
+      RUSTFLAGS: "-C target-feature=${{ matrix.target-feature }}"
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: true
+          ref: ${{ matrix.ref }}
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+
+      - name: Install cargo-show-asm
+        run: cargo install cargo-show-asm
+
+      - name: Build
+        run: cargo build --profile=bench --verbose
+
+      - name: Collect assembly
+        run: cargo asm --profile=bench --lib mlsa::fir > mlsafir.asm
+
+      - name: Collect benchmark
+        run: cargo bench --bench=bonsais > mlsafir.bench
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            mlsafir.asm
+            mlsafir.bench
+
+  comment:
+    if: ${{ always() }}
+    needs: collect
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          path: artifacts
+
+      - name: Render comment
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "# mlsafir diagnostics" > comment.md
+          echo >> comment.md
+          echo "ref: \`$HEAD_SHA\`" >> comment.md
+          echo >> comment.md
+
+          for artifact in $(ls artifacts); do
+            echo "## Artifact: $artifact" >> comment.md
+            echo >> comment.md
+
+            echo "Assembly:" >> comment.md
+            echo "<details>" >> comment.md
+            echo >> comment.md
+            echo '```asm' >> comment.md
+            cat artifacts/$artifact/mlsafir.asm >> comment.md
+            echo '```' >> comment.md
+            echo "</details>" >> comment.md
+            echo >> comment.md
+
+            echo "Benchmark results:" >> comment.md
+            echo '```' >> comment.md
+            cat artifacts/$artifact/mlsafir.bench >> comment.md
+            echo '```' >> comment.md
+            echo >> comment.md
+          done
+
+      - name: Find comment
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "# mlsafir diagnostics"
+
+      - name: Post comment
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          body-path: comment.md
+          edit-mode: replace
