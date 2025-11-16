@@ -18,6 +18,9 @@ jobs:
           - name: aarch64+neon
             runs-on: ubuntu-24.04-arm
             target-feature: +neon
+        runs-on:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
         ref:
           - ${{ github.base_ref }}
           - ${{ github.ref }}
