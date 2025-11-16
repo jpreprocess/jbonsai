@@ -79,6 +79,7 @@ where
     }
 }
 
+#[cfg_attr(test, inline(never))] // cargo-show-asm passes `--test`
 fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     d[0] = x;
 
