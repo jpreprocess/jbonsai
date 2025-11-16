@@ -8,14 +8,26 @@ jobs:
   collect:
     strategy:
       matrix:
-        runs-on: [ubuntu-24.04, ubuntu-24.04-arm]
+        include:
+          - name: x86_64 +avx2
+            runs-on: ubuntu-24.04
+            target-feature: +avx2
+          - name: x86_64 -avx2
+            runs-on: ubuntu-24.04
+            target-feature: -avx2
+          - name: aarch64 +neon
+            runs-on: ubuntu-24.04-arm
+            target-feature: +neon
+          - name: aarch64 -neon
+            runs-on: ubuntu-24.04-arm
+            target-feature: -neon
         ref:
           - ${{ github.base_ref }}
           - ${{ github.ref }}
       fail-fast: false
     runs-on: ${{ matrix.runs-on }}
     env:
-      CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS: "-C target-feature=+avx2"
+      RUSTFLAGS: "-C target-feature=${{ matrix.target-feature }}"
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -69,7 +81,7 @@ jobs:
         run: |
           echo "# mlsafir diagnostics" > comment.md
           echo >> comment.md
-          echo "ref: \`$GITHUB_REF\`" >> comment.md
+          echo "ref: \`$GITHUB_SHA\`" >> comment.md
           echo >> comment.md
 
           for artifact in $(ls artifacts); do
