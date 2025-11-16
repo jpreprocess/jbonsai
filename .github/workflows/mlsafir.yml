@@ -9,21 +9,30 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: x86_64+avx2
+          - name: x86_64+avx2-base
             runs-on: ubuntu-24.04
             target-feature: +avx2
-          - name: x86_64-avx2
+            ref: ${{ github.base_ref }}
+          - name: x86_64+avx2-merge
             runs-on: ubuntu-24.04
-            target-feature: -avx2
-          - name: aarch64+neon
+            target-feature: +avx2
+            ref: ${{ github.ref }}
+          - name: x86_64-base
+            runs-on: ubuntu-24.04
+            target-feature: ""
+            ref: ${{ github.base_ref }}
+          - name: x86_64-merge
+            runs-on: ubuntu-24.04
+            target-feature: ""
+            ref: ${{ github.ref }}
+          - name: aarch64-base
             runs-on: ubuntu-24.04-arm
-            target-feature: +neon
-        runs-on:
-          - ubuntu-24.04
-          - ubuntu-24.04-arm
-        ref:
-          - ${{ github.base_ref }}
-          - ${{ github.ref }}
+            target-feature: ""
+            ref: ${{ github.base_ref }}
+          - name: aarch64-merge
+            runs-on: ubuntu-24.04-arm
+            target-feature: ""
+            ref: ${{ github.ref }}
       fail-fast: false
     runs-on: ${{ matrix.runs-on }}
     env:
