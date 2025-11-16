@@ -109,7 +109,7 @@ fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
         y[0] += c[0] * d[0] + c[2] * d[2];
         y[1] += c[1] * d[1] + c[3] * d[3];
     }
-    for (d, c) in zip(d.into_remainder(), c.remainder()) {
+    for (c, d) in zip(c.remainder(), d.into_remainder()) {
         (*d, rem) = (iaa * rem + a * *d, -a * rem + *d);
         y[0] += c * *d;
     }
