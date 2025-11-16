@@ -81,40 +81,38 @@ where
 
 #[cfg_attr(test, inline(never))] // cargo-show-asm passes `--test`
 fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
-    d[0] = x;
+    assert!(2 <= d.len());
 
     let a = alpha;
     let aa = a * a;
     let aaaa = aa * aa;
     let iaa = 1.0 - aa;
-    let mut rem = 0.0;
 
-    let mut chunks = d.chunks_exact_mut(4);
-    for chunk in chunks.by_ref() {
-        (chunk[0], chunk[1], chunk[2], chunk[3], rem) = (
-            iaa * rem + a * chunk[0],
-            iaa * (-a * rem + chunk[0]) + a * chunk[1],
-            iaa * (aa * rem + (-a * chunk[0] + chunk[1])) + a * chunk[2],
-            iaa * (aa * (-a * rem + chunk[0]) + (-a * chunk[1] + chunk[2])) + a * chunk[3],
-            aaaa * rem + (aa * (-a * chunk[0] + chunk[1]) + (-a * chunk[2] + chunk[3])),
-        );
-    }
-    for di in chunks.into_remainder() {
-        (*di, rem) = (iaa * rem + a * *di, -a * rem + *di);
-    }
+    let mut rem = -a * x + d[1];
 
-    let mut y = [0.0; 8];
-    let mut c = coefficients[2..d.len()].chunks_exact(8);
-    let mut d = d[2..d.len()].chunks_exact(8);
+    d[0] = a * x;
+    d[1] = iaa * x + a * d[1];
+
+    let mut y = [0.0; 2];
+    let mut c = coefficients[2..d.len()].chunks_exact(4);
+    let mut d = d[2..].chunks_exact_mut(4);
 
     use std::iter::zip;
     for (c, d) in zip(&mut c, &mut d) {
-        for (y, (c, d)) in zip(&mut y, zip(c, d)) {
-            *y += c * d;
-        }
+        (d[0], d[1], d[2], d[3], rem) = (
+            iaa * rem + a * d[0],
+            iaa * (-a * rem + d[0]) + a * d[1],
+            iaa * (aa * rem + (-a * d[0] + d[1])) + a * d[2],
+            iaa * (aa * (-a * rem + d[0]) + (-a * d[1] + d[2])) + a * d[3],
+            aaaa * rem + (aa * (-a * d[0] + d[1]) + (-a * d[2] + d[3])),
+        );
+        y[0] += c[0] * d[0] + c[2] * d[2];
+        y[1] += c[1] * d[1] + c[3] * d[3];
     }
-    for (y, (c, d)) in zip(&mut y, zip(c.remainder(), d.remainder())) {
-        *y += c * d;
+    for (c, d) in zip(c.remainder(), d.into_remainder()) {
+        (*d, rem) = (iaa * rem + a * *d, -a * rem + *d);
+        y[0] += c * *d;
     }
-    ((y[0] + y[1]) + (y[2] + y[3])) + ((y[4] + y[5]) + (y[6] + y[7]))
+
+    y[0] + y[1]
 }
