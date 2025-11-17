@@ -206,7 +206,6 @@ impl<'a> MlpgGlobalVariance<'a> {
             }
         }
     }
-    #[inline(never)]
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
         let MlpgMatrix {
             width,
