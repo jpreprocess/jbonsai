@@ -225,17 +225,10 @@ impl<'a> MlpgGlobalVariance<'a> {
         let mut g = vec![0.0; length];
 
         for t in 0..length {
-            g[t] = wuw[t * width] * par[t];
+            g[t] += wuw[t * width] * par[t];
             for i in 1..width {
                 if i < length - t {
                     g[t] += wuw[t * width + i] * par[t + i];
-                }
-            }
-        }
-
-        for t in 0..length {
-            for i in 1..width {
-                if i < length - t {
                     g[t + i] += wuw[t * width + i] * par[t];
                 }
             }
