@@ -199,11 +199,12 @@ impl<'a> MlpgGlobalVariance<'a> {
     fn conv_gv(&mut self, gv_mean: f64) {
         let (mean, vari) = self.calc_gv();
         let ratio = (gv_mean / vari).sqrt();
-        self.par
-            .iter_mut()
-            .zip(self.gv_switch.iter())
-            .filter(|(_, sw)| **sw)
-            .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
+
+        for (par, sw) in std::iter::zip(&mut self.par, self.gv_switch) {
+            if *sw {
+                *par = ratio * (*par - mean) + mean;
+            }
+        }
     }
     #[inline(never)]
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
