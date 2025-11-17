@@ -15,7 +15,7 @@ pub struct MlpgMatrix {
     win_size: usize,
     length: usize,
     width: usize,
-    wuw: Vec<Vec<f64>>,
+    wuw: Vec<f64>,
     wum: Vec<f64>,
 }
 
@@ -25,13 +25,10 @@ impl MlpgMatrix {
     pub fn calc_wuw_and_wum(windows: &Windows, parameters: Vec<Vec<MeanVari>>) -> Self {
         let length = parameters[0].len();
         let width = windows.max_width() * 2 + 1;
-        let mut wum = Vec::with_capacity(length);
-        let mut wuw = Vec::with_capacity(length);
+        let mut wum = vec![0.0; length];
+        let mut wuw = vec![0.0; length * width];
 
         for t in 0..length {
-            wuw.push(vec![0.0; width]);
-            wum.push(0.0);
-
             for (i, window) in windows.iter().enumerate() {
                 for (index, coef) in window.iter_rev(0) {
                     if coef == 0.0 {
@@ -54,7 +51,7 @@ impl MlpgMatrix {
                             break;
                         }
 
-                        wuw[t][j] += wu * coef;
+                        wuw[t * width + j] += wu * coef;
                     }
                 }
             }
@@ -77,37 +74,44 @@ impl MlpgMatrix {
 
     /// Perform Cholesky decomposition.
     fn ldl_factorization(&mut self) {
-        for t in 0..self.length {
-            for i in 1..self.width.min(t + 1) {
-                self.wuw[t][0] -= self.wuw[t - i][i] * self.wuw[t - i][i] * self.wuw[t - i][0];
+        let Self { width, length, .. } = *self;
+        let wuw = &mut self.wuw[..length * width];
+        for t in 0..length {
+            for i in 1..width.min(t + 1) {
+                wuw[width * t] -=
+                    wuw[(t - i) * width + i] * wuw[(t - i) * width + i] * wuw[(t - i) * width];
             }
-            for i in 1..self.width {
-                for j in 1..(self.width - i).min(t + 1) {
-                    self.wuw[t][i] -=
-                        self.wuw[t - j][j] * self.wuw[t - j][i + j] * self.wuw[t - j][0];
+            for i in 1..width {
+                for j in 1..(width - i).min(t + 1) {
+                    wuw[width * t + i] -= wuw[(t - j) * width + j]
+                        * wuw[(t - j) * width + i + j]
+                        * wuw[(t - j) * width];
                 }
-                self.wuw[t][i] /= self.wuw[t][0];
+                wuw[width * t + i] /= wuw[width * t];
             }
         }
     }
 
     /// Forward & backward substitution.
     fn substitutions(&self) -> Vec<f64> {
+        let Self { width, length, .. } = *self;
+        let wum = &self.wum[..length];
+        let wuw = &self.wuw[..length * width];
         let mut g = vec![0.0; self.length];
         // forward
-        for t in 0..self.length {
-            g[t] = self.wum[t];
-            for i in 1..self.width.min(t + 1) {
-                g[t] -= self.wuw[t - i][i] * g[t - i];
+        for t in 0..length {
+            g[t] = wum[t];
+            for i in 1..width.min(t + 1) {
+                g[t] -= wuw[(t - i) * width + i] * g[t - i];
             }
         }
 
         let mut par = vec![0.0; self.length];
         // backward
         for t in (0..self.length).rev() {
-            par[t] = g[t] / self.wuw[t][0];
-            for i in 1..self.width.min(self.length - t) {
-                par[t] -= self.wuw[t][i] * par[t + i];
+            par[t] = g[t] / wuw[t * width];
+            for i in 1..width.min(length - t) {
+                par[t] -= wuw[t * width + i] * par[t + i];
             }
         }
 
@@ -207,17 +211,19 @@ impl<'a> MlpgGlobalVariance<'a> {
             .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
     }
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
-        let mut g = vec![0.0; self.mtx.length];
+        let MlpgMatrix { width, length, .. } = self.mtx;
+        let wuw = &self.mtx.wuw[..length * width];
 
-        #[allow(clippy::needless_range_loop)]
-        for t in 0..self.mtx.length {
-            g[t] = self.mtx.wuw[t][0] * self.par[t];
-            for i in 1..self.mtx.width {
-                if t + i < self.mtx.length {
-                    g[t] += self.mtx.wuw[t][i] * self.par[t + i];
+        let mut g = vec![0.0; length];
+
+        for t in 0..length {
+            g[t] = wuw[t * width] * self.par[t];
+            for i in 1..width {
+                if t + i < length {
+                    g[t] += wuw[t * width + i] * self.par[t + i];
                 }
                 if t + 1 > i {
-                    g[t] += self.mtx.wuw[t - i][i] * self.par[t - i];
+                    g[t] += wuw[(t - i) * width + i] * self.par[t - i];
                 }
             }
         }
@@ -241,21 +247,23 @@ impl<'a> MlpgGlobalVariance<'a> {
         gv_mean: f64,
         gv_vari: f64,
     ) {
-        let length = self.mtx.length;
+        let MlpgMatrix { width, length, .. } = self.mtx;
 
         let w = 1.0 / ((self.mtx.win_size * length) as f64);
         let dv = -2.0 * gv_vari * (vari - gv_mean) / self.mtx.length as f64;
 
-        #[allow(clippy::needless_range_loop)]
+        let wum = &self.mtx.wum[..length];
+        let wuw = &self.mtx.wuw[..length * width];
+
         for t in 0..length {
-            let h = -W1 * w * self.mtx.wuw[t][0]
+            let h = -W1 * w * wuw[t * width]
                 - W2 * 2.0 / (length * length) as f64
                     * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
                         + 2.0 * gv_vari * (self.par[t] - mean) * (self.par[t] - mean));
             let next_g = if self.gv_switch[t] {
-                1.0 / h * (W1 * w * (-g[t] + self.mtx.wum[t]) + W2 * dv * (self.par[t] - mean))
+                1.0 / h * (W1 * w * (-g[t] + wum[t]) + W2 * dv * (self.par[t] - mean))
             } else {
-                1.0 / h * (W1 * w * (-g[t] + self.mtx.wum[t]))
+                1.0 / h * (W1 * w * (-g[t] + wum[t]))
             };
 
             self.par[t] += step * next_g;
