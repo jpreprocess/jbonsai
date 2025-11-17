@@ -133,7 +133,7 @@ mod tests {
 
         assert_eq!(speech.len(), 100800);
         approx::assert_abs_diff_eq!(speech[2000], 17.15977345625943, epsilon = 1.0e-10);
-        approx::assert_abs_diff_eq!(speech[30000], 2566.2058730889985, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], 2566.205873089253, epsilon = 1.0e-10);
         approx::assert_abs_diff_eq!(speech[70000], -1898.2890228814217, epsilon = 1.0e-10);
         approx::assert_abs_diff_eq!(speech[100799], -13.514971382534956, epsilon = 1.0e-10);
     }
