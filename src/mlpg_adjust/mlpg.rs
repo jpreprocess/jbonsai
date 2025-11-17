@@ -180,23 +180,18 @@ impl<'a> MlpgGlobalVariance<'a> {
     }
 
     fn calc_gv(&self) -> (f64, f64) {
-        let mean = self
-            .par
-            .iter()
-            .zip(self.gv_switch.iter())
-            .filter(|(_, sw)| **sw)
-            .map(|(p, _)| *p)
-            .sum::<f64>()
-            / self.gv_length as f64;
-        let vari = self
-            .par
-            .iter()
-            .zip(self.gv_switch.iter())
-            .filter(|(_, sw)| **sw)
-            .map(|(p, _)| (*p - mean) * (*p - mean))
-            .sum::<f64>()
-            / self.gv_length as f64;
+        let mut sum = 0.0;
+        let mut sum_quad = 0.0;
 
+        for (par, sw) in std::iter::zip(&self.par, self.gv_switch) {
+            if *sw {
+                sum += *par;
+                sum_quad += *par * *par;
+            }
+        }
+
+        let mean = sum / self.gv_length as f64;
+        let vari = (sum_quad / self.gv_length as f64) - (mean * mean);
         (mean, vari)
     }
 
