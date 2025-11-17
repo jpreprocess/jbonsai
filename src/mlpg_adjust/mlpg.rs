@@ -29,7 +29,7 @@ impl MlpgMatrix {
         let mut wuw = vec![0.0; length * width];
 
         for t in 0..length {
-            for (i, window) in windows.iter().enumerate() {
+            for (window, parameter) in std::iter::zip(windows, &parameters) {
                 for (index, coef) in window.iter_rev(0) {
                     if coef == 0.0 {
                         continue;
@@ -39,8 +39,9 @@ impl MlpgMatrix {
                     if idx < 0 || idx >= length as isize {
                         continue;
                     }
-                    let wu = coef * parameters[i][idx as usize].1;
-                    wum[t] += wu * parameters[i][idx as usize].0;
+                    let MeanVari(mean, vari) = parameter[idx as usize];
+                    let wu = coef * vari;
+                    wum[t] += wu * mean;
 
                     for (inner_index, coef) in window.iter_rev(index.index()) {
                         if coef == 0.0 {
