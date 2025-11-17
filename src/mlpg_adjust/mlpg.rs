@@ -230,6 +230,11 @@ impl<'a> MlpgGlobalVariance<'a> {
                 if i < length - t {
                     g[t] += wuw[t * width + i] * par[t + i];
                 }
+            }
+        }
+
+        for t in 0..length {
+            for i in 1..width {
                 if i < t + 1 {
                     g[t] += wuw[(t - i) * width + i] * par[t - i];
                 }
