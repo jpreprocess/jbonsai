@@ -243,7 +243,7 @@ impl<'a> MlpgGlobalVariance<'a> {
     }
     fn next_step(
         &mut self,
-        g: Vec<f64>,
+        g: &[f64],
         step: f64,
         mean: f64,
         vari: f64,
@@ -255,21 +255,26 @@ impl<'a> MlpgGlobalVariance<'a> {
         let w = 1.0 / ((self.mtx.win_size * length) as f64);
         let dv = -2.0 * gv_vari * (vari - gv_mean) / self.mtx.length as f64;
 
+        assert!(width >= 1); // required for `wuw[0]` access
+        let wuw = self.mtx.wuw.chunks_exact(width);
         let wum = &self.mtx.wum[..length];
-        let wuw = &self.mtx.wuw[..length * width];
+        let par = &mut self.par[..length];
+        let gv_switch = &self.gv_switch[..length];
+        let g = &g[..length];
 
-        for t in 0..length {
-            let h = -W1 * w * wuw[t * width]
+        // .zip(0..length) to help optimizer recognize t < length
+        for (wuw, t) in wuw.zip(0..length) {
+            let h = -W1 * w * wuw[0]
                 - W2 * 2.0 / (length * length) as f64
                     * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
-                        + 2.0 * gv_vari * (self.par[t] - mean) * (self.par[t] - mean));
-            let next_g = if self.gv_switch[t] {
-                1.0 / h * (W1 * w * (-g[t] + wum[t]) + W2 * dv * (self.par[t] - mean))
+                        + 2.0 * gv_vari * (par[t] - mean) * (par[t] - mean));
+            let next_g = if gv_switch[t] {
+                1.0 / h * (W1 * w * (-g[t] + wum[t]) + W2 * dv * (par[t] - mean))
             } else {
                 1.0 / h * (W1 * w * (-g[t] + wum[t]))
             };
 
-            self.par[t] += step * next_g;
+            par[t] += step * next_g;
         }
     }
 
@@ -301,7 +306,7 @@ impl<'a> MlpgGlobalVariance<'a> {
                 }
             }
 
-            self.next_step(g, step, mean, vari, gv_mean, gv_vari);
+            self.next_step(&g, step, mean, vari, gv_mean, gv_vari);
 
             prev = obj;
         }
