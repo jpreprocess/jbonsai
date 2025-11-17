@@ -11,13 +11,22 @@ impl Windows {
     }
 
     pub fn iter(&self) -> impl '_ + Iterator<Item = &Window> {
-        self.windows.iter()
+        self.into_iter()
     }
     pub fn size(&self) -> usize {
         self.windows.len()
     }
     pub fn max_width(&self) -> usize {
         self.windows.iter().map(Window::width).max().unwrap_or(0) / 2
+    }
+}
+
+impl<'a> IntoIterator for &'a Windows {
+    type Item = &'a Window;
+    type IntoIter = std::slice::Iter<'a, Window>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.windows.iter()
     }
 }
 
