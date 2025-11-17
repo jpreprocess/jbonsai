@@ -239,7 +239,6 @@ impl<'a> MlpgGlobalVariance<'a> {
         let w = 1.0 / ((win_size * length) as f64);
         let mut hmmobj = 0.0;
 
-        #[allow(clippy::needless_range_loop)]
         for t in 0..length {
             hmmobj += W1 * w * par[t] * (wum[t] - 0.5 * g[t]);
         }
