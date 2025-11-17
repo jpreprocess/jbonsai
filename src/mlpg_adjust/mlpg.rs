@@ -114,6 +114,15 @@ impl MlpgMatrix {
         par
     }
 
+    fn calculate_gv_switch(gv_switch: &[bool], durations: &[usize], mask: &[bool]) -> Vec<bool> {
+        gv_switch
+            .iter()
+            .copied()
+            .duration(durations)
+            .filter_by(mask)
+            .collect()
+    }
+
     /// Solve the equasion, and if necessary, applies GV (global variance).
     pub fn par(
         &mut self,
@@ -126,12 +135,8 @@ impl MlpgMatrix {
         if let Some((gv_param, gv_switch)) = gv {
             let mtx_before = self.clone();
             let par = self.solve();
-            let gv_switch: Vec<_> = gv_switch
-                .iter()
-                .copied()
-                .duration(durations)
-                .filter_by(msd_flag.mask())
-                .collect();
+            let gv_switch: Vec<_> =
+                Self::calculate_gv_switch(gv_switch, durations, msd_flag.mask());
             let mgv = MlpgGlobalVariance::new(mtx_before, par, &gv_switch);
 
             let MeanVari(gv_mean, gv_vari) = gv_param[vector_index];
