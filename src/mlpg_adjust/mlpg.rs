@@ -210,30 +210,38 @@ impl<'a> MlpgGlobalVariance<'a> {
             .filter(|(_, sw)| **sw)
             .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
     }
+    #[inline(never)]
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
-        let MlpgMatrix { width, length, .. } = self.mtx;
+        let MlpgMatrix {
+            width,
+            length,
+            win_size,
+            ..
+        } = self.mtx;
         let wuw = &self.mtx.wuw[..length * width];
+        let wum = &self.mtx.wum[..length];
+        let par = &self.par[..length];
 
         let mut g = vec![0.0; length];
 
         for t in 0..length {
-            g[t] = wuw[t * width] * self.par[t];
+            g[t] = wuw[t * width] * par[t];
             for i in 1..width {
-                if t + i < length {
-                    g[t] += wuw[t * width + i] * self.par[t + i];
+                if i < length - t {
+                    g[t] += wuw[t * width + i] * par[t + i];
                 }
-                if t + 1 > i {
-                    g[t] += wuw[(t - i) * width + i] * self.par[t - i];
+                if i < t + 1 {
+                    g[t] += wuw[(t - i) * width + i] * par[t - i];
                 }
             }
         }
 
-        let w = 1.0 / ((self.mtx.win_size * self.mtx.length) as f64);
+        let w = 1.0 / ((win_size * length) as f64);
         let mut hmmobj = 0.0;
 
         #[allow(clippy::needless_range_loop)]
-        for t in 0..self.mtx.length {
-            hmmobj += W1 * w * self.par[t] * (self.mtx.wum[t] - 0.5 * g[t]);
+        for t in 0..length {
+            hmmobj += W1 * w * par[t] * (wum[t] - 0.5 * g[t]);
         }
 
         (hmmobj, g)
