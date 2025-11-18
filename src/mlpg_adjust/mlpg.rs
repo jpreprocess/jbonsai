@@ -32,7 +32,7 @@ impl MlpgMatrix {
             let parameter = &parameter[..length];
 
             for t in 0..length {
-                for (index, coef) in window.iter_rev(window.left_width()) {
+                for (index, coef) in window.iter(window.left_width()) {
                     if coef == 0.0 {
                         continue;
                     }
@@ -45,7 +45,7 @@ impl MlpgMatrix {
                     let wu = coef * vari;
                     wum[t] += wu * mean;
 
-                    for (inner_index, coef) in window.iter_rev(index) {
+                    for (inner_index, coef) in window.iter(index) {
                         if coef == 0.0 {
                             continue;
                         }
