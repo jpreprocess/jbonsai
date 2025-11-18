@@ -28,8 +28,10 @@ impl MlpgMatrix {
         let mut wum = vec![0.0; length];
         let mut wuw = vec![0.0; length * width];
 
-        for t in 0..length {
-            for (window, parameter) in std::iter::zip(windows, &parameters) {
+        for (window, parameter) in std::iter::zip(windows, &parameters) {
+            let parameter = &parameter[..length];
+
+            for t in 0..length {
                 for (index, coef) in window.iter_rev(window.left_width()) {
                     if coef == 0.0 {
                         continue;
