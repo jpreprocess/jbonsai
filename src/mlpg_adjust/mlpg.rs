@@ -30,12 +30,12 @@ impl MlpgMatrix {
 
         for t in 0..length {
             for (window, parameter) in std::iter::zip(windows, &parameters) {
-                for (index, coef) in window.iter_rev(0) {
+                for (index, coef) in window.iter_rev(window.left_width()) {
                     if coef == 0.0 {
                         continue;
                     }
 
-                    let idx = (t as isize) - index.position();
+                    let idx = (t as isize) - index;
                     if idx < 0 || idx >= length as isize {
                         continue;
                     }
@@ -43,11 +43,11 @@ impl MlpgMatrix {
                     let wu = coef * vari;
                     wum[t] += wu * mean;
 
-                    for (inner_index, coef) in window.iter_rev(index.index()) {
+                    for (inner_index, coef) in window.iter_rev(index) {
                         if coef == 0.0 {
                             continue;
                         }
-                        let j = inner_index.index() - index.index();
+                        let j = (inner_index - index) as usize;
                         if t + j >= length {
                             break;
                         }
