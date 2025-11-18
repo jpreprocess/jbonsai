@@ -54,35 +54,8 @@ impl<'a> MlpgAdjust<'a> {
         let mut pars = vec![vec![0.0; self.vector_length]; msd_flag.mask().len()];
 
         for vector_index in 0..self.vector_length {
-            let parameters: Vec<Vec<MeanVari>> = self
-                .windows
-                .iter()
-                .enumerate()
-                .map(|(window_index, window)| {
-                    let m = self.vector_length * window_index + vector_index;
-
-                    self.stream
-                        .iter()
-                        .map(|(curr_stream, _)| curr_stream[m].with_ivar())
-                        .duration(durations)
-                        .zip(&msd_boundaries)
-                        .map(|(mean_ivar, (left, right))| {
-                            let is_left_msd_boundary = *left < window.left_width();
-                            let is_right_msd_boundary = *right < window.right_width();
-
-                            // If the window includes non-msd frames, set the ivar to 0.0
-                            if (is_left_msd_boundary || is_right_msd_boundary) && window_index != 0
-                            {
-                                mean_ivar.with_0()
-                            } else {
-                                mean_ivar
-                            }
-                        })
-                        .filter_by(msd_flag.mask())
-                        .collect()
-                })
-                .collect();
-
+            let parameters =
+                self.create_parameters(vector_index, durations, &msd_boundaries, msd_flag.mask());
             let mut mtx = MlpgMatrix::calc_wuw_and_wum(self.windows, parameters);
             let par = mtx.par(&self.gv, vector_index, self.gv_weight, durations, &msd_flag);
 
@@ -92,6 +65,43 @@ impl<'a> MlpgAdjust<'a> {
         }
 
         pars
+    }
+
+    #[inline(never)]
+    fn create_parameters(
+        &self,
+        vector_index: usize,
+        durations: &[usize],
+        msd_boundaries: &[(usize, usize)],
+        mask: &[bool],
+    ) -> Vec<Vec<MeanVari>> {
+        self.windows
+            .iter()
+            .enumerate()
+            .map(|(window_index, window)| {
+                let m = self.vector_length * window_index + vector_index;
+
+                self.stream
+                    .iter()
+                    .map(|(curr_stream, _)| curr_stream[m].with_ivar())
+                    .duration(durations)
+                    .zip(msd_boundaries)
+                    .map(|(mean_ivar, (left, right))| {
+                        // TODO: migrate msd_boundaries to isize
+                        let is_left_msd_boundary = *left < (-window.left_width()) as usize;
+                        let is_right_msd_boundary = *right < window.right_width() as usize;
+
+                        // If the window includes non-msd frames, set the ivar to 0.0
+                        if (is_left_msd_boundary || is_right_msd_boundary) && window_index != 0 {
+                            mean_ivar.with_0()
+                        } else {
+                            mean_ivar
+                        }
+                    })
+                    .filter_by(mask)
+                    .collect()
+            })
+            .collect()
     }
 }
 
