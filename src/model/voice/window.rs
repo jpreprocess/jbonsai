@@ -41,11 +41,10 @@ impl Window {
     }
 
     #[inline(always)]
-    pub fn iter_rev(&self, start: isize) -> impl '_ + Iterator<Item = (isize, f64)> {
+    pub fn iter(&self, start: isize) -> impl '_ + Iterator<Item = (isize, f64)> {
         self.coefficients[(start - self.left_width()) as usize..]
             .iter()
             .enumerate()
-            .rev()
             .map(move |(idx, coef)| (idx as isize + start, *coef))
     }
 
@@ -107,14 +106,14 @@ mod tests {
     #[test]
     fn iterator() {
         let window = Window::new(vec![-1.0, 0.0, 1.0]);
-        let iterated = window.iter_rev(window.left_width()).collect::<Vec<_>>();
+        let iterated = window.iter(window.left_width()).collect::<Vec<_>>();
 
-        assert_eq!(iterated[2].1, -1.0);
+        assert_eq!(iterated[0].1, -1.0);
         assert_eq!(iterated[1].1, 0.0);
-        assert_eq!(iterated[0].1, 1.0);
+        assert_eq!(iterated[2].1, 1.0);
 
-        assert_eq!(iterated[2].0, -1);
+        assert_eq!(iterated[0].0, -1);
         assert_eq!(iterated[1].0, 0);
-        assert_eq!(iterated[0].0, 1);
+        assert_eq!(iterated[2].0, 1);
     }
 }
