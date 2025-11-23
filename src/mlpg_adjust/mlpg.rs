@@ -42,11 +42,10 @@ impl MlpgMatrix {
                         continue;
                     }
                     let MeanVari(mean, vari) = parameter[idx as usize];
-                    let wu = coef * vari;
-                    wum[t] += wu * mean;
+                    wum[t] += coef * vari * mean;
 
-                    for (inner_index, coef) in window.iter(index) {
-                        if coef == 0.0 {
+                    for (inner_index, inner_coef) in window.iter(index) {
+                        if inner_coef == 0.0 {
                             continue;
                         }
                         let j = (inner_index - index) as usize;
@@ -54,7 +53,7 @@ impl MlpgMatrix {
                             break;
                         }
 
-                        wuw[t * width + j] += wu * coef;
+                        wuw[t * width + j] += coef * inner_coef * vari;
                     }
                 }
             }
