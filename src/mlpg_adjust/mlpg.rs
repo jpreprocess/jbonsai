@@ -49,10 +49,6 @@ impl MlpgMatrix {
                             continue;
                         }
                         let j = (inner_index - index) as usize;
-                        if t + j >= length {
-                            break;
-                        }
-
                         wuw[t * width + j] += coef * inner_coef * vari;
                     }
                 }
