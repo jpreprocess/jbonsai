@@ -45,7 +45,7 @@ jobs:
           ref: ${{ matrix.ref }}
 
       - name: Cache Cargo dependencies
-        uses: Swatinem/rust-cache@3cf7f8cc28d1b4e7d01e3783be10a97d55d483c8 # v2.7.1
+        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
 
       - name: Install cargo-show-asm
         run: cargo install cargo-show-asm
