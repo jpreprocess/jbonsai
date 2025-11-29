@@ -208,19 +208,19 @@ impl<'a> MlpgGlobalVariance<'a> {
             width,
             ..
         } = self.mtx;
-        let wuw = &self.mtx.wuw[..width * length];
+        assert!(width >= 1); // required for `wuw[0]` access
+        let wuw = self.mtx.wuw.chunks_exact(width);
         let wum = &self.mtx.wum[..length];
         let par = &self.par[..length];
         let mut g = boxed_slice![0.0; length];
 
-        for t in 0..length {
-            g[t] = wuw[width * t] * par[t];
+        // .zip(0..length) to help optimizer recognize t < length
+        for (wuw, t) in wuw.zip(0..length) {
+            g[t] += wuw[0] * par[t];
             for i in 1..width {
                 if t + i < length {
-                    g[t] += wuw[width * t + i] * par[t + i];
-                }
-                if t + 1 > i {
-                    g[t] += wuw[width * (t - i) + i] * par[t - i];
+                    g[t] += wuw[i] * par[t + i];
+                    g[t + i] += wuw[i] * par[t];
                 }
             }
         }
