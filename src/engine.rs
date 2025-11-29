@@ -353,7 +353,7 @@ impl Engine {
             )
             .create(&durations)
         } else {
-            vec![vec![0.0; 0]; lf0.len()]
+            vec![vec![0.0; 0].into(); lf0.len()].into()
         };
 
         Ok(SpeechGenerator::new(

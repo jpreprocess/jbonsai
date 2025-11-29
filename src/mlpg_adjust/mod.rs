@@ -48,10 +48,12 @@ impl<'a> MlpgAdjust<'a> {
         }
     }
     /// Parameter generation using GV weight
-    pub fn create(&self, durations: &[usize]) -> Vec<Vec<f64>> {
+    pub fn create(&self, durations: &[usize]) -> Box<[Box<[f64]>]> {
         let msd_flag = Mask::create(&self.stream, self.msd_threshold, durations);
         let msd_boundaries = msd_flag.boundary_distances();
-        let mut pars = vec![vec![0.0; self.vector_length]; msd_flag.mask().len()];
+        let mut pars =
+            vec![vec![0.0; self.vector_length].into_boxed_slice(); msd_flag.mask().len()]
+                .into_boxed_slice();
 
         for vector_index in 0..self.vector_length {
             let parameters: Vec<Vec<MeanVari>> = self

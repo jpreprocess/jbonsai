@@ -23,12 +23,14 @@ impl Windows {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Window {
-    coefficients: Vec<f64>,
+    coefficients: Box<[f64]>,
 }
 
 impl Window {
     pub fn new(coefficients: Vec<f64>) -> Self {
-        Self { coefficients }
+        Self {
+            coefficients: coefficients.into(),
+        }
     }
 
     pub fn iter_rev(&self, start: usize) -> impl '_ + Iterator<Item = (WindowIndex, f64)> {

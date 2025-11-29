@@ -15,8 +15,8 @@ pub struct MlpgMatrix {
     win_size: usize,
     length: usize,
     width: usize,
-    wuw: Vec<Vec<f64>>,
-    wum: Vec<f64>,
+    wuw: Box<[Box<[f64]>]>,
+    wum: Box<[f64]>,
 }
 
 impl MlpgMatrix {
@@ -29,7 +29,7 @@ impl MlpgMatrix {
         let mut wuw = Vec::with_capacity(length);
 
         for t in 0..length {
-            wuw.push(vec![0.0; width]);
+            wuw.push(vec![0.0; width].into_boxed_slice());
             wum.push(0.0);
 
             for (i, window) in windows.iter().enumerate() {
@@ -64,13 +64,13 @@ impl MlpgMatrix {
             win_size: windows.size(),
             length,
             width,
-            wuw,
-            wum,
+            wuw: wuw.into_boxed_slice(),
+            wum: wum.into_boxed_slice(),
         }
     }
 
     /// Solve equation $W^T U^{-1} W c = W^T U^{-1} \mu$ and return the vector $c$.
-    pub fn solve(&mut self) -> Vec<f64> {
+    pub fn solve(&mut self) -> Box<[f64]> {
         self.ldl_factorization();
         self.substitutions()
     }
@@ -92,7 +92,7 @@ impl MlpgMatrix {
     }
 
     /// Forward & backward substitution.
-    fn substitutions(&self) -> Vec<f64> {
+    fn substitutions(&self) -> Box<[f64]> {
         let mut g = vec![0.0; self.length];
         // forward
         for t in 0..self.length {
@@ -102,7 +102,7 @@ impl MlpgMatrix {
             }
         }
 
-        let mut par = vec![0.0; self.length];
+        let mut par = vec![0.0; self.length].into_boxed_slice();
         // backward
         for t in (0..self.length).rev() {
             par[t] = g[t] / self.wuw[t][0];
@@ -122,7 +122,7 @@ impl MlpgMatrix {
         gv_weight: f64,
         durations: &[usize],
         msd_flag: &Mask,
-    ) -> Vec<f64> {
+    ) -> Box<[f64]> {
         if let Some((gv_param, gv_switch)) = gv {
             let mtx_before = self.clone();
             let par = self.solve();
@@ -145,7 +145,7 @@ impl MlpgMatrix {
 /// MLPG global variance (GV) calculator.
 #[derive(Debug, Clone)]
 pub struct MlpgGlobalVariance<'a> {
-    par: Vec<f64>,
+    par: Box<[f64]>,
     gv_switch: &'a [bool],
     gv_length: usize,
 
@@ -154,7 +154,7 @@ pub struct MlpgGlobalVariance<'a> {
 
 impl<'a> MlpgGlobalVariance<'a> {
     /// Create a new GV structure.
-    pub fn new(mtx: MlpgMatrix, par: Vec<f64>, gv_switch: &'a [bool]) -> Self {
+    pub fn new(mtx: MlpgMatrix, par: Box<[f64]>, gv_switch: &'a [bool]) -> Self {
         let gv_length = gv_switch.iter().filter(|b| **b).count();
         Self {
             par,
@@ -165,7 +165,7 @@ impl<'a> MlpgGlobalVariance<'a> {
     }
 
     /// Apply GV to the current parameter and returns it.
-    pub fn apply_gv(mut self, gv_mean: f64, gv_vari: f64) -> Vec<f64> {
+    pub fn apply_gv(mut self, gv_mean: f64, gv_vari: f64) -> Box<[f64]> {
         self.parmgen(gv_mean, gv_vari);
         self.par
     }
@@ -201,8 +201,8 @@ impl<'a> MlpgGlobalVariance<'a> {
             .filter(|(_, sw)| **sw)
             .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
     }
-    fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
-        let mut g = vec![0.0; self.mtx.length];
+    fn calc_hmmobj_derivative(&self) -> (f64, Box<[f64]>) {
+        let mut g = vec![0.0; self.mtx.length].into_boxed_slice();
 
         #[allow(clippy::needless_range_loop)]
         for t in 0..self.mtx.length {
@@ -229,7 +229,7 @@ impl<'a> MlpgGlobalVariance<'a> {
     }
     fn next_step(
         &mut self,
-        g: Vec<f64>,
+        g: &[f64],
         step: f64,
         mean: f64,
         vari: f64,
@@ -285,7 +285,7 @@ impl<'a> MlpgGlobalVariance<'a> {
                 }
             }
 
-            self.next_step(g, step, mean, vari, gv_mean, gv_vari);
+            self.next_step(&g, step, mean, vari, gv_mean, gv_vari);
 
             prev = obj;
         }
