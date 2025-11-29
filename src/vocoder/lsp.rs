@@ -4,7 +4,7 @@ use super::{buffer::*, cepstrum::MelGeneralizedCepstrum, generalized::Generalize
 
 #[derive(Debug, Clone)]
 pub struct LineSpectralPairs {
-    buffer: Vec<f64>,
+    buffer: Box<[f64]>,
     alpha: f64,
     use_log_gain: bool,
     stage: usize,
@@ -16,7 +16,7 @@ deref_buffer!(LineSpectralPairs);
 impl LineSpectralPairs {
     pub fn new(lsp: &[f64], alpha: f64, use_log_gain: bool, stage: usize, gamma: f64) -> Self {
         Self {
-            buffer: lsp.to_vec(),
+            buffer: lsp.into(),
             alpha,
             use_log_gain,
             stage,
@@ -51,7 +51,7 @@ impl LineSpectralPairs {
         let mut xf = 0.0;
 
         let mut cepstrum = MelGeneralizedCepstrum {
-            buffer: vec![0.0; m + 1],
+            buffer: vec![0.0; m + 1].into(),
             alpha: self.alpha,
             gamma: self.gamma,
         };

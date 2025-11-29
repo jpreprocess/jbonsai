@@ -6,14 +6,14 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct Coefficients {
-    buffer: Vec<f64>,
+    buffer: Box<[f64]>,
 }
 
 deref_buffer!(Coefficients);
 
 impl Coefficients {
     pub fn new(c: &[f64]) -> Self {
-        Self { buffer: c.to_vec() }
+        Self { buffer: c.into() }
     }
 }
 
@@ -22,7 +22,7 @@ impl CoefficientsT for Coefficients {
 
     fn to_cep(&self, alpha: f64) -> Self::Cep {
         Self::Cep {
-            buffer: vec![0.0; self.len()],
+            buffer: vec![0.0; self.len()].into(),
             alpha,
         }
     }
@@ -30,7 +30,7 @@ impl CoefficientsT for Coefficients {
 
 #[derive(Debug, Clone)]
 pub struct GeneralizedCoefficients {
-    buffer: Vec<f64>,
+    buffer: Box<[f64]>,
     gamma: f64,
 }
 
@@ -39,7 +39,7 @@ deref_buffer!(GeneralizedCoefficients);
 impl GeneralizedCoefficients {
     pub fn new(c: &[f64], gamma: f64) -> Self {
         Self {
-            buffer: c.to_vec(),
+            buffer: c.into(),
             gamma,
         }
     }
@@ -50,7 +50,7 @@ impl CoefficientsT for GeneralizedCoefficients {
 
     fn to_cep(&self, alpha: f64) -> Self::Cep {
         Self::Cep {
-            buffer: vec![0.0; self.len()],
+            buffer: vec![0.0; self.len()].into(),
             alpha,
             gamma: self.gamma,
         }

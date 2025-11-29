@@ -6,7 +6,7 @@ use super::{
 
 #[derive(Debug, Clone)]
 pub struct MelCepstrum {
-    pub(super) buffer: Vec<f64>,
+    pub(super) buffer: Box<[f64]>,
     pub(super) alpha: f64,
 }
 
@@ -15,7 +15,7 @@ deref_buffer!(MelCepstrum);
 impl MelCepstrum {
     pub fn new(c: &[f64], alpha: f64) -> Self {
         Self {
-            buffer: c.to_vec(),
+            buffer: c.into(),
             alpha,
         }
     }
@@ -50,7 +50,7 @@ impl CepstrumT for MelCepstrum {
 
     fn clone_with_size(&self, size: usize) -> Self {
         Self {
-            buffer: vec![0.0; size],
+            buffer: vec![0.0; size].into(),
             alpha: self.alpha,
         }
     }
@@ -58,7 +58,7 @@ impl CepstrumT for MelCepstrum {
 
 #[derive(Debug, Clone)]
 pub struct MelGeneralizedCepstrum {
-    pub(super) buffer: Vec<f64>,
+    pub(super) buffer: Box<[f64]>,
     pub(super) alpha: f64,
     pub(super) gamma: f64,
 }
@@ -68,7 +68,7 @@ deref_buffer!(MelGeneralizedCepstrum);
 impl MelGeneralizedCepstrum {
     fn gc2gc(&self, m2: usize, gamma: f64) -> Self {
         let mut cepstrum = Self {
-            buffer: vec![0.0; m2 + 1],
+            buffer: vec![0.0; m2 + 1].into(),
             alpha: self.alpha,
             gamma,
         };
@@ -116,7 +116,7 @@ impl CepstrumT for MelGeneralizedCepstrum {
 
     fn clone_with_size(&self, size: usize) -> Self {
         Self {
-            buffer: vec![0.0; size],
+            buffer: vec![0.0; size].into(),
             alpha: self.alpha,
             gamma: self.gamma,
         }
@@ -172,8 +172,8 @@ pub trait CepstrumT: Buffer + Sized {
         cepstrum
     }
 
-    fn c2ir(&self, len: usize) -> Vec<f64> {
-        let mut ir = vec![0.0; len];
+    fn c2ir(&self, len: usize) -> Box<[f64]> {
+        let mut ir = vec![0.0; len].into_boxed_slice();
         ir[0] = self[0].exp();
         for n in 1..len {
             let mut d = 0.0;
