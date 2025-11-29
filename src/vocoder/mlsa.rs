@@ -39,7 +39,7 @@ where
         Self {
             d11: [0.0; N],
             d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; nmcp].into()),
+            d21: std::array::from_fn(|_| boxed_slice![0.0; nmcp]),
             d22: [0.0; N],
         }
     }

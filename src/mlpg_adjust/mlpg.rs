@@ -29,7 +29,7 @@ impl MlpgMatrix {
         let mut wuw = Vec::with_capacity(length);
 
         for t in 0..length {
-            wuw.push(vec![0.0; width].into_boxed_slice());
+            wuw.push(boxed_slice![0.0; width]);
             wum.push(0.0);
 
             for (i, window) in windows.iter().enumerate() {
@@ -93,7 +93,7 @@ impl MlpgMatrix {
 
     /// Forward & backward substitution.
     fn substitutions(&self) -> Box<[f64]> {
-        let mut g = vec![0.0; self.length];
+        let mut g = boxed_slice![0.0; self.length];
         // forward
         for t in 0..self.length {
             g[t] = self.wum[t];
@@ -102,7 +102,7 @@ impl MlpgMatrix {
             }
         }
 
-        let mut par = vec![0.0; self.length].into_boxed_slice();
+        let mut par = boxed_slice![0.0; self.length];
         // backward
         for t in (0..self.length).rev() {
             par[t] = g[t] / self.wuw[t][0];
@@ -202,7 +202,7 @@ impl<'a> MlpgGlobalVariance<'a> {
             .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
     }
     fn calc_hmmobj_derivative(&self) -> (f64, Box<[f64]>) {
-        let mut g = vec![0.0; self.mtx.length].into_boxed_slice();
+        let mut g = boxed_slice![0.0; self.mtx.length];
 
         #[allow(clippy::needless_range_loop)]
         for t in 0..self.mtx.length {

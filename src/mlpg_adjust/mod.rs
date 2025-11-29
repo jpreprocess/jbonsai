@@ -51,9 +51,7 @@ impl<'a> MlpgAdjust<'a> {
     pub fn create(&self, durations: &[usize]) -> Box<[Box<[f64]>]> {
         let msd_flag = Mask::create(&self.stream, self.msd_threshold, durations);
         let msd_boundaries = msd_flag.boundary_distances();
-        let mut pars =
-            vec![vec![0.0; self.vector_length].into_boxed_slice(); msd_flag.mask().len()]
-                .into_boxed_slice();
+        let mut pars = boxed_slice![boxed_slice![0.0; self.vector_length]; msd_flag.mask().len()];
 
         for vector_index in 0..self.vector_length {
             let parameters: Vec<Vec<MeanVari>> = self

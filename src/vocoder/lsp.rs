@@ -51,7 +51,7 @@ impl LineSpectralPairs {
         let mut xf = 0.0;
 
         let mut cepstrum = MelGeneralizedCepstrum {
-            buffer: vec![0.0; m + 1].into(),
+            buffer: boxed_slice![0.0; m + 1],
             alpha: self.alpha,
             gamma: self.gamma,
         };

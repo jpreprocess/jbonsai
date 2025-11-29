@@ -8,7 +8,7 @@ pub struct MelGeneralizedLogSpectrumApproximation {
 impl MelGeneralizedLogSpectrumApproximation {
     pub fn new(n: usize, c_len: usize) -> Self {
         Self {
-            d: vec![vec![0.0; c_len].into(); n].into(),
+            d: boxed_slice![boxed_slice![0.0; c_len]; n],
         }
     }
 

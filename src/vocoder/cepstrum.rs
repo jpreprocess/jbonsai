@@ -50,7 +50,7 @@ impl CepstrumT for MelCepstrum {
 
     fn clone_with_size(&self, size: usize) -> Self {
         Self {
-            buffer: vec![0.0; size].into(),
+            buffer: boxed_slice![0.0; size],
             alpha: self.alpha,
         }
     }
@@ -68,7 +68,7 @@ deref_buffer!(MelGeneralizedCepstrum);
 impl MelGeneralizedCepstrum {
     fn gc2gc(&self, m2: usize, gamma: f64) -> Self {
         let mut cepstrum = Self {
-            buffer: vec![0.0; m2 + 1].into(),
+            buffer: boxed_slice![0.0; m2 + 1],
             alpha: self.alpha,
             gamma,
         };
@@ -116,7 +116,7 @@ impl CepstrumT for MelGeneralizedCepstrum {
 
     fn clone_with_size(&self, size: usize) -> Self {
         Self {
-            buffer: vec![0.0; size].into(),
+            buffer: boxed_slice![0.0; size],
             alpha: self.alpha,
             gamma: self.gamma,
         }
@@ -154,7 +154,7 @@ pub trait CepstrumT: Buffer + Sized {
         let aa = 1.0 - alpha * alpha;
 
         let mut cepstrum = self.clone_with_size(m2 + 1);
-        let mut f = vec![0.0; cepstrum.len()];
+        let mut f = boxed_slice![0.0; cepstrum.len()];
 
         for i in 0..self.len() {
             f[0] = cepstrum[0];
@@ -173,7 +173,7 @@ pub trait CepstrumT: Buffer + Sized {
     }
 
     fn c2ir(&self, len: usize) -> Box<[f64]> {
-        let mut ir = vec![0.0; len].into_boxed_slice();
+        let mut ir = boxed_slice![0.0; len];
         ir[0] = self[0].exp();
         for n in 1..len {
             let mut d = 0.0;

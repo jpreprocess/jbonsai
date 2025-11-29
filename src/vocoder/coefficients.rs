@@ -22,7 +22,7 @@ impl CoefficientsT for Coefficients {
 
     fn to_cep(&self, alpha: f64) -> Self::Cep {
         Self::Cep {
-            buffer: vec![0.0; self.len()].into(),
+            buffer: boxed_slice![0.0; self.len()],
             alpha,
         }
     }
@@ -50,7 +50,7 @@ impl CoefficientsT for GeneralizedCoefficients {
 
     fn to_cep(&self, alpha: f64) -> Self::Cep {
         Self::Cep {
-            buffer: vec![0.0; self.len()].into(),
+            buffer: boxed_slice![0.0; self.len()],
             alpha,
             gamma: self.gamma,
         }
