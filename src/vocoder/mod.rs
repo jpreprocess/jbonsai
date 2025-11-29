@@ -4,6 +4,12 @@
 
 use crate::constants::{MAX_LF0, MIN_LF0, NODATA};
 
+macro_rules! boxed_slice {
+    ($e:expr; $n:expr) => {
+        vec![$e; $n].into_boxed_slice()
+    };
+}
+
 #[macro_use]
 mod buffer;
 mod cepstrum;
