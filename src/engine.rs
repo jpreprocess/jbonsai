@@ -353,7 +353,7 @@ impl Engine {
             )
             .create(&durations)
         } else {
-            vec![vec![0.0; 0]; lf0.len()]
+            boxed_slice![boxed_slice![0.0; 0]; lf0.len()]
         };
 
         Ok(SpeechGenerator::new(

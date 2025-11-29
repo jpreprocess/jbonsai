@@ -4,6 +4,12 @@
 
 mod constants;
 
+macro_rules! boxed_slice {
+    ($e:expr; $n:expr) => {
+        vec![$e; $n].into_boxed_slice()
+    };
+}
+
 pub mod duration;
 pub mod engine;
 pub mod label;
@@ -87,7 +93,7 @@ mod tests {
 
         assert_eq!(speech.len(), 74880);
         approx::assert_abs_diff_eq!(speech[2000], 2.3158134981607754e-5, epsilon = 1.0e-10);
-        approx::assert_abs_diff_eq!(speech[30000], 6459.375032316974, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], 6459.375032318177, epsilon = 1.0e-10);
     }
 
     // これ,名詞,代名詞,一般,*,*,*,これ,コレ,コレ,0/2,C3,-1
@@ -127,7 +133,7 @@ mod tests {
 
         assert_eq!(speech.len(), 100800);
         approx::assert_abs_diff_eq!(speech[2000], 17.15977345625943, epsilon = 1.0e-10);
-        approx::assert_abs_diff_eq!(speech[30000], 2566.2058730889985, epsilon = 1.0e-10);
+        approx::assert_abs_diff_eq!(speech[30000], 2566.205873089126, epsilon = 1.0e-10);
         approx::assert_abs_diff_eq!(speech[70000], -1898.2890228814217, epsilon = 1.0e-10);
         approx::assert_abs_diff_eq!(speech[100799], -13.514971382534956, epsilon = 1.0e-10);
     }
