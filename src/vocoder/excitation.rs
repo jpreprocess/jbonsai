@@ -106,17 +106,17 @@ impl Excitation {
 
 #[derive(Debug, Clone)]
 pub struct RingBuffer<T> {
-    buffer: Vec<T>,
+    buffer: Box<[T]>,
     index: usize,
 }
 
 impl<T> RingBuffer<T> {
     fn new(size: usize) -> Self
     where
-        T: Default + Clone,
+        T: Default + Copy,
     {
         Self {
-            buffer: vec![Default::default(); size],
+            buffer: boxed_slice![Default::default(); size],
             index: 0,
         }
     }
@@ -186,8 +186,8 @@ pub struct Random {
 impl Random {
     pub fn new(rep: usize) -> Self {
         Self {
-            queue: vec![0.0; rep * 2].into_boxed_slice(),
-            s: vec![0.0; rep].into_boxed_slice(),
+            queue: boxed_slice![0.0; rep * 2],
+            s: boxed_slice![0.0; rep],
 
             used: rep * 2,
             next: 1,

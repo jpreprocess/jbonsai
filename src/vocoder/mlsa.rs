@@ -5,7 +5,7 @@ use super::coefficients::Coefficients;
 pub struct MelLogSpectrumApproximation<const N: usize> {
     d11: [f64; N],
     d12: [f64; N],
-    d21: [Vec<f64>; N],
+    d21: [Box<[f64]>; N],
     d22: [f64; N],
 }
 
@@ -39,7 +39,7 @@ where
         Self {
             d11: [0.0; N],
             d12: [0.0; N],
-            d21: std::array::from_fn(|_| vec![0.0; nmcp]),
+            d21: std::array::from_fn(|_| boxed_slice![0.0; nmcp]),
             d22: [0.0; N],
         }
     }
