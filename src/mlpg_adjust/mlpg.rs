@@ -15,7 +15,7 @@ pub struct MlpgMatrix {
     win_size: usize,
     length: usize,
     width: usize,
-    wuw: Box<[Box<[f64]>]>,
+    wuw: Box<[f64]>,
     wum: Box<[f64]>,
 }
 
@@ -25,13 +25,10 @@ impl MlpgMatrix {
     pub fn calc_wuw_and_wum(windows: &Windows, parameters: Vec<Vec<MeanVari>>) -> Self {
         let length = parameters[0].len();
         let width = windows.max_width() * 2 + 1;
-        let mut wum = Vec::with_capacity(length);
-        let mut wuw = Vec::with_capacity(length);
+        let mut wum = boxed_slice!(0.0; length);
+        let mut wuw = boxed_slice!(0.0; width * length);
 
         for t in 0..length {
-            wuw.push(boxed_slice![0.0; width]);
-            wum.push(0.0);
-
             for (i, window) in windows.iter().enumerate() {
                 for (index, coef) in window.iter_rev(0) {
                     if coef == 0.0 {
@@ -54,7 +51,7 @@ impl MlpgMatrix {
                             break;
                         }
 
-                        wuw[t][j] += wu * coef;
+                        wuw[width * t + j] += wu * coef;
                     }
                 }
             }
@@ -64,8 +61,8 @@ impl MlpgMatrix {
             win_size: windows.size(),
             length,
             width,
-            wuw: wuw.into_boxed_slice(),
-            wum: wum.into_boxed_slice(),
+            wuw,
+            wum,
         }
     }
 
@@ -79,14 +76,17 @@ impl MlpgMatrix {
     fn ldl_factorization(&mut self) {
         for t in 0..self.length {
             for i in 1..self.width.min(t + 1) {
-                self.wuw[t][0] -= self.wuw[t - i][i] * self.wuw[t - i][i] * self.wuw[t - i][0];
+                self.wuw[self.width * t] -= self.wuw[self.width * (t - i) + i]
+                    * self.wuw[self.width * (t - i) + i]
+                    * self.wuw[self.width * (t - i)];
             }
             for i in 1..self.width {
                 for j in 1..(self.width - i).min(t + 1) {
-                    self.wuw[t][i] -=
-                        self.wuw[t - j][j] * self.wuw[t - j][i + j] * self.wuw[t - j][0];
+                    self.wuw[self.width * t + i] -= self.wuw[self.width * (t - j) + j]
+                        * self.wuw[self.width * (t - j) + i + j]
+                        * self.wuw[self.width * (t - j)];
                 }
-                self.wuw[t][i] /= self.wuw[t][0];
+                self.wuw[self.width * t + i] /= self.wuw[self.width * t];
             }
         }
     }
@@ -98,16 +98,16 @@ impl MlpgMatrix {
         for t in 0..self.length {
             g[t] = self.wum[t];
             for i in 1..self.width.min(t + 1) {
-                g[t] -= self.wuw[t - i][i] * g[t - i];
+                g[t] -= self.wuw[self.width * (t - i) + i] * g[t - i];
             }
         }
 
         let mut par = boxed_slice![0.0; self.length];
         // backward
         for t in (0..self.length).rev() {
-            par[t] = g[t] / self.wuw[t][0];
+            par[t] = g[t] / self.wuw[self.width * t];
             for i in 1..self.width.min(self.length - t) {
-                par[t] -= self.wuw[t][i] * par[t + i];
+                par[t] -= self.wuw[self.width * t + i] * par[t + i];
             }
         }
 
@@ -206,13 +206,13 @@ impl<'a> MlpgGlobalVariance<'a> {
 
         #[allow(clippy::needless_range_loop)]
         for t in 0..self.mtx.length {
-            g[t] = self.mtx.wuw[t][0] * self.par[t];
+            g[t] = self.mtx.wuw[self.mtx.width * t] * self.par[t];
             for i in 1..self.mtx.width {
                 if t + i < self.mtx.length {
-                    g[t] += self.mtx.wuw[t][i] * self.par[t + i];
+                    g[t] += self.mtx.wuw[self.mtx.width * t + i] * self.par[t + i];
                 }
                 if t + 1 > i {
-                    g[t] += self.mtx.wuw[t - i][i] * self.par[t - i];
+                    g[t] += self.mtx.wuw[self.mtx.width * (t - i) + i] * self.par[t - i];
                 }
             }
         }
@@ -243,7 +243,7 @@ impl<'a> MlpgGlobalVariance<'a> {
 
         #[allow(clippy::needless_range_loop)]
         for t in 0..length {
-            let h = -W1 * w * self.mtx.wuw[t][0]
+            let h = -W1 * w * self.mtx.wuw[self.mtx.width * t]
                 - W2 * 2.0 / (length * length) as f64
                     * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
                         + 2.0 * gv_vari * (self.par[t] - mean) * (self.par[t] - mean));
