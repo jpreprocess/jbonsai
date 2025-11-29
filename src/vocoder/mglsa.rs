@@ -2,13 +2,13 @@ use super::coefficients::GeneralizedCoefficients;
 
 #[derive(Debug, Clone)]
 pub struct MelGeneralizedLogSpectrumApproximation {
-    d: Vec<Vec<f64>>,
+    d: Box<[Box<[f64]>]>,
 }
 
 impl MelGeneralizedLogSpectrumApproximation {
     pub fn new(n: usize, c_len: usize) -> Self {
         Self {
-            d: vec![vec![0.0; c_len]; n],
+            d: boxed_slice![boxed_slice![0.0; c_len]; n],
         }
     }
 

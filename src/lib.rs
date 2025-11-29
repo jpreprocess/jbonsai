@@ -4,6 +4,12 @@
 
 mod constants;
 
+macro_rules! boxed_slice {
+    ($e:expr; $n:expr) => {
+        vec![$e; $n].into_boxed_slice()
+    };
+}
+
 pub mod duration;
 pub mod engine;
 pub mod label;
