@@ -28,35 +28,29 @@ impl MlpgMatrix {
         let mut wum = boxed_slice!(0.0; length);
         let mut wuw = boxed_slice!(0.0; width * length);
 
-        for t in 0..length {
-            for (i, window) in windows.iter().enumerate() {
-                for (index, coef) in window.iter_rev(0) {
+        for (window, parameter) in std::iter::zip(windows, &parameters) {
+            let parameter = &parameter[..length];
+            for t in 0..length {
+                for (index, coef) in window.iter(window.left_width()) {
                     if coef == 0.0 {
                         continue;
                     }
-
-                    let idx = (t as isize) - index.position();
+                    let idx = (t as isize) - index;
                     if idx < 0 || idx >= length as isize {
                         continue;
                     }
-                    let wu = coef * parameters[i][idx as usize].1;
-                    wum[t] += wu * parameters[i][idx as usize].0;
-
-                    for (inner_index, coef) in window.iter_rev(index.index()) {
-                        if coef == 0.0 {
+                    let MeanVari(mean, vari) = parameter[idx as usize];
+                    wum[t] += coef * vari * mean;
+                    for (inner_index, inner_coef) in window.iter(index) {
+                        if inner_coef == 0.0 {
                             continue;
                         }
-                        let j = inner_index.index() - index.index();
-                        if t + j >= length {
-                            break;
-                        }
-
-                        wuw[width * t + j] += wu * coef;
+                        let j = (inner_index - index) as usize;
+                        wuw[t * width + j] += coef * inner_coef * vari;
                     }
                 }
             }
         }
-
         Self {
             win_size: windows.size(),
             length,

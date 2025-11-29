@@ -67,8 +67,9 @@ impl<'a> MlpgAdjust<'a> {
                         .duration(durations)
                         .zip(&msd_boundaries)
                         .map(|(mean_ivar, (left, right))| {
-                            let is_left_msd_boundary = *left < window.left_width();
-                            let is_right_msd_boundary = *right < window.right_width();
+                            // TODO: migrate msd_boundaries to isize
+                            let is_left_msd_boundary = *left < (-window.left_width()) as usize;
+                            let is_right_msd_boundary = *right < window.right_width() as usize;
 
                             // If the window includes non-msd frames, set the ivar to 0.0
                             if (is_left_msd_boundary || is_right_msd_boundary) && window_index != 0
