@@ -74,40 +74,45 @@ impl MlpgMatrix {
 
     /// Perform Cholesky decomposition.
     fn ldl_factorization(&mut self) {
-        for t in 0..self.length {
-            for i in 1..self.width.min(t + 1) {
-                self.wuw[self.width * t] -= self.wuw[self.width * (t - i) + i]
-                    * self.wuw[self.width * (t - i) + i]
-                    * self.wuw[self.width * (t - i)];
+        let Self { length, width, .. } = *self;
+        let wuw = &mut self.wuw[..width * length];
+
+        for t in 0..length {
+            for i in 1..width.min(t + 1) {
+                wuw[width * t] -=
+                    wuw[width * (t - i) + i] * wuw[width * (t - i) + i] * wuw[width * (t - i)];
             }
-            for i in 1..self.width {
-                for j in 1..(self.width - i).min(t + 1) {
-                    self.wuw[self.width * t + i] -= self.wuw[self.width * (t - j) + j]
-                        * self.wuw[self.width * (t - j) + i + j]
-                        * self.wuw[self.width * (t - j)];
+            for i in 1..width {
+                for j in 1..(width - i).min(t + 1) {
+                    wuw[width * t + i] -= wuw[width * (t - j) + j]
+                        * wuw[width * (t - j) + i + j]
+                        * wuw[width * (t - j)];
                 }
-                self.wuw[self.width * t + i] /= self.wuw[self.width * t];
+                wuw[width * t + i] /= wuw[width * t];
             }
         }
     }
 
     /// Forward & backward substitution.
     fn substitutions(&self) -> Box<[f64]> {
-        let mut g = boxed_slice![0.0; self.length];
+        let Self { length, width, .. } = *self;
+        let wuw = &self.wuw[..width * length];
+        let wum = &self.wum[..length];
+        let mut g = boxed_slice![0.0; length];
         // forward
-        for t in 0..self.length {
-            g[t] = self.wum[t];
-            for i in 1..self.width.min(t + 1) {
-                g[t] -= self.wuw[self.width * (t - i) + i] * g[t - i];
+        for t in 0..length {
+            g[t] = wum[t];
+            for i in 1..width.min(t + 1) {
+                g[t] -= wuw[width * (t - i) + i] * g[t - i];
             }
         }
 
-        let mut par = boxed_slice![0.0; self.length];
+        let mut par = boxed_slice![0.0; length];
         // backward
-        for t in (0..self.length).rev() {
-            par[t] = g[t] / self.wuw[self.width * t];
-            for i in 1..self.width.min(self.length - t) {
-                par[t] -= self.wuw[self.width * t + i] * par[t + i];
+        for t in (0..length).rev() {
+            par[t] = g[t] / wuw[width * t];
+            for i in 1..width.min(length - t) {
+                par[t] -= wuw[width * t + i] * par[t + i];
             }
         }
 
@@ -202,27 +207,34 @@ impl<'a> MlpgGlobalVariance<'a> {
             .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
     }
     fn calc_hmmobj_derivative(&self) -> (f64, Box<[f64]>) {
-        let mut g = boxed_slice![0.0; self.mtx.length];
+        let MlpgMatrix {
+            win_size,
+            length,
+            width,
+            ..
+        } = self.mtx;
+        let wuw = &self.mtx.wuw[..width * length];
+        let wum = &self.mtx.wum[..length];
+        let par = &self.par[..length];
+        let mut g = boxed_slice![0.0; length];
 
-        #[allow(clippy::needless_range_loop)]
-        for t in 0..self.mtx.length {
-            g[t] = self.mtx.wuw[self.mtx.width * t] * self.par[t];
-            for i in 1..self.mtx.width {
-                if t + i < self.mtx.length {
-                    g[t] += self.mtx.wuw[self.mtx.width * t + i] * self.par[t + i];
+        for t in 0..length {
+            g[t] = wuw[width * t] * par[t];
+            for i in 1..width {
+                if t + i < length {
+                    g[t] += wuw[width * t + i] * par[t + i];
                 }
                 if t + 1 > i {
-                    g[t] += self.mtx.wuw[self.mtx.width * (t - i) + i] * self.par[t - i];
+                    g[t] += wuw[width * (t - i) + i] * par[t - i];
                 }
             }
         }
 
-        let w = 1.0 / ((self.mtx.win_size * self.mtx.length) as f64);
+        let w = 1.0 / ((win_size * length) as f64);
         let mut hmmobj = 0.0;
 
-        #[allow(clippy::needless_range_loop)]
-        for t in 0..self.mtx.length {
-            hmmobj += W1 * w * self.par[t] * (self.mtx.wum[t] - 0.5 * g[t]);
+        for t in 0..length {
+            hmmobj += W1 * w * par[t] * (wum[t] - 0.5 * g[t]);
         }
 
         (hmmobj, g)
@@ -236,24 +248,32 @@ impl<'a> MlpgGlobalVariance<'a> {
         gv_mean: f64,
         gv_vari: f64,
     ) {
-        let length = self.mtx.length;
+        let MlpgMatrix {
+            win_size,
+            length,
+            width,
+            ..
+        } = self.mtx;
+        let wuw = &self.mtx.wuw[..width * length];
+        let wum = &self.mtx.wum[..length];
+        let par = &mut self.par[..length];
+        let gv_switch = &self.gv_switch[..length];
 
-        let w = 1.0 / ((self.mtx.win_size * length) as f64);
-        let dv = -2.0 * gv_vari * (vari - gv_mean) / self.mtx.length as f64;
+        let w = 1.0 / ((win_size * length) as f64);
+        let dv = -2.0 * gv_vari * (vari - gv_mean) / length as f64;
 
-        #[allow(clippy::needless_range_loop)]
         for t in 0..length {
-            let h = -W1 * w * self.mtx.wuw[self.mtx.width * t]
+            let h = -W1 * w * wuw[width * t]
                 - W2 * 2.0 / (length * length) as f64
                     * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
-                        + 2.0 * gv_vari * (self.par[t] - mean) * (self.par[t] - mean));
-            let next_g = if self.gv_switch[t] {
-                1.0 / h * (W1 * w * (-g[t] + self.mtx.wum[t]) + W2 * dv * (self.par[t] - mean))
+                        + 2.0 * gv_vari * (par[t] - mean) * (par[t] - mean));
+            let next_g = if gv_switch[t] {
+                1.0 / h * (W1 * w * (-g[t] + wum[t]) + W2 * dv * (par[t] - mean))
             } else {
-                1.0 / h * (W1 * w * (-g[t] + self.mtx.wum[t]))
+                1.0 / h * (W1 * w * (-g[t] + wum[t]))
             };
 
-            self.par[t] += step * next_g;
+            par[t] += step * next_g;
         }
     }
 
