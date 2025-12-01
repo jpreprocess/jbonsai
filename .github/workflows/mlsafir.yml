@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - src/vocoder/mlsa.rs
+      - src/mlpg_adjust/mlpg.rs
 
 jobs:
   collect:
