@@ -15,7 +15,7 @@ pub struct MlpgMatrix {
     win_size: usize,
     length: usize,
     width: usize,
-    wuw: Vec<Vec<f64>>,
+    wuw: Vec<[f64; 3]>,
     wum: Vec<f64>,
 }
 
@@ -25,11 +25,13 @@ impl MlpgMatrix {
     pub fn calc_wuw_and_wum(windows: &Windows, parameters: Vec<Vec<MeanVari>>) -> Self {
         let length = parameters[0].len();
         let width = windows.max_width() * 2 + 1;
+        assert!(width <= 3);
+
         let mut wum = Vec::with_capacity(length);
         let mut wuw = Vec::with_capacity(length);
 
         for t in 0..length {
-            wuw.push(vec![0.0; width]);
+            wuw.push([0.0; 3]);
             wum.push(0.0);
 
             for (i, window) in windows.iter().enumerate() {
