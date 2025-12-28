@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.1](https://github.com/jpreprocess/jbonsai/compare/v0.4.0...v0.4.1) (2025-12-28)
+
+
+### Performance Improvements
+
+* unify loops in mlsafir ([#112](https://github.com/jpreprocess/jbonsai/issues/112)) ([46278ad](https://github.com/jpreprocess/jbonsai/commit/46278ad7b18a5c2f0f3f0fc5efe632fe761932d0))
+* use fmla.2d ([#114](https://github.com/jpreprocess/jbonsai/issues/114)) ([55b2214](https://github.com/jpreprocess/jbonsai/commit/55b2214089ba301b898f0b3fd822740f87dc6358))
+
+
+### Dependencies
+
+* update dependencies (non-major) ([#105](https://github.com/jpreprocess/jbonsai/issues/105)) ([c508b39](https://github.com/jpreprocess/jbonsai/commit/c508b39201b946d7963c481dd387d9ce0c1822b4))
+
 ## [0.4.0](https://github.com/jpreprocess/jbonsai/compare/v0.3.0...v0.4.0) (2025-10-18)
 
 
