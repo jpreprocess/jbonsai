@@ -24,7 +24,7 @@ TTSアプリケーションで使うことを意識して書かれています�
 
 ```toml
 [dependencies]
-jbonsai = "0.4.0"
+jbonsai = "0.4.1"
 ```
 
 <!-- x-release-please-end -->

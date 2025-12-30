@@ -24,7 +24,7 @@ Put the following in `Cargo.toml`.
 
 ```toml
 [dependencies]
-jbonsai = "0.4.0"
+jbonsai = "0.4.1"
 ```
 
 <!-- x-release-please-end -->
