@@ -48,10 +48,10 @@ impl<'a> MlpgAdjust<'a> {
         }
     }
     /// Parameter generation using GV weight
-    pub fn create(&self, durations: &[usize]) -> Vec<Vec<f64>> {
+    pub fn create(&self, durations: &[usize]) -> Box<[Box<[f64]>]> {
         let msd_flag = Mask::create(&self.stream, self.msd_threshold, durations);
         let msd_boundaries = msd_flag.boundary_distances();
-        let mut pars = vec![vec![0.0; self.vector_length]; msd_flag.mask().len()];
+        let mut pars = boxed_slice![boxed_slice![0.0; self.vector_length]; msd_flag.mask().len()];
 
         for vector_index in 0..self.vector_length {
             let parameters: Vec<Vec<MeanVari>> = self
@@ -67,8 +67,9 @@ impl<'a> MlpgAdjust<'a> {
                         .duration(durations)
                         .zip(&msd_boundaries)
                         .map(|(mean_ivar, (left, right))| {
-                            let is_left_msd_boundary = *left < window.left_width();
-                            let is_right_msd_boundary = *right < window.right_width();
+                            // TODO: migrate msd_boundaries to isize
+                            let is_left_msd_boundary = *left < (-window.left_width()) as usize;
+                            let is_right_msd_boundary = *right < window.right_width() as usize;
 
                             // If the window includes non-msd frames, set the ivar to 0.0
                             if (is_left_msd_boundary || is_right_msd_boundary) && window_index != 0

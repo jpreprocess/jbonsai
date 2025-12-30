@@ -2,7 +2,7 @@
 
 use crate::vocoder::Vocoder;
 
-type Parameter = Vec<Vec<f64>>;
+type Parameter = Box<[Box<[f64]>]>;
 
 /// A structure that contains all parameters necessary to generate speech waveform.
 pub struct SpeechGenerator {
