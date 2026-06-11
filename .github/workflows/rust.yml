@@ -112,13 +112,4 @@ jobs:
       run: cargo install cargo-docs-rs
 
     - name: Generate documentation
-      run: |
-        default_members=$(cargo metadata --no-deps --format-version=1 | jq -r '
-          .workspace_default_members as $defaults
-          | .packages[]
-          | select([.id] | inside($defaults))
-          | .name
-        ')
-        while read -r member; do
-          cargo docs-rs --package "$member"
-        done <<< "$default_members"
+      run: cargo docs-rs
