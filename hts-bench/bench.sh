@@ -1,0 +1,74 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+cd "$SCRIPT_DIR"
+
+rm -rf builds hts_engine_API || true
+mkdir -p builds
+
+git clone --depth 1 --revision 5ac9af390e45bfdf2869818634891f5d6da9a6bd https://github.com/jpreprocess/hts_engine_API.git
+
+cd hts_engine_API
+patch -p1 <<'EOF'
+diff --git a/src/bin/hts_engine.c b/src/bin/hts_engine.c
+index 532c381..a94587a 100644
+--- a/src/bin/hts_engine.c
++++ b/src/bin/hts_engine.c
+@@ -66,8 +66,8 @@ int main(void)
+    HTS_Engine engine;
+ 
+    /* Hardcoded Configuration Paths */
+-   char *default_voice = "./tohoku-f01/tohoku-f01-neutral.htsvoice";
+-   char *labfn         = "./bonsai_letter.lab";
++   char *default_voice = "models/tohoku-f01/tohoku-f01-neutral.htsvoice";
++   char *labfn         = "examples/constitution/constitution.lab";
+ 
+    /* Fixed single-voice array container on the stack */
+    char *fn_voices[1];
+EOF
+
+mkdir -p src/build
+cd src/build
+
+cmake -DCMAKE_BUILD_TYPE=Release -DCPU_NATIVE=OFF ..
+make -j1
+cp bin/hts_engine "$SCRIPT_DIR/builds/hts_engine_default"
+
+cmake -DCMAKE_BUILD_TYPE=Release -DCPU_NATIVE=ON ..
+make -j1
+cp bin/hts_engine "$SCRIPT_DIR/builds/hts_engine_native"
+
+cd "$PROJECT_ROOT"
+
+RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=off" cargo build --example constitution --features=binary --release
+cp target/release/examples/constitution "$SCRIPT_DIR/builds/jbonsai_default"
+
+RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=on" cargo build --example constitution --features=binary --release
+cp target/release/examples/constitution "$SCRIPT_DIR/builds/jbonsai_lto"
+
+RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=on -C target-cpu=native" cargo build --example constitution --features=binary --release
+cp target/release/examples/constitution "$SCRIPT_DIR/builds/jbonsai_native"
+
+mkdir -p "$SCRIPT_DIR/results"
+
+hyperfine --warmup 5 --runs 25 \
+    --export-json "$SCRIPT_DIR/results/benchmark.json" \
+    "$SCRIPT_DIR/builds/hts_engine_default" \
+    "$SCRIPT_DIR/builds/hts_engine_native" \
+    "$SCRIPT_DIR/builds/jbonsai_default" \
+    "$SCRIPT_DIR/builds/jbonsai_lto" \
+    "$SCRIPT_DIR/builds/jbonsai_native"
+
+"$SCRIPT_DIR/builds/hts_engine_native" > "$SCRIPT_DIR/results/hts_engine.raw"
+"$SCRIPT_DIR/builds/jbonsai_native" > "$SCRIPT_DIR/results/jbonsai.raw"
+
+echo $(uname -a) > "$SCRIPT_DIR/results/system_info.txt"
+cat /proc/cpuinfo | grep "model name" | head -n 1 >> "$SCRIPT_DIR/results/system_info.txt"
+rustc --version >> "$SCRIPT_DIR/results/system_info.txt"
+echo "HTS Engine API commit: $(git -C "$SCRIPT_DIR/hts_engine_API" rev-parse HEAD)" > "$SCRIPT_DIR/results/hts_engine_commit.txt"
+echo "JBonsai commit: $(git -C "$PROJECT_ROOT" rev-parse HEAD)" > "$SCRIPT_DIR/results/jbonsai_commit.txt"
+
+tar -czvf "$SCRIPT_DIR/benchmark_results.tar.gz" -C "$SCRIPT_DIR/results" .
