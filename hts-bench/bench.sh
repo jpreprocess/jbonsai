@@ -9,9 +9,10 @@ cd "$SCRIPT_DIR"
 rm -rf builds hts_engine_API || true
 mkdir -p builds
 
-git clone --depth 1 --revision 5ac9af390e45bfdf2869818634891f5d6da9a6bd https://github.com/jpreprocess/hts_engine_API.git
-
+git clone https://github.com/jpreprocess/hts_engine_API.git
 cd hts_engine_API
+git checkout 5ac9af390e45bfdf2869818634891f5d6da9a6bd
+
 patch -p1 <<'EOF'
 diff --git a/src/bin/hts_engine.c b/src/bin/hts_engine.c
 index 532c381..a94587a 100644
@@ -43,13 +44,13 @@ cp bin/hts_engine "$SCRIPT_DIR/builds/hts_engine_native"
 
 cd "$PROJECT_ROOT"
 
-RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=off" cargo build --example constitution --features=binary --release
+RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=off -C linker=clang-22 -C link-arg=-fuse-ld=lld-22" cargo build --example constitution --features=binary --release
 cp target/release/examples/constitution "$SCRIPT_DIR/builds/jbonsai_default"
 
-RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=on" cargo build --example constitution --features=binary --release
+RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=on -C linker=clang-22 -C link-arg=-fuse-ld=lld-22" cargo build --example constitution --features=binary --release
 cp target/release/examples/constitution "$SCRIPT_DIR/builds/jbonsai_lto"
 
-RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=on -C target-cpu=native" cargo build --example constitution --features=binary --release
+RUSTFLAGS="-C codegen-units=1 -C linker-plugin-lto=on -C linker=clang-22 -C link-arg=-fuse-ld=lld-22 -C target-cpu=native" cargo build --example constitution --features=binary --release
 cp target/release/examples/constitution "$SCRIPT_DIR/builds/jbonsai_native"
 
 mkdir -p "$SCRIPT_DIR/results"
@@ -67,7 +68,7 @@ hyperfine --warmup 5 --runs 25 \
 
 echo $(uname -a) > "$SCRIPT_DIR/results/system_info.txt"
 cat /proc/cpuinfo | grep "model name" | head -n 1 >> "$SCRIPT_DIR/results/system_info.txt"
-rustc --version >> "$SCRIPT_DIR/results/system_info.txt"
+rustc -vV >> "$SCRIPT_DIR/results/system_info.txt"
 echo "HTS Engine API commit: $(git -C "$SCRIPT_DIR/hts_engine_API" rev-parse HEAD)" > "$SCRIPT_DIR/results/hts_engine_commit.txt"
 echo "JBonsai commit: $(git -C "$PROJECT_ROOT" rev-parse HEAD)" > "$SCRIPT_DIR/results/jbonsai_commit.txt"
 
