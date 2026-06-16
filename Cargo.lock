@@ -54,9 +54,9 @@ dependencies = [
 
 [[package]]
 name = "jlabel"
-version = "0.1.7"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29233c996e8d61e5a7f113298c47997cf42d8167aee99d515a1de2351ca11070"
+checksum = "3a86ec75dafa2d0c09bbb3190b120489e4f534bb5d97114dd7bb6afdadfcaffd"
 dependencies = [
  "serde",
  "thiserror",
@@ -64,9 +64,9 @@ dependencies = [
 
 [[package]]
 name = "jlabel-question"
-version = "0.1.7"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c047893bb4f097baa22b219421737231b815b1ccc901b67177fc8308bcee5b2f"
+checksum = "d9881733b214d43ed9566b510a22a96357a1a03c31ff50748f575af42b76eb2f"
 dependencies = [
  "jlabel",
  "regex-automata",
@@ -177,18 +177,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.17"
+version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
+checksum = "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.17"
+version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
+checksum = "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
 dependencies = [
  "proc-macro2",
  "quote",
