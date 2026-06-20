@@ -60,6 +60,62 @@ println!(
 # }
 ```
 
+## Performance
+
+![Bar chart comparing relative execution time of HTS Engine and jbonsai across four platforms (Intel Core i5-13500, Apple M2, Raspberry Pi 4, and Compute Module 3), normalized so HTS Engine equals 100%; jbonsai consistently runs faster, requiring 44.8–60.1% of HTS Engine’s execution time (0.80–18.81 s versus 1.46–32.72 s), corresponding to roughly 1.6–2.2× speedup.](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_comparison_normalized.png)
+
+<detail>
+<summary>Performance Details</summary>
+
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_cm3_bench_clang.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_i5-13500.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_macos.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_rpi4_bench_clang.png)
+
+</detail>
+
+<details>
+<summary>Methodology</summary>
+
+### Objective and Workload
+
+The workload evaluates the execution efficiency of both engines by synthesizing the preamble of the Japanese Constitution, which generates an audio output of 128 seconds (6,130,960 samples, 48 kHz). To ensure functional correctness and parity before measuring performance, the raw audio outputs from the native builds of both engines were verified for bitwise identity using the `cmp` utility.
+
+### Evaluated Targets
+
+To capture the impact of modern toolchain optimization flags, five binary configurations were compiled and tested:
+
+- **HTS Engine (Default):** Compiled using CMake with standard Release optimization flags (`-DCMAKE_BUILD_TYPE=Release -DCPU_NATIVE=OFF`).
+- **HTS Engine (Native):** Compiled with hardware-specific optimizations enabled (`-DCPU_NATIVE=ON`).
+- **jbonsai (Default):** Compiled using Cargo in release mode with standard compilation partitioning (`codegen-units=1`) and Link-Time Optimization disabled (`lto=off`).
+- **jbonsai (LTO):** Compiled with Link-Time Optimization enabled (`lto=on`) to facilitate cross-crate optimizations.
+- **jbonsai (Native):** Compiled with both Link-Time Optimization and native CPU targeting enabled (`-C target-cpu=native`).
+
+### Measurement and Execution
+
+The benchmark suite was orchestrated via a standardized shell automation script (built upon commit `86441a40b74780afef9aa9901ac5602ffd8788fd`). Performance metrics were collected using `hyperfine` (v1.19.0 / v1.20.0).
+
+Each target binary was subjected to 5 warmup runs to eliminate disk-caching skew, followed by 25 timed execution runs.
+
+### Environmental Configurations
+
+Testing was conducted across four distinct hardware platforms to assess performance across different architectures (`x86_64`, `aarch64`, and Apple Silicon). Environmental adaptations were applied where necessary to accommodate platform-specific toolchains.
+
+| Platform / Environment | CPU Architecture | Operating System | Compiler & Linker Details | Power & Governor Tuning |
+|------------------------|------------------|------------------|---------------------------|-------------------------|
+| **Intel Core i5-13500**<br>(14 Cores / 20 Threads) | `x86_64` | Manjaro Linux | Clang 22.1.5<br>Rustc 1.97.0-nightly<br>LLD 22.1.5 | PL2 power limit capped at 65W via sysfs;<br>`powersave` scaling governor |
+| **Apple M2**<br>(8 Physical Cores) | `arm64` | macOS 26.4.1 | Homebrew Clang 22.1.7<br>Rustc 1.94.0-nightly<br>Homebrew LLD 22.1.7 | N/A (OS-managed) |
+| **Raspberry Pi 4**<br>(Cortex-A72, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly<br>LLD 22 | `ondemand` scaling governor |
+| **Compute Module 3**<br>(Cortex-A53, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly<br>LLD 22 | `ondemand` scaling governor |
+
+> **Note on Platform-Specific Script Modifications**
+>
+> - **Intel Core i5-13500:** Compilation configurations were adjusted to resolve the local system's default LLD linker alias via `-fuse-ld=lld`. PL2 power constraints were explicitly written to `constraint_1_power_limit_uw` to standardize thermal environments.
+>
+> - **Apple M2 (macOS):** System metric calls were migrated from Linux-centric utilities to Darwin equivalents (`sysctl`, `vm_stat`, and `sw_vers`). Cargo compilation profiles were configured using standard environment variables to enforce specific LTO behavior.
+
+</details>
+
 ## Copyright
 
 This software includes source code from:
