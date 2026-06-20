@@ -64,15 +64,49 @@ println!(
 
 ![Bar chart comparing relative execution time of HTS Engine and jbonsai across four platforms (Intel Core i5-13500, Apple M2, Raspberry Pi 4, and Compute Module 3), normalized so HTS Engine equals 100%; jbonsai consistently runs faster, requiring 44.8–60.1% of HTS Engine’s execution time (0.80–18.81 s versus 1.46–32.72 s), corresponding to roughly 1.6–2.2× speedup.](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_comparison_normalized.png)
 
-<detail>
+<details>
 <summary>Performance Details</summary>
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_cm3_bench_clang.png)
+|            Platform |             Target |  Mean execution time (s) |
+| ------------------: | -----------------: | -----------------------: |
+| Intel Core i5-13500 | hts_engine_default |                1.8068092 |
+| Intel Core i5-13500 |  hts_engine_native |                1.4619775 |
+| Intel Core i5-13500 |    jbonsai_default |                0.9455394 |
+| Intel Core i5-13500 |        jbonsai_lto |                0.9388762 |
+| Intel Core i5-13500 |     jbonsai_native |                0.8019653 |
+|            Apple M2 | hts_engine_default |                2.0140421 |
+|            Apple M2 |  hts_engine_native |                2.0060248 |
+|            Apple M2 |    jbonsai_default |                0.9263767 |
+|            Apple M2 |        jbonsai_lto |                0.9027918 |
+|            Apple M2 |     jbonsai_native |                0.8991248 |
+|      Raspberry Pi 4 | hts_engine_default |               14.1488875 |
+|      Raspberry Pi 4 |  hts_engine_native |               14.1636672 |
+|      Raspberry Pi 4 |    jbonsai_default |                8.2963959 |
+|      Raspberry Pi 4 |        jbonsai_lto |                8.3044165 |
+|      Raspberry Pi 4 |     jbonsai_native |                8.5164151 |
+|    Compute Module 3 | hts_engine_default |               32.7140591 |
+|    Compute Module 3 |  hts_engine_native |               32.7214677 |
+|    Compute Module 3 |    jbonsai_default |               22.0358614 |
+|    Compute Module 3 |        jbonsai_lto |               21.9978278 |
+|    Compute Module 3 |     jbonsai_native |               18.8089429 |
+
+### Core i5-13500 (Manjaro Linux, Clang 22.1.5, Rustc 1.97.0-nightly)
+
 ![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_i5-13500.png)
+
+### Apple M2 (macOS 26.4.1, Homebrew Clang 22.1.7, Rustc 1.94.0-nightly)
+
 ![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_macos.png)
+
+### Raspberry Pi 4 (Debian GNU/Linux 13, Clang 22.1.8, Rustc 1.98.0-nightly)
+
 ![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_rpi4_bench_clang.png)
 
-</detail>
+### Compute Module 3 (Debian GNU/Linux 13, Clang 22.1.8, Rustc 1.98.0-nightly)
+
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_cm3_bench_clang.png)
+
+</details>
 
 <details>
 <summary>Methodology</summary>
