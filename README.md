@@ -62,23 +62,23 @@ println!(
 
 ## Performance
 
-![Bar chart comparing relative execution time of HTS Engine and jbonsai across four platforms (Intel Core i5-13500, Apple M2, Raspberry Pi 4, and Compute Module 3), normalized so HTS Engine equals 100%; jbonsai consistently runs faster, requiring 44.8–60.1% of HTS Engine’s execution time (0.80–18.81 s versus 1.46–32.72 s), corresponding to roughly 1.6–2.2× speedup.](https://raw.githubusercontent.com/jpreprocess/jbonsai/8b5c07c51d5ec2842943337fe0832eed56289737/docs/benchmark_comparison_normalized.png)
+![Bar chart comparing relative execution time of HTS Engine and jbonsai across four platforms (Intel Core i5-13500, Apple M2, Raspberry Pi 4, and Compute Module 3), normalized so HTS Engine equals 100%; jbonsai consistently runs faster, requiring 44.8–60.1% of HTS Engine’s execution time (0.80–18.81 s versus 1.46–32.72 s), corresponding to roughly 1.6–2.2× speedup.](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_comparison_normalized.png)
 
 <details>
 <summary>Performance Details</summary>
 
 |            Platform |             Target |  Mean execution time (s) |
 | ------------------: | -----------------: | -----------------------: |
-| Intel Core i5-13500 | hts_engine_default |                1.8068092 |
-| Intel Core i5-13500 |  hts_engine_native |                1.4619775 |
-| Intel Core i5-13500 |    jbonsai_default |                0.9455394 |
-| Intel Core i5-13500 |        jbonsai_lto |                0.9388762 |
-| Intel Core i5-13500 |     jbonsai_native |                0.8019653 |
-|            Apple M2 | hts_engine_default |                2.0140421 |
-|            Apple M2 |  hts_engine_native |                2.0060248 |
-|            Apple M2 |    jbonsai_default |                0.9263767 |
-|            Apple M2 |        jbonsai_lto |                0.9027918 |
-|            Apple M2 |     jbonsai_native |                0.8991248 |
+| Intel Core i5-13500 | hts_engine_default |                1.8076678 |
+| Intel Core i5-13500 |  hts_engine_native |                1.4573735 |
+| Intel Core i5-13500 |    jbonsai_default |                0.9408125 |
+| Intel Core i5-13500 |        jbonsai_lto |                0.9374387 |
+| Intel Core i5-13500 |     jbonsai_native |                0.8016296 |
+|            Apple M2 | hts_engine_default |                2.0302433 |
+|            Apple M2 |  hts_engine_native |                1.9764867 |
+|            Apple M2 |    jbonsai_default |                0.9127072 |
+|            Apple M2 |        jbonsai_lto |                0.8880196 |
+|            Apple M2 |     jbonsai_native |                0.8853029 |
 |      Raspberry Pi 4 | hts_engine_default |               14.1488875 |
 |      Raspberry Pi 4 |  hts_engine_native |               14.1636672 |
 |      Raspberry Pi 4 |    jbonsai_default |                8.2963959 |
@@ -90,21 +90,21 @@ println!(
 |    Compute Module 3 |        jbonsai_lto |               21.9978278 |
 |    Compute Module 3 |     jbonsai_native |               18.8089429 |
 
-### Core i5-13500 (Manjaro Linux, Clang 22.1.5, Rustc 1.97.0-nightly)
+### Core i5-13500 (Manjaro Linux, Clang 22.1.5, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/8b5c07c51d5ec2842943337fe0832eed56289737/docs/benchmark_detail_i5-13500.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_i5-13500.png)
 
-### Apple M2 (macOS 26.4.1, Homebrew Clang 22.1.7, Rustc 1.94.0-nightly)
+### Apple M2 (macOS 26.4.1, Homebrew Clang 22.1.7, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/8b5c07c51d5ec2842943337fe0832eed56289737/docs/benchmark_detail_macos.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_macos.png)
 
 ### Raspberry Pi 4 (Debian GNU/Linux 13, Clang 22.1.8, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/8b5c07c51d5ec2842943337fe0832eed56289737/docs/benchmark_detail_rpi4_bench_clang.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_rpi4_bench_clang.png)
 
 ### Compute Module 3 (Debian GNU/Linux 13, Clang 22.1.8, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/8b5c07c51d5ec2842943337fe0832eed56289737/docs/benchmark_detail_cm3_bench_clang.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_cm3_bench_clang.png)
 
 </details>
 
@@ -137,8 +137,8 @@ Testing was conducted across four distinct hardware platforms to assess performa
 
 | Platform / Environment | CPU Architecture | Operating System | Compiler & Linker Details | Power & Governor Tuning |
 |------------------------|------------------|------------------|---------------------------|-------------------------|
-| **Intel Core i5-13500**<br>(14 Cores / 20 Threads) | `x86_64` | Manjaro Linux | Clang 22.1.5<br>Rustc 1.97.0-nightly<br>LLD 22.1.5 | PL2 power limit capped at 65W via sysfs;<br>`powersave` scaling governor |
-| **Apple M2**<br>(8 Physical Cores) | `arm64` | macOS 26.4.1 | Homebrew Clang 22.1.7<br>Rustc 1.94.0-nightly<br>Homebrew LLD 22.1.7 | N/A (OS-managed) |
+| **Intel Core i5-13500**<br>(14 Cores / 20 Threads) | `x86_64` | Manjaro Linux | Clang 22.1.5<br>Rustc 1.98.0-nightly<br>LLD 22.1.5 | PL2 power limit capped at 65W via sysfs;<br>`powersave` scaling governor |
+| **Apple M2**<br>(8 Physical Cores) | `arm64` | macOS 26.4.1 | Homebrew Clang 22.1.7<br>Rustc 1.98.0-nightly<br>Homebrew LLD 22.1.7 | N/A (OS-managed) |
 | **Raspberry Pi 4**<br>(Cortex-A72, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly<br>LLD 22 | `ondemand` scaling governor |
 | **Compute Module 3**<br>(Cortex-A53, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly<br>LLD 22 | `ondemand` scaling governor |
 
