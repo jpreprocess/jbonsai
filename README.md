@@ -6,7 +6,7 @@ Voice synthesis library for Text-to-Speech applications.
 
 "jbonsai" converts sequence of full-context labels into audio waveform.
 
-This project is currently a rewrite of [HTS Engine](https://hts-engine.sourceforge.net) in Rust language (This may change at any time, and there is no guarantee that jbonsai produces the same result as HTS Engine).
+This project is a rewrite of [HTS Engine](https://hts-engine.sourceforge.net) in Rust language.
 
 ## Objectives
 
