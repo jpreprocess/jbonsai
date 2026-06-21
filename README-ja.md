@@ -61,11 +61,13 @@ println!(
 
 HTS Engineとjbonsai v0.4.1の合成速度を比較しました．合成した文は日本国憲法の前文で，約128秒と比較的長い文章です．その結果，jbonsaiは1.6–2.2倍の速度で合成できることを確認しました．なお，合成された音声波形は両者で同一でした．
 
-この性能向上は，jbonsaiで行われた，フィルタ演算の最適化によるものと考えられます．
+この性能向上は，jbonsaiで行われた，フィルタ演算等の最適化によるものと考えられます．
 
 また，Intel x86_64では，`-C target-cpu=native`及びそれに対応するC言語のオプションを使うことで，HTS Engine，jbonsaiともに大幅に性能が向上しました（「結果詳細」参照）．
 
 なお，このベンチマークは2026年6月，jbonsai v0.4.1に対し当時の最新版のツールを用いて行われました．より新しいjbonsaiのバージョンや，より新しいrustc，LLVM等では異なった結果となる可能性があります．
+
+加えて，今回は音声全体を合成する時間を計測しましたが，jbonsaiはストリーミング合成にも対応しています．ボイスチャットの代わり等，リアルタイム性が重要な用途でお使いください．
 
 ![HTS Engineとjbonsaiで，合成にかかる時間を4つのプラットフォーム(Intel Core i5-13500, Apple M2, Raspberry Pi 4, Compute Module 3)で比較した棒グラフ．時間はHTS Engineが100%になるように正規化してある．jbonsaiは安定してHTS Engineよりも高速に動作し，44.8–60.1%の時間で合成できている．](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_comparison_normalized.png)
 
