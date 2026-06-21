@@ -4,7 +4,7 @@
 
 フルコンテキストラベルから音声を合成するライブラリです．JPreprocessと組み合わせると，Open JTalk相当の音声合成ができます．
 
-[HTS Engine](https://hts-engine.sourceforge.net)をRustで書き直したものなので，HTS Engine用の日本語音声モデルが流用できます．
+[HTS Engine](https://hts-engine.sourceforge.net)をRustで書き直したものなので，HTS Engine用の日本語音声モデルを流用できます．
 
 なお，jbonsaiとHTS Engineの出力が完全一致することは保証されていません．現状でも浮動小数点演算の微妙な違いにより，音声波形に違いがあります（整数に変換する際に丸められて結局一致することも多く，品質にはほとんど影響しない範囲です）．
 
