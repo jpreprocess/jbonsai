@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.2](https://github.com/jpreprocess/jbonsai/compare/v0.4.1...v0.4.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* fix reading mei model ([#130](https://github.com/jpreprocess/jbonsai/issues/130)) ([5023488](https://github.com/jpreprocess/jbonsai/commit/5023488f67b256bcd3aeaff2321c4cdf320f5fa9))
+
+
+### Dependencies
+
+* update dependencies (non-major) ([#122](https://github.com/jpreprocess/jbonsai/issues/122)) ([d5e770d](https://github.com/jpreprocess/jbonsai/commit/d5e770d69151dff2347a7563283751a5a1150b3d))
+* update proc-marco2 ([#126](https://github.com/jpreprocess/jbonsai/issues/126)) ([f8111d5](https://github.com/jpreprocess/jbonsai/commit/f8111d5956a14293e0a0676ee0eab5d57b4a11e7))
+
 ## [0.4.1](https://github.com/jpreprocess/jbonsai/compare/v0.4.0...v0.4.1) (2025-12-28)
 
 
