@@ -62,11 +62,13 @@ println!(
 
 ## Performance
 
+We compared the execution time of HTS Engine and jbonsai v0.4.1 using a very long sentence (the preamble of Japanese Constitution; about 128 sec). jbonsai performed 1.6–2.2× faster than HTS Engine. The synthesized audio was identical between HTS Engine and jbonsai.
+
+It was also evident that in Intel x86_64, using `-C target-cpu=native` (and the equivalent option in C) greatly improves performance of both HTS Engine and jbonsai (See "Performance details").
+
+Note: This benchmark was taken on jbonsai v0.4.1, on June 2026. If you are using newer jbonsai, rustc, LLVM etc., they can give you different result.
+
 ![Bar chart comparing relative execution time of HTS Engine and jbonsai across four platforms (Intel Core i5-13500, Apple M2, Raspberry Pi 4, and Compute Module 3), normalized so HTS Engine equals 100%; jbonsai consistently runs faster, requiring 44.8–60.1% of HTS Engine’s execution time (0.80–18.81 s versus 1.46–32.72 s), corresponding to roughly 1.6–2.2× speedup.](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_comparison_normalized.png)
-
-For a long sentence (about 128 sec), jbonsai performed 1.6–2.2× faster than HTS Engine, depending on the platform. It is also evident that in some archtectures like x86_64, using `-C target-cpu=native` greatly improves performance, in both HTS Engine and jbonsai (See Performance details).
-
-Note: This benchmark was taken on jbonsai 0.4.1, on June 2026. If you are using newer jbonsai, rustc, LLVM etc., they can give you different result.
 
 <details>
 <summary>Performance Details</summary>
@@ -117,7 +119,7 @@ Note: This benchmark was taken on jbonsai 0.4.1, on June 2026. If you are using 
 
 ### Objective and Workload
 
-The workload evaluates the execution efficiency of both engines by synthesizing the preamble of the Japanese Constitution, which generates an audio output of 128 seconds (6,130,960 samples, 48 kHz). To ensure functional correctness and parity before measuring performance, the raw audio outputs from the native builds of both engines were verified for bitwise identity using the `cmp` utility.
+The workload evaluates the execution efficiency of both engines by synthesizing the preamble of the Japanese Constitution using tohoku-f01-neutral, which generates an audio output of 128 seconds (6,130,960 samples, 48 kHz). To ensure functional correctness and parity before measuring performance, the raw audio outputs from the native builds of both engines were verified for bitwise identity using the `cmp` utility.
 
 ### Evaluated Targets
 
@@ -131,7 +133,7 @@ To capture the impact of modern toolchain optimization flags, five binary config
 
 ### Measurement and Execution
 
-The benchmark suite was orchestrated via a standardized shell automation script (built upon commit `86441a40b74780afef9aa9901ac5602ffd8788fd`). Performance metrics were collected using `hyperfine` (v1.19.0 / v1.20.0).
+The benchmark suite was orchestrated via a standardized shell automation script (built upon commit `86441a40b74780afef9aa9901ac5602ffd8788fd`, `hts-bench/bench.sh`). Performance metrics were collected using `hyperfine` (v1.19.0 / v1.20.0).
 
 Each target binary was subjected to 5 warmup runs to eliminate disk-caching skew, followed by 25 timed execution runs.
 
@@ -148,7 +150,7 @@ Testing was conducted across four distinct hardware platforms to assess performa
 
 > **Note on Platform-Specific Script Modifications**
 >
-> - **Intel Core i5-13500:** Compilation configurations were adjusted to resolve the local system's default LLD linker alias via `-fuse-ld=lld`. PL2 power constraints were explicitly written to `constraint_1_power_limit_uw` to standardize thermal environments.
+> - **Intel Core i5-13500:** Rust compilation configurations were adjusted to resolve the local system's default LLD linker alias via `-fuse-ld=lld`. PL2 power constraints were explicitly written to `constraint_1_power_limit_uw` to standardize thermal environments.
 >
 > - **Apple M2 (macOS):** System metric calls were migrated from Linux-centric utilities to Darwin equivalents (`sysctl`, `vm_stat`, and `sw_vers`). Cargo compilation profiles were configured using standard environment variables to enforce specific LTO behavior.
 
