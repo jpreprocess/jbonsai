@@ -70,7 +70,7 @@ Note 1: This benchmark was taken on jbonsai v0.4.1, on June 2026. If you are usi
 
 Note 2: This benchmark measured the time taken to synthesize the whole audio, but jbonsai can also synthesize audio in stream. If you're using this for applications where real-time performance is critical—such as reading text chat aloud in a voice chat—please try streaming synthesis as well.
 
-![Bar chart comparing relative execution time of HTS Engine and jbonsai across four platforms (Intel Core i5-13500, Apple M2, Raspberry Pi 4, and Compute Module 3), normalized so HTS Engine equals 100%; jbonsai consistently runs faster, requiring 44.8–60.1% of HTS Engine’s execution time (0.80–18.81 s versus 1.46–32.72 s), corresponding to roughly 1.6–2.2× speedup.](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_comparison_normalized.png)
+![Bar chart comparing relative execution time of HTS Engine and jbonsai across four platforms (Intel Core i5-13500, Apple M2, Raspberry Pi 4, and Compute Module 3), normalized so HTS Engine equals 100%; jbonsai consistently runs faster, requiring 44.8–60.1% of HTS Engine’s execution time (0.80–18.81 s versus 1.46–32.72 s), corresponding to roughly 1.6–2.2× speedup.](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_comparison_normalized.png)
 
 <details>
 <summary>Performance Details</summary>
@@ -100,19 +100,19 @@ Note 2: This benchmark measured the time taken to synthesize the whole audio, bu
 
 ### Core i5-13500 (Manjaro Linux, Clang 22.1.5, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_i5-13500.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_i5-13500.png)
 
 ### Apple M2 (macOS 26.4.1, Homebrew Clang 22.1.7, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_macos.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_macos.png)
 
 ### Raspberry Pi 4 (Debian GNU/Linux 13, Clang 22.1.8, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_rpi4_bench_clang.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_rpi4_bench_clang.png)
 
 ### Compute Module 3 (Debian GNU/Linux 13, Clang 22.1.8, Rustc 1.98.0-nightly)
 
-![](https://raw.githubusercontent.com/jpreprocess/jbonsai/e03dd1416c03a30d77a276e9b0a9637ecf2ce5bf/docs/benchmark_detail_cm3_bench_clang.png)
+![](https://raw.githubusercontent.com/jpreprocess/jbonsai/main/docs/benchmark_detail_cm3_bench_clang.png)
 
 </details>
 
