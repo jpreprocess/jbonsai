@@ -137,10 +137,10 @@ Testing was conducted across four distinct hardware platforms to assess performa
 
 | Platform / Environment | CPU Architecture | Operating System | Compiler & Linker Details | Power & Governor Tuning |
 |------------------------|------------------|------------------|---------------------------|-------------------------|
-| **Intel Core i5-13500**<br>(14 Cores / 20 Threads) | `x86_64` | Manjaro Linux | Clang 22.1.5<br>Rustc 1.98.0-nightly<br>LLD 22.1.5 | PL2 power limit capped at 65W via sysfs;<br>`powersave` scaling governor |
-| **Apple M2**<br>(8 Physical Cores) | `arm64` | macOS 26.4.1 | Homebrew Clang 22.1.7<br>Rustc 1.98.0-nightly<br>Homebrew LLD 22.1.7 | N/A (OS-managed) |
-| **Raspberry Pi 4**<br>(Cortex-A72, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly<br>LLD 22 | `ondemand` scaling governor |
-| **Compute Module 3**<br>(Cortex-A53, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly<br>LLD 22 | `ondemand` scaling governor |
+| **Intel Core i5-13500**<br>(14 Cores / 20 Threads) | `x86_64` | Manjaro Linux | Clang 22.1.5<br>Rustc 1.98.0-nightly (f428d123a 2026-06-19)<br>LLD 22.1.5 | PL2 power limit capped at 65W via sysfs;<br>`powersave` scaling governor |
+| **Apple M2**<br>(8 Physical Cores) | `arm64` | macOS 26.4.1 | Homebrew Clang 22.1.7<br>Rustc 1.98.0-nightly (f428d123a 2026-06-19)<br>Homebrew LLD 22.1.7 | N/A (OS-managed) |
+| **Raspberry Pi 4**<br>(Cortex-A72, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly (1f087276b 2026-06-13)<br>LLD 22 | `ondemand` scaling governor |
+| **Compute Module 3**<br>(Cortex-A53, 4 Cores) | `aarch64` | Debian GNU/Linux 13 (trixie) | Clang 22.1.8<br>Rustc 1.98.0-nightly (1f087276b 2026-06-13)<br>LLD 22 | `ondemand` scaling governor |
 
 > **Note on Platform-Specific Script Modifications**
 >
