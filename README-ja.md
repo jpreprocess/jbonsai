@@ -24,7 +24,7 @@
 
 ```toml
 [dependencies]
-jbonsai = "0.4.1"
+jbonsai = "0.4.2"
 ```
 
 <!-- x-release-please-end -->
