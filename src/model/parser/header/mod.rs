@@ -34,7 +34,9 @@ pub struct Global {
     pub stream_type: Vec<String>,
     pub fullcontext_format: String,
     pub fullcontext_version: String,
+    #[serde(default)]
     pub gv_off_context: Vec<String>,
+    #[serde(default)]
     pub comment: String,
 }
 
@@ -75,7 +77,9 @@ pub struct StreamData {
     pub vector_length: usize,
     pub num_windows: usize,
     pub is_msd: bool,
+    #[serde(default)]
     pub use_gv: bool,
+    #[serde(default)]
     pub option: Vec<String>,
 }
 
