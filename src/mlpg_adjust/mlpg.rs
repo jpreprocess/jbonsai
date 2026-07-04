@@ -2,6 +2,8 @@
 //!
 //! For details, please refer to <https://doi.org/10.1109/ICASSP.2000.861820>.
 
+use std::ops::Range;
+
 use crate::model::{GvParameter, MeanVari, Windows};
 
 use super::{IterExt, mask::Mask};
@@ -116,13 +118,30 @@ impl MlpgMatrix {
         par
     }
 
-    fn calculate_gv_switch(gv_switch: &[bool], durations: &[usize], mask: &[bool]) -> Vec<bool> {
-        gv_switch
+    fn calculate_gv_by_ranges(
+        gv_switch: &[bool],
+        durations: &[usize],
+        mask: &[bool],
+    ) -> Vec<(Range<usize>, bool)> {
+        let mut gv_by_ranges: Vec<(Range<usize>, bool)> = Vec::new();
+
+        for (i, sw) in gv_switch
             .iter()
             .copied()
             .duration(durations)
             .filter_by(mask)
-            .collect()
+            .enumerate()
+        {
+            if let Some((current_range, current_sw)) = gv_by_ranges.last_mut()
+                && *current_sw == sw
+            {
+                current_range.end += 1;
+            } else {
+                gv_by_ranges.push((i..i + 1, sw));
+            }
+        }
+
+        gv_by_ranges
     }
 
     /// Solve the equasion, and if necessary, applies GV (global variance).
@@ -137,9 +156,8 @@ impl MlpgMatrix {
         if let Some((gv_param, gv_switch)) = gv {
             let mtx_before = self.clone();
             let par = self.solve();
-            let gv_switch: Vec<_> =
-                Self::calculate_gv_switch(gv_switch, durations, msd_flag.mask());
-            let mgv = MlpgGlobalVariance::new(mtx_before, par, &gv_switch);
+            let gv_by_ranges = Self::calculate_gv_by_ranges(gv_switch, durations, msd_flag.mask());
+            let mgv = MlpgGlobalVariance::new(mtx_before, par, gv_by_ranges);
 
             let MeanVari(gv_mean, gv_vari) = gv_param[vector_index];
             mgv.apply_gv(gv_mean * gv_weight, gv_vari)
@@ -151,22 +169,19 @@ impl MlpgMatrix {
 
 /// MLPG global variance (GV) calculator.
 #[derive(Debug, Clone)]
-pub struct MlpgGlobalVariance<'a> {
+pub struct MlpgGlobalVariance {
     par: Vec<f64>,
-    gv_switch: &'a [bool],
-    gv_length: usize,
+    gv_by_ranges: Vec<(Range<usize>, bool)>,
 
     mtx: MlpgMatrix,
 }
 
-impl<'a> MlpgGlobalVariance<'a> {
+impl MlpgGlobalVariance {
     /// Create a new GV structure.
-    pub fn new(mtx: MlpgMatrix, par: Vec<f64>, gv_switch: &'a [bool]) -> Self {
-        let gv_length = gv_switch.iter().filter(|b| **b).count();
+    pub fn new(mtx: MlpgMatrix, par: Vec<f64>, gv_by_ranges: Vec<(Range<usize>, bool)>) -> Self {
         Self {
             par,
-            gv_switch,
-            gv_length,
+            gv_by_ranges,
             mtx,
         }
     }
@@ -178,18 +193,28 @@ impl<'a> MlpgGlobalVariance<'a> {
     }
 
     fn calc_gv(&self) -> (f64, f64) {
-        let mut sum = 0.0;
-        let mut sum_quad = 0.0;
+        let gv_length = gv_ranges(&self.gv_by_ranges)
+            .map(|r| r.len())
+            .sum::<usize>() as f64;
+        let mut sums = [0.0; 4];
+        let mut square_sums = [0.0; 4];
 
-        for (par, sw) in std::iter::zip(&self.par, self.gv_switch) {
-            if *sw {
-                sum += *par;
-                sum_quad += *par * *par;
+        for range in gv_ranges(&self.gv_by_ranges) {
+            let (par, par_rem) = self.par[range.clone()].as_chunks::<4>();
+            for p in par {
+                for i in 0..4 {
+                    sums[i] += p[i];
+                    square_sums[i] += p[i] * p[i];
+                }
+            }
+            for p in par_rem {
+                sums[0] += p;
+                square_sums[0] += p * p;
             }
         }
 
-        let mean = sum / self.gv_length as f64;
-        let vari = (sum_quad / self.gv_length as f64) - (mean * mean);
+        let mean = sums.iter().sum::<f64>() / gv_length;
+        let vari = (square_sums.iter().sum::<f64>() / gv_length) - (mean * mean);
         (mean, vari)
     }
 
@@ -198,9 +223,9 @@ impl<'a> MlpgGlobalVariance<'a> {
         let (mean, vari) = self.calc_gv();
         let ratio = (gv_mean / vari).sqrt();
 
-        for (par, sw) in std::iter::zip(&mut self.par, self.gv_switch) {
-            if *sw {
-                *par = ratio * (*par - mean) + mean;
+        for range in gv_ranges(&self.gv_by_ranges) {
+            for p in &mut self.par[range] {
+                *p = ratio * *p + (1.0 - ratio) * mean;
             }
         }
     }
@@ -253,25 +278,23 @@ impl<'a> MlpgGlobalVariance<'a> {
         let dv = -2.0 * gv_vari * (vari - gv_mean) / self.mtx.length as f64;
 
         assert!(width >= 1); // required for `wuw[0]` access
-        let wuw = self.mtx.wuw.chunks_exact(width);
-        let wum = &self.mtx.wum[..length];
-        let par = &mut self.par[..length];
-        let gv_switch = &self.gv_switch[..length];
-        let g = &g[..length];
+        for (Range { start, end }, sw) in &self.gv_by_ranges {
+            let wuw = self.mtx.wuw[start * width..end * width].chunks_exact(width);
+            let wum = &self.mtx.wum[*start..*end];
+            let par = &mut self.par[*start..*end];
+            let g = &g[*start..*end];
 
-        // .zip(0..length) to help optimizer recognize t < length
-        for (wuw, t) in wuw.zip(0..length) {
-            let h = -W1 * w * wuw[0]
-                - W2 * 2.0 / (length * length) as f64
-                    * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
-                        + 2.0 * gv_vari * (par[t] - mean) * (par[t] - mean));
-            let next_g = if gv_switch[t] {
-                1.0 / h * (W1 * w * (-g[t] + wum[t]) + W2 * dv * (par[t] - mean))
-            } else {
-                1.0 / h * (W1 * w * (-g[t] + wum[t]))
-            };
+            for (wuw, t) in wuw.zip(0..end - start) {
+                let h = -W1 * w * wuw[0]
+                    - W2 * 2.0 / (length * length) as f64
+                        * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
+                            + 2.0 * gv_vari * (par[t] - mean) * (par[t] - mean));
+                let next_g = 1.0 / h
+                    * (W1 * w * (-g[t] + wum[t])
+                        + (*sw as usize as f64) * W2 * dv * (par[t] - mean));
 
-            par[t] += step * next_g;
+                par[t] += step * next_g;
+            }
         }
     }
 
@@ -281,7 +304,7 @@ impl<'a> MlpgGlobalVariance<'a> {
         const STEPDEC: f64 = 0.5;
         const STEPINC: f64 = 1.2;
 
-        if self.gv_length == 0 || GV_MAX_ITERATION == 0 {
+        if self.gv_by_ranges.is_empty() || GV_MAX_ITERATION == 0 {
             return;
         }
 
@@ -308,4 +331,11 @@ impl<'a> MlpgGlobalVariance<'a> {
             prev = obj;
         }
     }
+}
+
+fn gv_ranges(gv_by_ranges: &[(Range<usize>, bool)]) -> impl Iterator<Item = Range<usize>> + '_ {
+    gv_by_ranges
+        .iter()
+        .filter(|(_, sw)| *sw)
+        .map(|(r, _)| r.clone())
 }
