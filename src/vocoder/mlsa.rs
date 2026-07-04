@@ -139,11 +139,11 @@ fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
     d[1] = iaa * x + a * d[1];
 
     let mut y = [0.0; 2];
-    let mut c = coefficients[2..d.len()].chunks_exact(4);
-    let mut d = d[2..].chunks_exact_mut(4);
+    let (c, c_rem) = coefficients[2..d.len()].as_chunks::<4>();
+    let (d, d_rem) = d[2..].as_chunks_mut::<4>();
 
     use std::iter::zip;
-    for (c, d) in zip(&mut c, &mut d) {
+    for (c, d) in zip(c, d) {
         (d[0], d[1], d[2], d[3], rem) = (
             mul_add!(iaa * rem + a * d[0]),
             mul_add!(iaa * (-a * rem + d[0]) + a * d[1]),
@@ -154,7 +154,7 @@ fn fir(d: &mut [f64], x: f64, alpha: f64, coefficients: &[f64]) -> f64 {
         y[0] += c[0] * d[0] + c[2] * d[2];
         y[1] += c[1] * d[1] + c[3] * d[3];
     }
-    for (c, d) in zip(c.remainder(), d.into_remainder()) {
+    for (c, d) in zip(c_rem, d_rem) {
         (*d, rem) = (iaa * rem + a * *d, -a * rem + *d);
         y[0] += c * *d;
     }
