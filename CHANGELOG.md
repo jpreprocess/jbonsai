@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3](https://github.com/jpreprocess/jbonsai/compare/v0.4.2...v0.4.3) (2026-07-04)
+
+
+### Bug Fixes
+
+* clippy ([a77a27a](https://github.com/jpreprocess/jbonsai/commit/a77a27ae247a6280fe100803f67c06ea25152dbc))
+
 ## [0.4.2](https://github.com/jpreprocess/jbonsai/compare/v0.4.1...v0.4.2) (2026-06-21)
 
 
