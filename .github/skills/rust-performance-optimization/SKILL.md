@@ -166,9 +166,9 @@ cargo flamegraph --bench bonsais -- --bench
 **On macOS**, use Instruments.app or Swift profiler instead:
 ```bash
 # Profile with macOS instruments (if available)
-cargo build --profile=bench
+cargo build --profile=bench --bench bonsais
 xcrun xctrace record --template "System Trace" \
-  ./target/bench/bonsais --bench
+  ./target/bench/deps/bonsais-* --bench
 ```
 
 ## Platform-Specific Considerations

@@ -71,7 +71,7 @@ cargo install cargo-show-asm
 cargo asm --lib module::function_name
 
 # Example from jbonsai
-cargo asm --profile=bench --lib mlpg_adjust::mlpg::ldl_factorization
+cargo asm --profile=bench --lib mlsa::fir
 ```
 
 ### Preventing Inlining
@@ -198,7 +198,7 @@ cargo build --profile=bench --bench bonsais
 # Profile with Instruments
 xcrun xctrace record --template "System Trace" \
   --output /tmp/trace.trace \
-  ./target/bench/bonsais --bench
+  ./target/bench/deps/bonsais-* --bench
 
 # Open in Instruments.app
 open /tmp/trace.trace
@@ -224,7 +224,7 @@ macOS: Use Activity Monitor or disable using Energy Saver settings.
 cargo build --bench bonsais --profile=bench
 
 # Run just one benchmark test multiple times
-./target/bench/bonsais --bench --nightly bonsai
+cargo bench --bench bonsais --profile=bench bonsai
 ```
 
 ### 3. Compare Before/After Codegen
