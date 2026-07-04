@@ -23,10 +23,10 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [[example]]
 name = "is-bonsai"
-required-features = ["binary"]
+# required-features = ["binary"]
 [[example]]
 name = "genji"
-required-features = ["binary"]
+# required-features = ["binary"]
 
 [dependencies]
 byteorder = "1.5.0"
