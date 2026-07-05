@@ -2,9 +2,12 @@
 //!
 //! For details, please refer to <https://doi.org/10.1109/ICASSP.2000.861820>.
 
-use crate::model::{GvParameter, MeanVari, Windows};
+use std::ops::Range;
 
-use super::{IterExt, mask::Mask};
+use crate::{
+    mlpg_adjust::mask::Mask,
+    model::{GvParameter, MeanVari, Windows},
+};
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
@@ -15,7 +18,7 @@ pub struct MlpgMatrix {
     win_size: usize,
     length: usize,
     width: usize,
-    wuw: Vec<Vec<f64>>,
+    wuw: Vec<f64>,
     wum: Vec<f64>,
 }
 
@@ -25,36 +28,30 @@ impl MlpgMatrix {
     pub fn calc_wuw_and_wum(windows: &Windows, parameters: Vec<Vec<MeanVari>>) -> Self {
         let length = parameters[0].len();
         let width = windows.max_width() * 2 + 1;
-        let mut wum = Vec::with_capacity(length);
-        let mut wuw = Vec::with_capacity(length);
+        let mut wum = vec![0.0; length];
+        let mut wuw = vec![0.0; length * width];
 
-        for t in 0..length {
-            wuw.push(vec![0.0; width]);
-            wum.push(0.0);
+        use std::iter::zip;
+        for (window, parameter) in zip(windows, &parameters) {
+            let parameter = &parameter[..length];
 
-            for (i, window) in windows.iter().enumerate() {
-                for (index, coef) in window.iter_rev(0) {
+            for (index, coef) in window.iter(window.left_width()) {
+                for ((wuw, wum), MeanVari(mean, vari)) in zip(
+                    wuw.chunks_exact_mut(width)
+                        .zip(&mut wum)
+                        .skip(index.max(0) as usize),
+                    parameter.iter().skip((-index).max(0) as usize),
+                ) {
                     if coef == 0.0 {
                         continue;
                     }
+                    *wum += coef * vari * mean;
 
-                    let idx = (t as isize) - index.position();
-                    if idx < 0 || idx >= length as isize {
-                        continue;
-                    }
-                    let wu = coef * parameters[i][idx as usize].1;
-                    wum[t] += wu * parameters[i][idx as usize].0;
-
-                    for (inner_index, coef) in window.iter_rev(index.index()) {
-                        if coef == 0.0 {
+                    for (wuw, (_, inner_coef)) in zip(wuw, window.iter(index)) {
+                        if inner_coef == 0.0 {
                             continue;
                         }
-                        let j = inner_index.index() - index.index();
-                        if t + j >= length {
-                            break;
-                        }
-
-                        wuw[t][j] += wu * coef;
+                        *wuw += coef * inner_coef * vari;
                     }
                 }
             }
@@ -77,41 +74,73 @@ impl MlpgMatrix {
 
     /// Perform Cholesky decomposition.
     fn ldl_factorization(&mut self) {
-        for t in 0..self.length {
-            for i in 1..self.width.min(t + 1) {
-                self.wuw[t][0] -= self.wuw[t - i][i] * self.wuw[t - i][i] * self.wuw[t - i][0];
+        let Self { width, length, .. } = *self;
+        let wuw = &mut self.wuw[..length * width];
+        for t in 0..length {
+            for i in 1..width.min(t + 1) {
+                wuw[width * t] -=
+                    wuw[(t - i) * width + i] * wuw[(t - i) * width + i] * wuw[(t - i) * width];
             }
-            for i in 1..self.width {
-                for j in 1..(self.width - i).min(t + 1) {
-                    self.wuw[t][i] -=
-                        self.wuw[t - j][j] * self.wuw[t - j][i + j] * self.wuw[t - j][0];
+            for i in 1..width {
+                for j in 1..(width - i).min(t + 1) {
+                    wuw[width * t + i] -= wuw[(t - j) * width + j]
+                        * wuw[(t - j) * width + i + j]
+                        * wuw[(t - j) * width];
                 }
-                self.wuw[t][i] /= self.wuw[t][0];
+                wuw[width * t + i] /= wuw[width * t];
             }
         }
     }
 
     /// Forward & backward substitution.
     fn substitutions(&self) -> Vec<f64> {
+        let Self { width, length, .. } = *self;
+        let wum = &self.wum[..length];
+        let wuw = &self.wuw[..length * width];
         let mut g = vec![0.0; self.length];
         // forward
-        for t in 0..self.length {
-            g[t] = self.wum[t];
-            for i in 1..self.width.min(t + 1) {
-                g[t] -= self.wuw[t - i][i] * g[t - i];
+        for t in 0..length {
+            g[t] = wum[t];
+            for i in 1..width.min(t + 1) {
+                g[t] -= wuw[(t - i) * width + i] * g[t - i];
             }
         }
 
         let mut par = vec![0.0; self.length];
         // backward
         for t in (0..self.length).rev() {
-            par[t] = g[t] / self.wuw[t][0];
-            for i in 1..self.width.min(self.length - t) {
-                par[t] -= self.wuw[t][i] * par[t + i];
+            par[t] = g[t] / wuw[t * width];
+            for i in 1..width.min(length - t) {
+                par[t] -= wuw[t * width + i] * par[t + i];
             }
         }
 
         par
+    }
+
+    fn calculate_gv_by_ranges(gv_switch: &[bool], mask: &Mask) -> Vec<(Range<usize>, bool)> {
+        let mut gv_by_ranges: Vec<(Range<usize>, bool)> = Vec::new();
+
+        let mut cum_duration = 0;
+        for (sw, (range, voiced_range)) in std::iter::zip(gv_switch, mask) {
+            // not voiced
+            if voiced_range.is_none() {
+                continue;
+            }
+
+            let range = cum_duration..cum_duration + range.len();
+            cum_duration += range.len();
+            if let Some((current_range, current_sw)) = gv_by_ranges.last_mut()
+                && *current_sw == *sw
+                && current_range.end == range.start
+            {
+                current_range.end = range.end;
+            } else {
+                gv_by_ranges.push((range, *sw));
+            }
+        }
+
+        gv_by_ranges
     }
 
     /// Solve the equasion, and if necessary, applies GV (global variance).
@@ -120,19 +149,13 @@ impl MlpgMatrix {
         gv: &Option<GvParameter>,
         vector_index: usize,
         gv_weight: f64,
-        durations: &[usize],
-        msd_flag: &Mask,
+        mask: &Mask,
     ) -> Vec<f64> {
         if let Some((gv_param, gv_switch)) = gv {
             let mtx_before = self.clone();
             let par = self.solve();
-            let gv_switch: Vec<_> = gv_switch
-                .iter()
-                .copied()
-                .duration(durations)
-                .filter_by(msd_flag.mask())
-                .collect();
-            let mgv = MlpgGlobalVariance::new(mtx_before, par, &gv_switch);
+            let gv_by_ranges = Self::calculate_gv_by_ranges(gv_switch, mask);
+            let mgv = MlpgGlobalVariance::new(mtx_before, par, gv_by_ranges);
 
             let MeanVari(gv_mean, gv_vari) = gv_param[vector_index];
             mgv.apply_gv(gv_mean * gv_weight, gv_vari)
@@ -144,22 +167,19 @@ impl MlpgMatrix {
 
 /// MLPG global variance (GV) calculator.
 #[derive(Debug, Clone)]
-pub struct MlpgGlobalVariance<'a> {
+pub struct MlpgGlobalVariance {
     par: Vec<f64>,
-    gv_switch: &'a [bool],
-    gv_length: usize,
+    gv_by_ranges: Vec<(Range<usize>, bool)>,
 
     mtx: MlpgMatrix,
 }
 
-impl<'a> MlpgGlobalVariance<'a> {
+impl MlpgGlobalVariance {
     /// Create a new GV structure.
-    pub fn new(mtx: MlpgMatrix, par: Vec<f64>, gv_switch: &'a [bool]) -> Self {
-        let gv_length = gv_switch.iter().filter(|b| **b).count();
+    pub fn new(mtx: MlpgMatrix, par: Vec<f64>, gv_by_ranges: Vec<(Range<usize>, bool)>) -> Self {
         Self {
             par,
-            gv_switch,
-            gv_length,
+            gv_by_ranges,
             mtx,
         }
     }
@@ -171,23 +191,28 @@ impl<'a> MlpgGlobalVariance<'a> {
     }
 
     fn calc_gv(&self) -> (f64, f64) {
-        let mean = self
-            .par
-            .iter()
-            .zip(self.gv_switch.iter())
-            .filter(|(_, sw)| **sw)
-            .map(|(p, _)| *p)
-            .sum::<f64>()
-            / self.gv_length as f64;
-        let vari = self
-            .par
-            .iter()
-            .zip(self.gv_switch.iter())
-            .filter(|(_, sw)| **sw)
-            .map(|(p, _)| (*p - mean) * (*p - mean))
-            .sum::<f64>()
-            / self.gv_length as f64;
+        let gv_length = gv_ranges(&self.gv_by_ranges)
+            .map(|r| r.len())
+            .sum::<usize>() as f64;
+        let mut sums = [0.0; 4];
+        let mut square_sums = [0.0; 4];
 
+        for range in gv_ranges(&self.gv_by_ranges) {
+            let (par, par_rem) = self.par[range.clone()].as_chunks::<4>();
+            for p in par {
+                for i in 0..4 {
+                    sums[i] += p[i];
+                    square_sums[i] += p[i] * p[i];
+                }
+            }
+            for p in par_rem {
+                sums[0] += p;
+                square_sums[0] += p * p;
+            }
+        }
+
+        let mean = sums.iter().sum::<f64>() / gv_length;
+        let vari = (square_sums.iter().sum::<f64>() / gv_length) - (mean * mean);
         (mean, vari)
     }
 
@@ -195,65 +220,79 @@ impl<'a> MlpgGlobalVariance<'a> {
     fn conv_gv(&mut self, gv_mean: f64) {
         let (mean, vari) = self.calc_gv();
         let ratio = (gv_mean / vari).sqrt();
-        self.par
-            .iter_mut()
-            .zip(self.gv_switch.iter())
-            .filter(|(_, sw)| **sw)
-            .for_each(|(p, _)| *p = ratio * (*p - mean) + mean);
+
+        for range in gv_ranges(&self.gv_by_ranges) {
+            for p in &mut self.par[range] {
+                *p = ratio * *p + (1.0 - ratio) * mean;
+            }
+        }
     }
     fn calc_hmmobj_derivative(&self) -> (f64, Vec<f64>) {
-        let mut g = vec![0.0; self.mtx.length];
+        let MlpgMatrix {
+            width,
+            length,
+            win_size,
+            ..
+        } = self.mtx;
+        assert!(width >= 1); // required for `wuw[0]` access
+        let wuw = self.mtx.wuw.chunks_exact(width);
+        let wum = &self.mtx.wum[..length];
+        let par = &self.par[..length];
 
-        #[allow(clippy::needless_range_loop)]
-        for t in 0..self.mtx.length {
-            g[t] = self.mtx.wuw[t][0] * self.par[t];
-            for i in 1..self.mtx.width {
-                if t + i < self.mtx.length {
-                    g[t] += self.mtx.wuw[t][i] * self.par[t + i];
-                }
-                if t + 1 > i {
-                    g[t] += self.mtx.wuw[t - i][i] * self.par[t - i];
+        let mut g = vec![0.0; length];
+
+        // .zip(0..length) to help optimizer recognize t < length
+        for (wuw, t) in wuw.zip(0..length) {
+            g[t] += wuw[0] * par[t];
+            for i in 1..width {
+                if t + i < length {
+                    g[t] += wuw[i] * par[t + i];
+                    g[t + i] += wuw[i] * par[t];
                 }
             }
         }
 
-        let w = 1.0 / ((self.mtx.win_size * self.mtx.length) as f64);
+        let w = 1.0 / ((win_size * length) as f64);
         let mut hmmobj = 0.0;
 
-        #[allow(clippy::needless_range_loop)]
-        for t in 0..self.mtx.length {
-            hmmobj += W1 * w * self.par[t] * (self.mtx.wum[t] - 0.5 * g[t]);
+        for t in 0..length {
+            hmmobj += W1 * w * par[t] * (wum[t] - 0.5 * g[t]);
         }
 
         (hmmobj, g)
     }
     fn next_step(
         &mut self,
-        g: Vec<f64>,
+        g: &[f64],
         step: f64,
         mean: f64,
         vari: f64,
         gv_mean: f64,
         gv_vari: f64,
     ) {
-        let length = self.mtx.length;
+        let MlpgMatrix { width, length, .. } = self.mtx;
 
         let w = 1.0 / ((self.mtx.win_size * length) as f64);
         let dv = -2.0 * gv_vari * (vari - gv_mean) / self.mtx.length as f64;
 
-        #[allow(clippy::needless_range_loop)]
-        for t in 0..length {
-            let h = -W1 * w * self.mtx.wuw[t][0]
-                - W2 * 2.0 / (length * length) as f64
-                    * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
-                        + 2.0 * gv_vari * (self.par[t] - mean) * (self.par[t] - mean));
-            let next_g = if self.gv_switch[t] {
-                1.0 / h * (W1 * w * (-g[t] + self.mtx.wum[t]) + W2 * dv * (self.par[t] - mean))
-            } else {
-                1.0 / h * (W1 * w * (-g[t] + self.mtx.wum[t]))
-            };
+        assert!(width >= 1); // required for `wuw[0]` access
+        for (Range { start, end }, sw) in &self.gv_by_ranges {
+            let wuw = self.mtx.wuw[start * width..end * width].chunks_exact(width);
+            let wum = &self.mtx.wum[*start..*end];
+            let par = &mut self.par[*start..*end];
+            let g = &g[*start..*end];
 
-            self.par[t] += step * next_g;
+            for (wuw, t) in wuw.zip(0..end - start) {
+                let h = -W1 * w * wuw[0]
+                    - W2 * 2.0 / (length * length) as f64
+                        * ((length - 1) as f64 * gv_vari * (vari - gv_mean)
+                            + 2.0 * gv_vari * (par[t] - mean) * (par[t] - mean));
+                let next_g = 1.0 / h
+                    * (W1 * w * (-g[t] + wum[t])
+                        + (*sw as usize as f64) * W2 * dv * (par[t] - mean));
+
+                par[t] += step * next_g;
+            }
         }
     }
 
@@ -263,7 +302,7 @@ impl<'a> MlpgGlobalVariance<'a> {
         const STEPDEC: f64 = 0.5;
         const STEPINC: f64 = 1.2;
 
-        if self.gv_length == 0 || GV_MAX_ITERATION == 0 {
+        if self.gv_by_ranges.is_empty() || GV_MAX_ITERATION == 0 {
             return;
         }
 
@@ -285,9 +324,16 @@ impl<'a> MlpgGlobalVariance<'a> {
                 }
             }
 
-            self.next_step(g, step, mean, vari, gv_mean, gv_vari);
+            self.next_step(&g, step, mean, vari, gv_mean, gv_vari);
 
             prev = obj;
         }
     }
+}
+
+fn gv_ranges(gv_by_ranges: &[(Range<usize>, bool)]) -> impl Iterator<Item = Range<usize>> + '_ {
+    gv_by_ranges
+        .iter()
+        .filter(|(_, sw)| *sw)
+        .map(|(r, _)| r.clone())
 }

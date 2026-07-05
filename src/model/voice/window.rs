@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -11,13 +13,22 @@ impl Windows {
     }
 
     pub fn iter(&self) -> impl '_ + Iterator<Item = &Window> {
-        self.windows.iter()
+        self.into_iter()
     }
     pub fn size(&self) -> usize {
         self.windows.len()
     }
     pub fn max_width(&self) -> usize {
         self.windows.iter().map(Window::width).max().unwrap_or(0) / 2
+    }
+}
+
+impl<'a> IntoIterator for &'a Windows {
+    type Item = &'a Window;
+    type IntoIter = std::slice::Iter<'a, Window>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.windows.iter()
     }
 }
 
@@ -31,27 +42,26 @@ impl Window {
         Self { coefficients }
     }
 
-    pub fn iter_rev(&self, start: usize) -> impl '_ + Iterator<Item = (WindowIndex, f64)> {
-        let width = self.width();
-        self.coefficients[start..]
+    #[inline(always)]
+    pub fn iter(&self, start: isize) -> impl '_ + Iterator<Item = (isize, f64)> {
+        self.coefficients[(start - self.left_width()) as usize..]
             .iter()
             .enumerate()
-            .rev()
-            .zip(std::iter::repeat((start, width)))
-            .map(|((idx, coef), (start, width))| (WindowIndex::new(start + idx, width), *coef))
+            .map(move |(idx, coef)| (idx as isize + start, *coef))
     }
 
     #[inline]
-    pub fn width(&self) -> usize {
+    pub(super) fn width(&self) -> usize {
         self.coefficients.len()
     }
     #[inline]
-    pub fn left_width(&self) -> usize {
-        self.width() / 2
+    pub fn left_width(&self) -> isize {
+        -(self.width() as isize / 2)
     }
     #[inline]
-    pub fn right_width(&self) -> usize {
-        self.width() - self.left_width() - 1
+    pub fn contained_in(&self, range: &Range<usize>, self_index: usize) -> bool {
+        self_index >= range.start + (self.width() / 2)
+            && range.end > self_index + (self.width() / 2)
     }
 }
 
@@ -85,32 +95,34 @@ mod tests {
         let window = Window::new(vec![0.0]);
         assert_eq!(window.width(), 1);
         assert_eq!(window.left_width(), 0);
-        assert_eq!(window.right_width(), 0);
+        assert!(!window.contained_in(&(3..5), 2));
+        assert!(window.contained_in(&(3..5), 3));
+        assert!(window.contained_in(&(3..5), 4));
+        assert!(!window.contained_in(&(3..5), 5));
     }
 
     #[test]
     fn width_3() {
         let window = Window::new(vec![-1.0, 0.0, 1.0]);
         assert_eq!(window.width(), 3);
-        assert_eq!(window.left_width(), 1);
-        assert_eq!(window.right_width(), 1);
+        assert_eq!(window.left_width(), -1);
+        assert!(!window.contained_in(&(3..6), 2));
+        assert!(!window.contained_in(&(3..6), 3));
+        assert!(window.contained_in(&(3..6), 4));
+        assert!(!window.contained_in(&(3..6), 5));
     }
 
     #[test]
     fn iterator() {
         let window = Window::new(vec![-1.0, 0.0, 1.0]);
-        let iterated = window.iter_rev(0).collect::<Vec<_>>();
+        let iterated = window.iter(window.left_width()).collect::<Vec<_>>();
 
-        assert_eq!(iterated[2].1, -1.0);
+        assert_eq!(iterated[0].1, -1.0);
         assert_eq!(iterated[1].1, 0.0);
-        assert_eq!(iterated[0].1, 1.0);
+        assert_eq!(iterated[2].1, 1.0);
 
-        assert_eq!(iterated[2].0.index(), 0);
-        assert_eq!(iterated[1].0.index(), 1);
-        assert_eq!(iterated[0].0.index(), 2);
-
-        assert_eq!(iterated[2].0.position(), -1);
-        assert_eq!(iterated[1].0.position(), 0);
-        assert_eq!(iterated[0].0.position(), 1);
+        assert_eq!(iterated[0].0, -1);
+        assert_eq!(iterated[1].0, 0);
+        assert_eq!(iterated[2].0, 1);
     }
 }
