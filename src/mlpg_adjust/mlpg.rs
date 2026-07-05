@@ -6,7 +6,7 @@ use std::ops::Range;
 
 use crate::model::{GvParameter, MeanVari, Windows};
 
-use super::{IterExt, mask::Mask};
+use super::IterExt;
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
@@ -151,12 +151,12 @@ impl MlpgMatrix {
         vector_index: usize,
         gv_weight: f64,
         durations: &[usize],
-        msd_flag: &Mask,
+        mask: &[bool],
     ) -> Vec<f64> {
         if let Some((gv_param, gv_switch)) = gv {
             let mtx_before = self.clone();
             let par = self.solve();
-            let gv_by_ranges = Self::calculate_gv_by_ranges(gv_switch, durations, msd_flag.mask());
+            let gv_by_ranges = Self::calculate_gv_by_ranges(gv_switch, durations, mask);
             let mgv = MlpgGlobalVariance::new(mtx_before, par, gv_by_ranges);
 
             let MeanVari(gv_mean, gv_vari) = gv_param[vector_index];

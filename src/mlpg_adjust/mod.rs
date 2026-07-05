@@ -51,13 +51,14 @@ impl<'a> MlpgAdjust<'a> {
     pub fn create(&self, durations: &[usize]) -> Vec<Vec<f64>> {
         let msd_flag = Mask::create(&self.stream, self.msd_threshold, durations);
         let msd_boundaries = msd_flag.boundary_distances();
-        let mut pars = vec![vec![0.0; self.vector_length]; msd_flag.mask().len()];
+        let mask = msd_flag.mask();
+        let mut pars = vec![vec![0.0; self.vector_length]; mask.len()];
 
         for vector_index in 0..self.vector_length {
             let parameters =
-                self.create_parameters(vector_index, durations, &msd_boundaries, msd_flag.mask());
+                self.create_parameters(vector_index, durations, &msd_boundaries, &mask);
             let mut mtx = MlpgMatrix::calc_wuw_and_wum(self.windows, parameters);
-            let par = mtx.par(&self.gv, vector_index, self.gv_weight, durations, &msd_flag);
+            let par = mtx.par(&self.gv, vector_index, self.gv_weight, durations, &mask);
 
             for (par, value) in pars.iter_mut().zip(msd_flag.fill(par, NODATA)) {
                 par[vector_index] = value;
