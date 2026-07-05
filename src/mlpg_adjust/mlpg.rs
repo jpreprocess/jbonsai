@@ -31,28 +31,27 @@ impl MlpgMatrix {
         let mut wum = vec![0.0; length];
         let mut wuw = vec![0.0; length * width];
 
-        for (window, parameter) in std::iter::zip(windows, &parameters) {
+        use std::iter::zip;
+        for (window, parameter) in zip(windows, &parameters) {
             let parameter = &parameter[..length];
 
-            for t in 0..length {
-                for (index, coef) in window.iter(window.left_width()) {
+            for (index, coef) in window.iter(window.left_width()) {
+                for ((wuw, wum), MeanVari(mean, vari)) in zip(
+                    wuw.chunks_exact_mut(width)
+                        .zip(&mut wum)
+                        .skip(index.max(0) as usize),
+                    parameter.iter().skip((-index).max(0) as usize),
+                ) {
                     if coef == 0.0 {
                         continue;
                     }
+                    *wum += coef * vari * mean;
 
-                    let idx = (t as isize) - index;
-                    if idx < 0 || idx >= length as isize {
-                        continue;
-                    }
-                    let MeanVari(mean, vari) = parameter[idx as usize];
-                    wum[t] += coef * vari * mean;
-
-                    for (inner_index, inner_coef) in window.iter(index) {
+                    for (wuw, (_, inner_coef)) in zip(wuw, window.iter(index)) {
                         if inner_coef == 0.0 {
                             continue;
                         }
-                        let j = (inner_index - index) as usize;
-                        wuw[t * width + j] += coef * inner_coef * vari;
+                        *wuw += coef * inner_coef * vari;
                     }
                 }
             }
