@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -49,7 +51,7 @@ impl Window {
     }
 
     #[inline]
-    pub fn width(&self) -> usize {
+    pub(super) fn width(&self) -> usize {
         self.coefficients.len()
     }
     #[inline]
@@ -57,8 +59,9 @@ impl Window {
         -(self.width() as isize / 2)
     }
     #[inline]
-    pub fn right_width(&self) -> isize {
-        self.width() as isize + self.left_width() - 1
+    pub fn contained_in(&self, range: &Range<usize>, self_index: usize) -> bool {
+        self_index >= range.start + (self.width() / 2)
+            && range.end > self_index + (self.width() / 2)
     }
 }
 
@@ -92,7 +95,10 @@ mod tests {
         let window = Window::new(vec![0.0]);
         assert_eq!(window.width(), 1);
         assert_eq!(window.left_width(), 0);
-        assert_eq!(window.right_width(), 0);
+        assert!(!window.contained_in(&(3..5), 2));
+        assert!(window.contained_in(&(3..5), 3));
+        assert!(window.contained_in(&(3..5), 4));
+        assert!(!window.contained_in(&(3..5), 5));
     }
 
     #[test]
@@ -100,7 +106,10 @@ mod tests {
         let window = Window::new(vec![-1.0, 0.0, 1.0]);
         assert_eq!(window.width(), 3);
         assert_eq!(window.left_width(), -1);
-        assert_eq!(window.right_width(), 1);
+        assert!(!window.contained_in(&(3..6), 2));
+        assert!(!window.contained_in(&(3..6), 3));
+        assert!(window.contained_in(&(3..6), 4));
+        assert!(!window.contained_in(&(3..6), 5));
     }
 
     #[test]

@@ -4,9 +4,10 @@
 
 use std::ops::Range;
 
-use crate::model::{GvParameter, MeanVari, Windows};
-
-use super::IterExt;
+use crate::{
+    mlpg_adjust::mask::Mask,
+    model::{GvParameter, MeanVari, Windows},
+};
 
 const W1: f64 = 1.0;
 const W2: f64 = 1.0;
@@ -118,26 +119,25 @@ impl MlpgMatrix {
         par
     }
 
-    fn calculate_gv_by_ranges(
-        gv_switch: &[bool],
-        durations: &[usize],
-        mask: &[bool],
-    ) -> Vec<(Range<usize>, bool)> {
+    fn calculate_gv_by_ranges(gv_switch: &[bool], mask: &Mask) -> Vec<(Range<usize>, bool)> {
         let mut gv_by_ranges: Vec<(Range<usize>, bool)> = Vec::new();
 
-        for (i, sw) in gv_switch
-            .iter()
-            .copied()
-            .duration(durations)
-            .filter_by(mask)
-            .enumerate()
-        {
+        let mut cum_duration = 0;
+        for (sw, (range, voiced_range)) in std::iter::zip(gv_switch, mask) {
+            // not voiced
+            if voiced_range.is_none() {
+                continue;
+            }
+
+            let range = cum_duration..cum_duration + range.len();
+            cum_duration += range.len();
             if let Some((current_range, current_sw)) = gv_by_ranges.last_mut()
-                && *current_sw == sw
+                && *current_sw == *sw
+                && current_range.end == range.start
             {
-                current_range.end += 1;
+                current_range.end = range.end;
             } else {
-                gv_by_ranges.push((i..i + 1, sw));
+                gv_by_ranges.push((range, *sw));
             }
         }
 
@@ -150,13 +150,12 @@ impl MlpgMatrix {
         gv: &Option<GvParameter>,
         vector_index: usize,
         gv_weight: f64,
-        durations: &[usize],
-        mask: &[bool],
+        mask: &Mask,
     ) -> Vec<f64> {
         if let Some((gv_param, gv_switch)) = gv {
             let mtx_before = self.clone();
             let par = self.solve();
-            let gv_by_ranges = Self::calculate_gv_by_ranges(gv_switch, durations, mask);
+            let gv_by_ranges = Self::calculate_gv_by_ranges(gv_switch, mask);
             let mgv = MlpgGlobalVariance::new(mtx_before, par, gv_by_ranges);
 
             let MeanVari(gv_mean, gv_vari) = gv_param[vector_index];

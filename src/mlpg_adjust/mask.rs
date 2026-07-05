@@ -9,9 +9,9 @@ use crate::model::StreamParameter;
 /// Mask for unvoiced frames
 pub struct Mask {
     // matches the length of `durations`
-    ranged_durations: Vec<Range<usize>>,
+    pub(super) ranged_durations: Vec<Range<usize>>,
     // contiguous ranges joined together
-    voiced_ranges: Vec<Range<usize>>,
+    pub(super) voiced_ranges: Vec<Range<usize>>,
 }
 
 impl Mask {
@@ -42,8 +42,10 @@ impl Mask {
     pub fn len(&self) -> usize {
         self.ranged_durations.last().map_or(0, |r| r.end)
     }
-    /// Get the internal mask.
-    pub fn mask(&self) -> Vec<bool> {
+    pub fn voiced_len(&self) -> usize {
+        self.voiced_ranges.iter().map(|r| r.len()).sum()
+    }
+    fn mask(&self) -> Vec<bool> {
         let mut out = vec![false; self.len()];
         for range in &self.voiced_ranges {
             out[range.clone()].fill(true);
@@ -65,19 +67,49 @@ impl Mask {
             }
         })
     }
-    /// Get distances from left- and right-boundaries.
-    pub fn boundary_distances(&self) -> Vec<(usize, usize)> {
-        if self.ranged_durations.is_empty() {
-            return vec![];
-        }
+}
 
-        let mut out = vec![(0, 0); self.len()];
-        for range in &self.voiced_ranges {
-            for i in range.clone() {
-                out[i] = (i - range.start, range.end - 1 - i);
-            }
+#[derive(Debug)]
+pub struct IntoIter<'a> {
+    ranged_durations: std::slice::Iter<'a, Range<usize>>,
+    voiced_ranges: std::slice::Iter<'a, Range<usize>>,
+    next_voiced_range: Option<&'a Range<usize>>,
+}
+
+impl<'a> IntoIter<'a> {
+    pub fn new(mask: &'a Mask) -> Self {
+        let ranged_durations = mask.ranged_durations.iter();
+        let mut voiced_ranges = mask.voiced_ranges.iter();
+        let next_voiced_range = voiced_ranges.next();
+        Self {
+            ranged_durations,
+            voiced_ranges,
+            next_voiced_range,
         }
-        out
+    }
+}
+
+impl Iterator for IntoIter<'_> {
+    type Item = (Range<usize>, Option<Range<usize>>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let range = self.ranged_durations.next()?;
+        let voiced_range = self
+            .next_voiced_range
+            .filter(|r| r.start <= range.start && range.end <= r.end);
+        if voiced_range.is_some_and(|r| r.end == range.end) {
+            self.next_voiced_range = self.voiced_ranges.next();
+        }
+        Some((range.clone(), voiced_range.cloned()))
+    }
+}
+
+impl<'a> IntoIterator for &'a Mask {
+    type Item = <IntoIter<'a> as Iterator>::Item;
+    type IntoIter = IntoIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter::new(self)
     }
 }
 
@@ -108,74 +140,6 @@ mod tests {
             .fill([0, 1], 5)
             .collect::<Vec<_>>(),
             vec![5, 5]
-        );
-    }
-    #[test]
-    fn boundary_distances() {
-        assert_eq!(
-            Mask {
-                ranged_durations: vec![0..10],
-                voiced_ranges: vec![0..10]
-            }
-            .boundary_distances(),
-            vec![
-                (0, 9),
-                (1, 8),
-                (2, 7),
-                (3, 6),
-                (4, 5),
-                (5, 4),
-                (6, 3),
-                (7, 2),
-                (8, 1),
-                (9, 0)
-            ],
-        );
-        assert_eq!(
-            Mask {
-                ranged_durations: vec![0..3, 3..5, 5..10],
-                voiced_ranges: vec![0..3, 5..10]
-            }
-            .boundary_distances(),
-            vec![
-                (0, 2),
-                (1, 1),
-                (2, 0),
-                (0, 0),
-                (0, 0),
-                (0, 4),
-                (1, 3),
-                (2, 2),
-                (3, 1),
-                (4, 0)
-            ]
-        );
-        assert_eq!(
-            Mask {
-                ranged_durations: vec![0..3, 3..4, 4..5, 5..10],
-                voiced_ranges: vec![0..3, 4..5]
-            }
-            .boundary_distances(),
-            vec![
-                (0, 2),
-                (1, 1),
-                (2, 0),
-                (0, 0),
-                (0, 0),
-                (0, 0),
-                (0, 0),
-                (0, 0),
-                (0, 0),
-                (0, 0)
-            ]
-        );
-        assert_eq!(
-            Mask {
-                ranged_durations: vec![],
-                voiced_ranges: vec![]
-            }
-            .boundary_distances(),
-            vec![]
         );
     }
 }
